@@ -160,4 +160,28 @@ describe('Agent Worker', () => {
     expect(metrics.analysisErrors.inc).toHaveBeenCalled();
     expect(mockAlerterClient.sendAlert).toHaveBeenCalled();
   });
+
+  it('should handle markdown-wrapped JSON from the LLM provider', async () => {
+    const { parentPort } = require('worker_threads');
+    const { metrics } = require('../metrics');
+    const log = 'this is a log that will be wrapped';
+    const analysis = { decision: 'alert', reason: 'it is an error' };
+    const markdownResponse = '```json\n' + JSON.stringify(analysis, null, 2) + '\n```';
+    mockLlmProvider.generate.mockResolvedValue(markdownResponse);
+
+    if (!parentPort) {
+      throw new Error('parentPort is null');
+    }
+    const messageHandler = (parentPort.on as jest.Mock).mock.calls[0][1];
+    await messageHandler(log);
+
+    expect(mockLlmProvider.generate).toHaveBeenCalled();
+    expect(metrics.alertsTriggered.inc).toHaveBeenCalled();
+    expect(mockAlerterClient.sendAlert).toHaveBeenCalledWith({
+      source: 'log_analysis',
+      type: 'anomaly_detected',
+      details: analysis.reason,
+      log: log,
+    });
+  });
 });

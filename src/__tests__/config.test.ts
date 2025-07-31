@@ -25,7 +25,9 @@ describe('loadConfig', () => {
   });
 
   it('should return the default config if no config file is found', async () => {
-    mockedFs.access.mockRejectedValue(new Error('ENOENT'));
+    const error = new Error('File not found');
+    (error as any).code = 'ENOENT';
+    mockedFs.access.mockRejectedValue(error);
     const config = await loadConfig();
     expect(config.port).toBe(8080);
     expect(config.workers).toBe(4);
@@ -49,7 +51,9 @@ describe('loadConfig', () => {
 
   it('should use GEMINI_API_KEY for gemini provider', async () => {
     process.env.GEMINI_API_KEY = 'gemini-key';
-    mockedFs.access.mockRejectedValue(new Error('ENOENT')); // No config file
+    const error = new Error('File not found');
+    (error as any).code = 'ENOENT';
+    mockedFs.access.mockRejectedValue(error); // No config file
     const config = await loadConfig();
     expect(config.apiKey).toBe('gemini-key');
   });

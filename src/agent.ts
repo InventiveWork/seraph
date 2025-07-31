@@ -27,8 +27,15 @@ if (!isMainThread) {
     `;
 
     try {
-      const text = await provider.generate(prompt);
+      let text = await provider.generate(prompt);
       end();
+      
+      // Clean the response to ensure it's valid JSON
+      const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/);
+      if (jsonMatch && jsonMatch[1]) {
+        text = jsonMatch[1];
+      }
+
       return JSON.parse(text);
     } catch (error: any) {
       end();
