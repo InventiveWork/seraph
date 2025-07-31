@@ -17,6 +17,7 @@ describe('OpenAIProvider', () => {
       port: 8080,
       workers: 4,
       apiKey: 'test-key',
+      serverApiKey: null,
     };
     const provider = new OpenAIProvider(config);
     const response = await provider.generate('test prompt');

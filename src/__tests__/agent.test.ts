@@ -19,6 +19,7 @@ describe('AgentManager', () => {
       port: 8080,
       workers: 2,
       apiKey: 'test-key',
+      serverApiKey: null,
       preFilters: ['debug', 'info'],
     };
   });
@@ -50,7 +51,9 @@ describe('AgentManager', () => {
     const log = 'this is a test log';
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     agentManager.dispatch(log);
-    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('Invalid regex in preFilters'), expect.any(String));
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.stringContaining('[AgentManager] Unsafe regex in preFilters: (')
+    );
     errorSpy.mockRestore();
   });
 

@@ -17,6 +17,7 @@ describe('GeminiProvider', () => {
       port: 8080,
       workers: 4,
       apiKey: 'test-key',
+      serverApiKey: null,
     };
     const provider = new GeminiProvider(config);
 
@@ -28,6 +29,7 @@ describe('GeminiProvider', () => {
       port: 8080,
       workers: 4,
       apiKey: null,
+      serverApiKey: null,
     };
     expect(() => new GeminiProvider(config)).toThrow('Gemini API key not found in config.');
   });

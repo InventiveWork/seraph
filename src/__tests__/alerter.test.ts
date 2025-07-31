@@ -27,6 +27,7 @@ describe('AlerterClient', () => {
       port: 8080,
       workers: 1,
       apiKey: 'test-key',
+      serverApiKey: null,
       alertManager: {
         url: 'http://fake-alertmanager:9093/api/v2/alerts',
       },
@@ -70,6 +71,7 @@ describe('AlerterClient', () => {
       port: 8080,
       workers: 1,
       apiKey: 'test-key',
+      serverApiKey: null,
     };
     const alerter = new AlerterClient(config);
     const context = {
@@ -89,6 +91,7 @@ describe('AlerterClient', () => {
       port: 8080,
       workers: 1,
       apiKey: 'test-key',
+      serverApiKey: null,
       alertManager: {
         url: 'http://fake-alertmanager:9093/api/v2/alerts',
       },
@@ -113,6 +116,7 @@ describe('AlerterClient', () => {
       port: 8080,
       workers: 1,
       apiKey: 'test-key',
+      serverApiKey: null,
       alertManager: {
         url: 'http://fake-alertmanager:9093/api/v2/alerts',
       },

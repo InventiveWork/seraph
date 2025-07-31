@@ -5,6 +5,7 @@ export interface SeraphConfig {
   port: number;
   workers: number;
   apiKey: string | null;
+  serverApiKey: string | null;
   llm?: {
     provider: 'gemini' | 'anthropic' | 'openai';
     model?: string;
@@ -13,12 +14,18 @@ export interface SeraphConfig {
     url: string;
   };
   preFilters?: string[];
+  rateLimit?: {
+    window: number;
+    maxRequests: number;
+  };
+  recentLogsMaxSizeMb?: number;
 }
 
 const defaultConfig: SeraphConfig = {
   port: 8080,
   workers: 4,
   apiKey: process.env.SERAPH_API_KEY || null,
+  serverApiKey: process.env.SERVER_API_KEY || null,
   llm: {
     provider: 'gemini',
   },
@@ -26,16 +33,22 @@ const defaultConfig: SeraphConfig = {
     url: 'http://localhost:9093/api/v2/alerts' // Default for Prometheus Alertmanager
   },
   preFilters: [],
+  rateLimit: {
+    window: 60000, // 1 minute
+    maxRequests: 100,
+  },
+  recentLogsMaxSizeMb: 10, // 10MB
 };
 
-export function loadConfig(): SeraphConfig {
+export async function loadConfig(): Promise<SeraphConfig> {
   const configPath = path.join(process.cwd(), 'seraph.config.json');
   let userConfig: Partial<SeraphConfig> = {};
 
-  if (fs.existsSync(configPath)) {
-    try {
-      userConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-    } catch (error) {
+  try {
+    await fs.promises.access(configPath);
+    userConfig = JSON.parse(await fs.promises.readFile(configPath, 'utf-8'));
+  } catch (error: any) {
+    if (error.code !== 'ENOENT') {
       console.error("Error reading or parsing 'seraph.config.json'.", error);
     }
   }
@@ -45,6 +58,7 @@ export function loadConfig(): SeraphConfig {
     ...userConfig,
     llm: { ...defaultConfig.llm, ...userConfig.llm } as SeraphConfig['llm'],
     alertManager: { ...defaultConfig.alertManager, ...userConfig.alertManager } as SeraphConfig['alertManager'],
+    rateLimit: { ...defaultConfig.rateLimit, ...userConfig.rateLimit } as SeraphConfig['rateLimit'],
   };
 
   // Set API key from environment variables if not already set
@@ -67,3 +81,4 @@ export function loadConfig(): SeraphConfig {
 
   return config;
 }
+

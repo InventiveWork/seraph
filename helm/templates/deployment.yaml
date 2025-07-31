@@ -39,13 +39,30 @@ spec:
               protocol: TCP
           env:
             - name: GEMINI_API_KEY
-              value: {{ .Values.env.GEMINI_API_KEY | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.name }}
+                  key: gemini-api-key
             - name: ANTHROPIC_API_KEY
-              value: {{ .Values.env.ANTHROPIC_API_KEY | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.name }}
+                  key: anthropic-api-key
             - name: OPENAI_API_KEY
-              value: {{ .Values.env.OPENAI_API_KEY | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.name }}
+                  key: openai-api-key
+            - name: SERVER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.name }}
+                  key: server-api-key
             - name: SERAPH_MITIGATION_API_KEY
-              value: {{ .Values.env.SERAPH_MITIGATION_API_KEY | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.name }}
+                  key: seraph-mitigation-api-key
           volumeMounts:
             - name: config
               mountPath: /usr/src/app/seraph.config.json

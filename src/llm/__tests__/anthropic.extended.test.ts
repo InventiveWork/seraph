@@ -15,6 +15,7 @@ describe('AnthropicProvider', () => {
       port: 8080,
       workers: 4,
       apiKey: 'test-key',
+      serverApiKey: null,
     };
     const provider = new AnthropicProvider(config);
 
@@ -26,6 +27,7 @@ describe('AnthropicProvider', () => {
       port: 8080,
       workers: 4,
       apiKey: null,
+      serverApiKey: null,
     };
     expect(() => new AnthropicProvider(config)).toThrow('Anthropic API key not found in config.');
   });

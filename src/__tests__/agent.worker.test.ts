@@ -11,6 +11,7 @@ jest.mock('worker_threads', () => ({
   },
   workerData: {
     config: {
+      serverApiKey: null,
       llm: {
         provider: 'gemini',
         model: 'gemini-pro',
@@ -59,6 +60,7 @@ describe('Agent Worker', () => {
       },
       workerData: {
         config: {
+          serverApiKey: null,
           llm: {
             provider: 'gemini',
             model: 'gemini-pro',

@@ -38,6 +38,7 @@ seraph chat "What's the weather in London?" --mcp-server-url https://mcp.praison
 
 The agent will connect to the specified server, discover its tools (like a weather tool), and use them to answer your question.
 
+**Security Warning:** Only connect to MCP servers that you trust. A malicious MCP server could provide tools that could harm your system or exfiltrate data.
 
 ## Autonomous Log Analysis and Alerting
 
@@ -98,7 +99,19 @@ Create a file named `seraph.config.json` in your project directory.
 }
 ```
 
-The `apiKey` should be set to the API key for the selected LLM provider.
+-   `port`: The port for the log ingestion server.
+-   `workers`: The number of worker threads for log analysis.
+-   `apiKey`: The API key for the selected LLM provider.
+-   `serverApiKey`: An API key to secure the server endpoints. If set, requests must include an `Authorization: Bearer <key>` header.
+-   `llm`: The LLM provider and model to use.
+-   `alertManager`: The URL for the Alertmanager instance.
+-   `preFilters`: An array of regular expressions to filter logs before analysis.
+-   `rateLimit`: Configuration for the request rate limiter.
+    -   `window`: The time window in milliseconds.
+    -   `maxRequests`: The maximum number of requests per window.
+-   `recentLogsMaxSizeMb`: The maximum size of the recent logs buffer in megabytes.
+
+The `apiKey` can be set in the `seraph.config.json` file. However, it's recommended to use environment variables for API keys, as they take precedence over the configuration file.
 
 ### Pre-filtering Logs
 
@@ -172,6 +185,9 @@ The Seraph agent is controlled via the `seraph` command.
 ### `seraph start`
 
 Starts the agent and the log ingestion server.
+
+**Options:**
+- `--mcp-server-url <url>`: Connect to an MCP server to enable dynamic tool usage.
 
 ### `seraph status`
 

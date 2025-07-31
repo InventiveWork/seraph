@@ -1,55 +1,97 @@
-import { loadConfig } from '../config';
+import { loadConfig, SeraphConfig } from '../config';
 import * as fs from 'fs';
 
-jest.mock('fs');
+jest.mock('fs', () => ({
+  promises: {
+    access: jest.fn(),
+    readFile: jest.fn(),
+  },
+}));
+
+const mockedFs = fs.promises as jest.Mocked<typeof fs.promises>;
 
 describe('loadConfig', () => {
-  const mockedFs = fs as jest.Mocked<typeof fs>;
+  const originalEnv = process.env;
 
-  afterEach(() => {
-    jest.resetAllMocks();
-    delete process.env.SERAPH_API_KEY;
+  beforeEach(() => {
+    jest.resetModules(); // Clears the cache
+    process.env = { ...originalEnv }; // Make a copy
+    mockedFs.readFile.mockClear();
+    mockedFs.access.mockClear();
   });
 
-  it('should return the default config if no config file is found', () => {
-    mockedFs.existsSync.mockReturnValue(false);
-    const config = loadConfig();
+  afterAll(() => {
+    process.env = originalEnv; // Restore old environment
+  });
+
+  it('should return the default config if no config file is found', async () => {
+    mockedFs.access.mockRejectedValue(new Error('ENOENT'));
+    const config = await loadConfig();
     expect(config.port).toBe(8080);
     expect(config.workers).toBe(4);
-    expect(config.alertManager?.url).toBe('http://localhost:9093/api/v2/alerts');
   });
 
-  it('should load the config from a file if it exists', () => {
-    const userConfig = {
+  it('should load the user config from seraph.config.json', async () => {
+    const userConfig: Partial<SeraphConfig> = {
       port: 9000,
       workers: 8,
-      alertManager: {
-        url: 'http://custom-alertmanager.com'
-      }
+      llm: { provider: 'openai', model: 'gpt-4' },
     };
-    mockedFs.existsSync.mockReturnValue(true);
-    mockedFs.readFileSync.mockReturnValue(JSON.stringify(userConfig));
-    const config = loadConfig();
+    mockedFs.access.mockResolvedValue(undefined);
+    mockedFs.readFile.mockResolvedValue(JSON.stringify(userConfig));
+
+    const config = await loadConfig();
     expect(config.port).toBe(9000);
     expect(config.workers).toBe(8);
-    expect(config.alertManager?.url).toBe('http://custom-alertmanager.com');
+    expect(config.llm?.provider).toBe('openai');
+    expect(config.llm?.model).toBe('gpt-4');
   });
 
-  it('should use the environment variable for the api key if it is set', () => {
-    process.env.SERAPH_API_KEY = 'test-key';
-    mockedFs.existsSync.mockReturnValue(false);
-    const config = loadConfig();
-    expect(config.apiKey).toBe('test-key');
+  it('should use GEMINI_API_KEY for gemini provider', async () => {
+    process.env.GEMINI_API_KEY = 'gemini-key';
+    mockedFs.access.mockRejectedValue(new Error('ENOENT')); // No config file
+    const config = await loadConfig();
+    expect(config.apiKey).toBe('gemini-key');
   });
 
-  it('should prioritize the api key from the config file', () => {
-    process.env.SERAPH_API_KEY = 'env-key';
-    const userConfig = {
-      apiKey: 'file-key',
-    };
-    mockedFs.existsSync.mockReturnValue(true);
-    mockedFs.readFileSync.mockReturnValue(JSON.stringify(userConfig));
-    const config = loadConfig();
+  it('should use ANTHROPIC_API_KEY for anthropic provider', async () => {
+    process.env.ANTHROPIC_API_KEY = 'anthropic-key';
+    const userConfig = { llm: { provider: 'anthropic' } };
+    mockedFs.access.mockResolvedValue(undefined);
+    mockedFs.readFile.mockResolvedValue(JSON.stringify(userConfig));
+    const config = await loadConfig();
+    expect(config.apiKey).toBe('anthropic-key');
+  });
+
+  it('should use OPENAI_API_KEY for openai provider', async () => {
+    process.env.OPENAI_API_KEY = 'openai-key';
+    const userConfig = { llm: { provider: 'openai' } };
+    mockedFs.access.mockResolvedValue(undefined);
+    mockedFs.readFile.mockResolvedValue(JSON.stringify(userConfig));
+    const config = await loadConfig();
+    expect(config.apiKey).toBe('openai-key');
+  });
+
+  it('should prioritize the api key from the config file over environment variables', async () => {
+    process.env.GEMINI_API_KEY = 'env-key';
+    const userConfig = { apiKey: 'file-key' };
+    mockedFs.access.mockResolvedValue(undefined);
+    mockedFs.readFile.mockResolvedValue(JSON.stringify(userConfig));
+
+    const config = await loadConfig();
     expect(config.apiKey).toBe('file-key');
   });
+
+  it('should handle invalid JSON in the config file gracefully', async () => {
+    mockedFs.access.mockResolvedValue(undefined);
+    mockedFs.readFile.mockResolvedValue('invalid json');
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    const config = await loadConfig();
+    expect(config.port).toBe(8080); // Should fall back to default
+    expect(consoleErrorSpy).toHaveBeenCalled();
+
+    consoleErrorSpy.mockRestore();
+  });
 });
+

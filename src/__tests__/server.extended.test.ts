@@ -12,6 +12,7 @@ jest.mock('../chat', () => ({
 
 describe('Server', () => {
   let server: http.Server;
+  let shutdown: (callback?: () => void) => void;
   let agentManager: AgentManager;
   let config: SeraphConfig;
   let consoleLogSpy: jest.SpyInstance;
@@ -23,16 +24,19 @@ describe('Server', () => {
     agentManager.dispatch = jest.fn();
     agentManager.getRecentLogs = jest.fn(() => ['log1', 'log2']);
     config = {
-      port: 8080,
+      port: 8082,
       workers: 4,
       apiKey: 'test-key',
+      serverApiKey: null,
     };
-    server = startServer(config, agentManager);
+    const serverControl = startServer(config, agentManager);
+    server = serverControl.server;
+    shutdown = serverControl.shutdown;
   });
 
   afterEach((done) => {
     consoleLogSpy.mockRestore();
-    server.close(done);
+    shutdown(done);
     jest.runOnlyPendingTimers();
     jest.useRealTimers();
   });
@@ -41,7 +45,7 @@ describe('Server', () => {
     const response = await request(server).post('/logs').send('');
     expect(response.status).toBe(400);
     expect(response.body.message).toBe(
-      'Invalid log format. Log must be a non-empty string.',
+      'Request body must be a non-empty string.',
     );
   });
 

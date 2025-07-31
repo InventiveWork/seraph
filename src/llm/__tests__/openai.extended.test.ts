@@ -15,6 +15,7 @@ describe('OpenAIProvider', () => {
       port: 8080,
       workers: 4,
       apiKey: 'test-key',
+      serverApiKey: null,
     };
     const provider = new OpenAIProvider(config);
 
@@ -26,6 +27,7 @@ describe('OpenAIProvider', () => {
       port: 8080,
       workers: 4,
       apiKey: null,
+      serverApiKey: null,
     };
     expect(() => new OpenAIProvider(config)).toThrow('OpenAI API key not found in config.');
   });

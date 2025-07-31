@@ -85,19 +85,21 @@ affinity: {}
 seraphConfig:
   port: 8080
   workers: 4
+  apiKey: ""
+  serverApiKey: ""
   llm:
     provider: "gemini"
-    model": "gemini-1.5-pro-latest"
+    model: "gemini-1.5-pro-latest"
   alertManager:
     url: ""
   preFilters: []
     # - "level":"debug"
     # - "status":"(200|204)"
+  rateLimit:
+    window: 60000
+    maxRequests: 100
+  recentLogsMaxSizeMb: 10
 
-# Environment variables for API keys
-# It's recommended to use secrets for production deployments
-env:
-  GEMINI_API_KEY: ""
-  ANTHROPIC_API_KEY: ""
-  OPENAI_API_KEY: ""
-  SERAPH_MITIGATION_API_KEY: ""
+# Name of the secret containing the API keys
+secrets:
+  name: "seraph-secrets"

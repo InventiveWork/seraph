@@ -14,6 +14,7 @@ describe('createLLMProvider', () => {
       port: 8080,
       workers: 4,
       apiKey: 'test-key',
+      serverApiKey: null,
     };
     const provider = createLLMProvider(config);
     expect(provider).toBeInstanceOf(GeminiProvider);
@@ -24,6 +25,7 @@ describe('createLLMProvider', () => {
       port: 8080,
       workers: 4,
       apiKey: 'test-key',
+      serverApiKey: null,
       llm: {
         provider: 'gemini',
       },
@@ -37,6 +39,7 @@ describe('createLLMProvider', () => {
       port: 8080,
       workers: 4,
       apiKey: 'test-key',
+      serverApiKey: null,
       llm: {
         provider: 'anthropic',
       },
@@ -50,6 +53,7 @@ describe('createLLMProvider', () => {
       port: 8080,
       workers: 4,
       apiKey: 'test-key',
+      serverApiKey: null,
       llm: {
         provider: 'openai',
       },

@@ -3,35 +3,32 @@ import request from 'supertest';
 import { startServer } from '../server';
 import { AgentManager } from '../agent';
 import { SeraphConfig } from '../config';
-import * as net from 'net';
 
 jest.mock('../agent');
-jest.mock('net', () => ({
-  createServer: jest.fn(() => ({
-    listen: jest.fn((path, callback) => callback()),
-    on: jest.fn(),
-    close: jest.fn((callback) => callback()),
-  })),
-}));
 
 describe('Server', () => {
   let server: http.Server;
+  let shutdown: (callback?: () => void) => void;
   let agentManager: AgentManager;
   let config: SeraphConfig;
 
   beforeEach(() => {
+    jest.resetModules();
     agentManager = new AgentManager({} as SeraphConfig);
     agentManager.dispatch = jest.fn();
     config = {
-      port: 8080,
+      port: 8081,
       workers: 4,
       apiKey: 'test-key',
+      serverApiKey: null,
     };
-    server = startServer(config, agentManager);
+    const serverControl = startServer(config, agentManager);
+    server = serverControl.server;
+    shutdown = serverControl.shutdown;
   });
 
   afterEach((done) => {
-    server.close(done);
+    shutdown(done);
   });
 
   it('should respond with 202 on /logs POST', async () => {

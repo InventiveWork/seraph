@@ -21,6 +21,7 @@ describe('GeminiProvider', () => {
       port: 8080,
       workers: 4,
       apiKey: 'test-key',
+      serverApiKey: null,
     };
     const provider = new GeminiProvider(config);
     const response = await provider.generate('test prompt');
