@@ -16,6 +16,29 @@ It is highly scalable, capable of independent asynchronous analysis, and possess
 -   **Extremely Lightweight**: Built with performance in mind to minimize resource consumption.
 -   **Integrations**: Supports integrations with log forwarders, LLM providers, and monitoring tools.
 
+## Dynamic Tool Integration with MCP
+
+Seraph now supports the **Model Context Protocol (MCP)**, allowing it to dynamically connect to and use external tools from any MCP-compliant server. This "plug and play" functionality makes the agent highly extensible and adaptable to new tasks without requiring any code changes.
+
+### How It Works
+
+1.  **Dynamic Discovery**: When you start the agent with a specified MCP server, it connects to the server and automatically discovers the list of available tools.
+2.  **Intelligent Tool Selection**: The agent's underlying LLM is informed of the available tools and their descriptions. When you chat with the agent, the LLM intelligently decides which tool (if any) is best suited to fulfill your request.
+3.  **Seamless Execution**: The agent then executes the chosen tool and uses its output to formulate a response.
+
+This architecture allows you to easily expand the agent's capabilities by simply pointing it to a new MCP server.
+
+### Using MCP Tools
+
+To connect to an MCP server, use the `--mcp-server-url` option with the `chat` command:
+
+```bash
+seraph chat "What's the weather in London?" --mcp-server-url https://mcp.praison.ai
+```
+
+The agent will connect to the specified server, discover its tools (like a weather tool), and use them to answer your question.
+
+
 ## Autonomous Log Analysis and Alerting
 
 Seraph's core feature is its ability to autonomously analyze logs and trigger alerts. When a log is ingested, it is passed to a worker thread, which then sends it to the configured LLM provider for analysis.
@@ -164,6 +187,7 @@ Chat with the Seraph agent. Requires a configured LLM provider and API key.
 
 **Options:**
 - `-c, --context`: Include the last 100 logs as context for the chat. This allows you to ask questions like `"summarize the recent errors"`.
+- `--mcp-server-url <url>`: Connect to an MCP server to use its tools.
 
 
 ## Running with Docker

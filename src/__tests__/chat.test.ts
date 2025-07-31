@@ -17,17 +17,18 @@ describe('chat', () => {
     });
   });
 
-  it('should call the LLM provider with the message as the prompt', async () => {
+  it('should call the LLM provider with the message and system prompt', async () => {
     const message = 'Hello, world!';
-    await chat(message, config);
+    const expectedPrompt = `You are a helpful AI assistant. You have access to a set of tools to help you answer the user's question.\n\n${message}`;
+    await chat(message, config, []);
 
-    expect(generateMock).toHaveBeenCalledWith(message);
+    expect(generateMock).toHaveBeenCalledWith(expectedPrompt);
   });
 
-  it('should call the LLM provider with a formatted prompt including logs', async () => {
+  it('should call the LLM provider with a formatted prompt including logs and system prompt', async () => {
     const message = 'What is the error?';
     const logs = ['ERROR: Something went wrong', 'WARN: Something else is fishy'];
-    const expectedPrompt = `
+    const expectedPrompt = `You are a helpful AI assistant. You have access to a set of tools to help you answer the user's question.\n\n
       Based on the following recent logs, answer the user's question.
 
       Logs:
@@ -36,7 +37,7 @@ describe('chat', () => {
       Question:
       ${message}
       `;
-    await chat(message, config, logs);
+    await chat(message, config, [], logs);
 
     expect(generateMock).toHaveBeenCalledWith(expectedPrompt);
   });
@@ -46,7 +47,7 @@ describe('chat', () => {
     const expectedResponse = 'This is a generated response.';
     generateMock.mockResolvedValue(expectedResponse);
 
-    const response = await chat(message, config);
+    const response = await chat(message, config, []);
 
     expect(response).toBe(expectedResponse);
   });

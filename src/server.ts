@@ -82,6 +82,7 @@ export function startServer(config: SeraphConfig, agentManager: AgentManager) {
           const response = await chat.chat(
             message,
             config,
+            [], // No MCP tools available in server mode
             agentManager.getRecentLogs(),
           );
           res.writeHead(200, { 'Content-Type': 'text/plain' });

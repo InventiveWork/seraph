@@ -9,6 +9,7 @@ import { startServer } from './server';
 import { AgentManager } from './agent';
 import { loadConfig } from './config';
 import { chat } from './chat';
+import { mcpManager } from './mcp-manager';
 
 const program = new Command();
 
@@ -20,7 +21,8 @@ program
 program
   .command('start')
   .description('Start the Seraph agent and log ingestion server.')
-  .action(async () => {
+  .option('--mcp-server-url <url>', 'URL of the MCP server to connect to.')
+  .action(async (options) => {
     const pidFilePath = path.join(process.cwd(), '.seraph.pid');
     if (fs.existsSync(pidFilePath)) {
       console.error('Seraph agent is already running. Please stop it first.');
@@ -28,6 +30,11 @@ program
     }
 
     console.log('Starting Seraph Agent...');
+    if (options.mcpServerUrl) {
+      console.log(`Connecting to MCP server at ${options.mcpServerUrl}...`);
+      // We don't need to do anything here, as the chat command will connect.
+    }
+
     const config = loadConfig();
     const agentManager = new AgentManager(config);
     startServer(config, agentManager);
@@ -107,8 +114,15 @@ program
   .command('chat <message>')
   .description('Chat with the Seraph agent.')
   .option('-c, --context', 'Include recent logs as context.')
-  .action((message, options) => {
+  .option('--mcp-server-url <url>', 'URL of the MCP server to connect to.')
+  .action(async (message, options) => {
     const config = loadConfig();
+
+    if (options.mcpServerUrl) {
+      await mcpManager.initialize(options.mcpServerUrl);
+    }
+
+    const tools = mcpManager.getDynamicTools();
 
     if (options.context) {
       const ipcSocketPath = path.join(process.cwd(), '.seraph.sock');
@@ -116,9 +130,10 @@ program
         client.write('get_logs');
       });
 
-      client.on('data', (data) => {
+      client.on('data', async (data) => {
         const logs = JSON.parse(data.toString());
-        chat(message, config, logs);
+        const response = await chat(message, config, tools, logs);
+        console.log(response);
         client.end();
       });
 
@@ -126,7 +141,8 @@ program
         console.error('Error connecting to Seraph agent IPC server. Is the agent running?');
       });
     } else {
-      chat(message, config);
+      const response = await chat(message, config, tools);
+      console.log(response);
     }
   });
 

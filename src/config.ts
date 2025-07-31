@@ -47,8 +47,22 @@ export function loadConfig(): SeraphConfig {
     alertManager: { ...defaultConfig.alertManager, ...userConfig.alertManager } as SeraphConfig['alertManager'],
   };
 
+  // Set API key from environment variables if not already set
   if (!config.apiKey) {
-    config.apiKey = process.env.SERAPH_API_KEY || null;
+    switch (config.llm?.provider) {
+      case 'gemini':
+        config.apiKey = process.env.GEMINI_API_KEY || null;
+        break;
+      case 'anthropic':
+        config.apiKey = process.env.ANTHROPIC_API_KEY || null;
+        break;
+      case 'openai':
+        config.apiKey = process.env.OPENAI_API_KEY || null;
+        break;
+      default:
+        config.apiKey = process.env.SERAPH_API_KEY || null;
+        break;
+    }
   }
 
   return config;
