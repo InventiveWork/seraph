@@ -11,7 +11,7 @@
     "build": "tsc",
     "dev": "ts-node src/index.ts",
     "lint": "eslint . --ext .ts",
-    "test": "jest --runInBand"
+    "test": "jest --runInBand --detectOpenHandles"
   },
   "keywords": [
     "sre",
@@ -24,13 +24,13 @@
   ],
   "author": "Gemini",
   "license": "Apache-2.0",
-  "homepage": "https://github.com/gemini/seraph-agent#readme",
+  "homepage": "https://https://github.com/InventiveWork/seraph#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/gemini/seraph-agent.git"
+    "url": "git+https://https://github.com/InventiveWork/seraph.git"
   },
   "bugs": {
-    "url": "https://github.com/gemini/seraph-agent/issues"
+    "url": "https://https://github.com/InventiveWork/seraph/issues"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.57.0",

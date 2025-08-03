@@ -1,6 +1,6 @@
 import * as http from 'http';
 import request from 'supertest';
-import { startServer } from '../server';
+import { startServer, resetRequestCounts } from '../server';
 import { AgentManager } from '../agent';
 import { SeraphConfig } from '../config';
 import * as chat from '../chat';
@@ -18,7 +18,8 @@ describe('Server', () => {
   let consoleLogSpy: jest.SpyInstance;
 
   beforeEach(() => {
-    jest.useFakeTimers();
+    jest.useFakeTimers(); // Ensure fake timers are used before server starts
+    resetRequestCounts(); // Reset rate limit counts before each test
     consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
     agentManager = new AgentManager({} as SeraphConfig);
     agentManager.dispatch = jest.fn();
@@ -36,9 +37,11 @@ describe('Server', () => {
 
   afterEach((done) => {
     consoleLogSpy.mockRestore();
-    shutdown(done);
-    jest.runOnlyPendingTimers();
-    jest.useRealTimers();
+    shutdown(() => {
+      jest.clearAllTimers(); // Clear any remaining timers
+      jest.useRealTimers(); // Ensure real timers are restored
+      done();
+    });
   });
 
   it('should respond with 400 on /logs POST with no body', async () => {

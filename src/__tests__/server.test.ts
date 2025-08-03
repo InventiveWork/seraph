@@ -13,6 +13,7 @@ describe('Server', () => {
   let config: SeraphConfig;
 
   beforeEach(() => {
+    jest.useFakeTimers(); // Ensure fake timers are used before server starts
     jest.resetModules();
     agentManager = new AgentManager({} as SeraphConfig);
     agentManager.dispatch = jest.fn();
@@ -28,7 +29,10 @@ describe('Server', () => {
   });
 
   afterEach((done) => {
-    shutdown(done);
+    shutdown(() => {
+      jest.clearAllTimers(); // Clear any remaining timers
+      done();
+    });
   });
 
   it('should respond with 202 on /logs POST', async () => {
