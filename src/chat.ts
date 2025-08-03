@@ -40,10 +40,50 @@ The "args" field should be an object with the arguments to pass to the tool.
   // Add the system prompt to the beginning of the prompt
   prompt = `${systemPrompt}\n\n${prompt}`;
 
-  const response = await provider.generate(prompt);
+  let response = await provider.generate(prompt);
+
+  // Ensure response is a string before attempting to match or parse
+  if (typeof response !== 'string') {
+    console.warn('LLM provider returned a non-string response. Treating as empty string.');
+    response = '';
+  }
+
+  // Attempt to extract JSON from the response, handling cases where it's not perfectly clean
+  let jsonString = response;
+  const jsonMatch = response.match(/```json\n([\s\S]*?)\n```/);
+  if (jsonMatch && jsonMatch[1]) {
+    jsonString = jsonMatch[1];
+  } else {
+    // Fallback: try to find the first { or [ and the last } or ]
+    const firstBrace = jsonString.indexOf('{');
+    const firstBracket = jsonString.indexOf('[');
+    let startIndex = -1;
+
+    if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
+      startIndex = firstBrace;
+    } else if (firstBracket !== -1) {
+      startIndex = firstBracket;
+    }
+
+    if (startIndex !== -1) {
+      const lastBrace = jsonString.lastIndexOf('}');
+      const lastBracket = jsonString.lastIndexOf(']');
+      let endIndex = -1;
+
+      if (lastBrace !== -1 && (lastBracket === -1 || lastBrace > lastBracket)) {
+        endIndex = lastBrace;
+      } else if (lastBracket !== -1) {
+        endIndex = lastBracket;
+      }
+
+      if (endIndex !== -1 && endIndex > startIndex) {
+        jsonString = jsonString.substring(startIndex, endIndex + 1);
+      }
+    }
+  }
 
   try {
-    const responseObject = JSON.parse(response);
+    const responseObject = JSON.parse(jsonString);
     if (responseObject.tool && responseObject.args) {
       const tool = tools.find((t) => t.name === responseObject.tool);
       if (tool) {
