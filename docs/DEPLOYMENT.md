@@ -8,7 +8,7 @@ For local development, you can run the agent directly using `ts-node` or by buil
 
 1.  **Clone the repository**:
     ```bash
-    git clone https://github.com/gemini/seraph-agent.git
+    git clone https://https://github.com/InventiveWork/seraph.git
     cd seraph-agent
     ```
 
