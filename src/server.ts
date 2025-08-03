@@ -7,13 +7,17 @@ import { SeraphConfig } from './config';
 import { register } from './metrics';
 import * as chat from './chat';
 
-const requestCounts = new Map<string, number>();
+let requestCounts = new Map<string, number>();
+
+export function resetRequestCounts() {
+  requestCounts.clear();
+}
 
 export function startServer(config: SeraphConfig, agentManager: AgentManager) {
   const RATE_LIMIT_WINDOW = config.rateLimit?.window || 60000;
   const RATE_LIMIT_MAX_REQUESTS = config.rateLimit?.maxRequests || 100;
 
-  setInterval(() => requestCounts.clear(), RATE_LIMIT_WINDOW);
+  const intervalId = setInterval(() => requestCounts.clear(), RATE_LIMIT_WINDOW);
 
   const server = http.createServer(async (req, res) => {
     const clientIp = req.socket.remoteAddress;
@@ -202,6 +206,7 @@ export function startServer(config: SeraphConfig, agentManager: AgentManager) {
     const onClosed = () => {
       closedCount++;
       if (closedCount === totalToClose) {
+        clearInterval(intervalId); // Clear the rate limit interval
         cleanupSocket().then(() => {
           if (callback) callback();
         });
