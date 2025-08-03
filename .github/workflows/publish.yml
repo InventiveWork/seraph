@@ -4,25 +4,51 @@ on:
   release:
     types: [published]
 
+# This is required for OpenID Connect (OIDC) to work.
+# It grants the workflow the ability to create a token.
 permissions:
-  id-token: write  # Required for OIDC
+  id-token: write
   contents: read
 
 jobs:
   publish:
+    # Ensure this job can write packages
+    permissions:
+      packages: write
+      contents: read
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
+          # This is the key part for OIDC.
+          # It tells setup-node to automatically configure the npm
+          # CLI to use the OIDC token for authentication.
+          scope: '@your-npm-scope' # Replace with your npm scope if applicable, otherwise remove this line.
 
-      # Ensure npm 11.5.1 or later is installed
-      - name: Update npm
+      # Optional: You can remove this if you are confident your runner has a recent npm version.
+      - name: Update npm CLI
         run: npm install -g npm@latest
-      - run: npm ci
-      - run: npm run build --if-present
-      - run: npm test
-      - run: npm publish --access public
+      
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build --if-present
+
+      - name: Run tests
+        run: npm test
+
+      # This step will now use the authentication configured by setup-node.
+      - name: Publish to npm
+        run: npm publish --access public
+        env:
+          # This is not strictly necessary for trusted publishing,
+          # but it's good practice to provide it in case an older version
+          # of the CLI is used. It also helps with troubleshooting.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
