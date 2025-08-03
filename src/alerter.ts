@@ -30,7 +30,7 @@ export class AlerterClient {
     };
 
     try {
-      const response = await (fetch as any)(this.alertManagerUrl, {
+      const response = await fetch(this.alertManagerUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
