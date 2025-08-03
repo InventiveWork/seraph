@@ -26,10 +26,8 @@ jobs:
         with:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
-          # This is the key part for OIDC.
-          # It tells setup-node to automatically configure the npm
           # CLI to use the OIDC token for authentication.
-          scope: '@your-npm-scope' # Replace with your npm scope if applicable, otherwise remove this line.
+          scope: '@seraph-agent'
 
       # Optional: You can remove this if you are confident your runner has a recent npm version.
       - name: Update npm CLI
