@@ -79,6 +79,55 @@ export async function loadConfig(): Promise<SeraphConfig> {
     }
   }
 
+  // Validate configuration values
+  if (typeof config.port !== 'number' || config.port <= 0) {
+    throw new Error('Invalid configuration: port must be a positive number.');
+  }
+  if (typeof config.workers !== 'number' || config.workers <= 0) {
+    throw new Error('Invalid configuration: workers must be a positive number.');
+  }
+  if (userConfig.apiKey !== undefined && typeof userConfig.apiKey !== 'string' && userConfig.apiKey !== null) {
+    throw new Error('Invalid configuration: apiKey must be a string or null.');
+  }
+  if (userConfig.serverApiKey !== undefined && typeof userConfig.serverApiKey !== 'string' && userConfig.serverApiKey !== null) {
+    throw new Error('Invalid configuration: serverApiKey must be a string or null.');
+  }
+
+  if (config.llm) {
+    const validProviders = ['gemini', 'anthropic', 'openai'];
+    if (!validProviders.includes(config.llm.provider)) {
+      throw new Error(`Invalid configuration: llm.provider must be one of ${validProviders.join(', ')}.`);
+    }
+    if (userConfig.llm?.model !== undefined && typeof userConfig.llm.model !== 'string') {
+      throw new Error('Invalid configuration: llm.model must be a string.');
+    }
+  }
+
+  if (config.alertManager) {
+    if (userConfig.alertManager?.url !== undefined && typeof userConfig.alertManager.url !== 'string') {
+      throw new Error('Invalid configuration: alertManager.url must be a string.');
+    }
+  }
+
+  if (config.preFilters) {
+    if (!Array.isArray(config.preFilters) || !config.preFilters.every(f => typeof f === 'string')) {
+      throw new Error('Invalid configuration: preFilters must be an array of strings.');
+    }
+  }
+
+  if (config.rateLimit) {
+    if (typeof config.rateLimit.window !== 'number' || config.rateLimit.window <= 0) {
+      throw new Error('Invalid configuration: rateLimit.window must be a positive number.');
+    }
+    if (typeof config.rateLimit.maxRequests !== 'number' || config.rateLimit.maxRequests <= 0) {
+      throw new Error('Invalid configuration: rateLimit.maxRequests must be a positive number.');
+    }
+  }
+
+  if (userConfig.recentLogsMaxSizeMb !== undefined && (typeof userConfig.recentLogsMaxSizeMb !== 'number' || userConfig.recentLogsMaxSizeMb <= 0)) {
+    throw new Error('Invalid configuration: recentLogsMaxSizeMb must be a positive number.');
+  }
+
   return config;
 }
 

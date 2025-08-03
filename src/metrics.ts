@@ -29,6 +29,7 @@ export const metrics = {
   analysisErrors: new Counter({
     name: 'seraph_analysis_errors_total',
     help: 'Total number of errors during log analysis.',
+    labelNames: ['type'],
     registers: [register],
   }),
   logsSkipped: new Counter({
