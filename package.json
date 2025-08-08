@@ -1,6 +1,6 @@
 {
   "name": "seraph-agent",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "An extremely lightweight, SRE autonomous AI agent for seamless integration with common observability tasks.",
   "main": "dist/index.js",
   "bin": {
