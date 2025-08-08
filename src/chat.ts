@@ -10,23 +10,31 @@ export async function chat(
 ): Promise<string> {
   const provider = createLLMProvider(config);
 
-  let systemPrompt = `You are a helpful AI assistant. You have access to a set of tools to help you answer the user's question.`;
+  let systemPrompt = `You are Seraph, a lightweight, autonomous SRE agent. Your primary goal is to analyze logs, detect anomalies, and provide insightful, actionable responses. You have access to a set of external tools through the Model Context Protocol (MCP) to help you accomplish this.
 
-  if (tools.length > 0) {
-    systemPrompt += `
+When you receive a request, you must follow the ReAct (Reasoning + Act) framework.
 
-Available tools:
-${tools.map((tool) => `- ${tool.name}: ${tool.description}`).join('\n')}
+**Thinking Process:**
 
-You can call a tool by responding with a JSON object with two fields: "tool" and "args".
-The "tool" field should be the name of the tool to call.
-The "args" field should be an object with the arguments to pass to the tool.
+1.  **Analyze Request**: Understand the user's intent. Is it a question about a recent log? A request for an action? Or a command to analyze a specific log?
+2.  **Determine Tool Necessity**: Decide if an external tool is required.
+    -   If the request is about logs that are provided in the context, you do not need a tool. Your response should be a direct answer based on the log data.
+    -   If the request is a general question (e.g., "What's the weather?"), you must use an appropriate tool.
+    -   **If you need information but have no tools, you must ask the user for the information or context directly.**
+3.  **Formulate a Plan**: Create a plan that outlines the steps to fulfill the user's request. This plan should be broken down into specific actions.
+4.  **Act**: If a tool is needed, output the correct tool call in the specified format. The format is 
+Action: tool_name[tool_input]
+. Do not use any other text.
+5.  **Observe**: You will be provided with the output of the tool.
+6.  **Synthesize and Respond**: Combine your internal knowledge, log context, and the tool's output to formulate a concise, helpful, and clear response.
+
+**Available Tools:**
+${tools.length > 0 ? tools.map((tool) => `- ${tool.name}: ${tool.description}`).join('\n') : 'No tools available.'}
 `;
-  }
 
-  let prompt = message;
+  let userRequest: string;
   if (logs && logs.length > 0) {
-    prompt = `
+    userRequest = `
       Based on the following recent logs, answer the user's question.
 
       Logs:
@@ -35,86 +43,68 @@ The "args" field should be an object with the arguments to pass to the tool.
       Question:
       ${message}
       `;
+  } else {
+    userRequest = `User Request: ${message}`;
   }
 
   // Add the system prompt to the beginning of the prompt
-  prompt = `${systemPrompt}\n\n${prompt}`;
+  const prompt = `${systemPrompt}\n\n${userRequest}`;
 
   let response = await provider.generate(prompt);
+  console.log(`\n--- Thought ---\n${response}`);
 
-  // Ensure response is a string before attempting to match or parse
-  if (typeof response !== 'string') {
-    console.warn('LLM provider returned a non-string response. Treating as empty string.');
-    response = '';
-  }
+  // ReAct loop
+  for (let i = 0; i < 5; i++) { // Limit to 5 iterations to prevent infinite loops
+    const actionMatch = response.match(/Action: (.*)\[(.*)\]/);
 
-  // Attempt to extract JSON from the response, handling cases where it's not perfectly clean
-  let jsonString = response;
-  const jsonMatch = response.match(/```json\n([\s\S]*?)\n```/);
-  if (jsonMatch && jsonMatch[1]) {
-    jsonString = jsonMatch[1];
-  } else {
-    // Fallback: try to find the first { or [ and the last } or ]
-    const firstBrace = jsonString.indexOf('{');
-    const firstBracket = jsonString.indexOf('[');
-    let startIndex = -1;
+    if (actionMatch) {
+      const toolName = actionMatch[1];
+      const toolInput = actionMatch[2];
+      const tool = tools.find((t) => t.name === toolName);
 
-    if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
-      startIndex = firstBrace;
-    } else if (firstBracket !== -1) {
-      startIndex = firstBracket;
-    }
-
-    if (startIndex !== -1) {
-      const lastBrace = jsonString.lastIndexOf('}');
-      const lastBracket = jsonString.lastIndexOf(']');
-      let endIndex = -1;
-
-      if (lastBrace !== -1 && (lastBracket === -1 || lastBrace > lastBracket)) {
-        endIndex = lastBrace;
-      } else if (lastBracket !== -1) {
-        endIndex = lastBracket;
-      }
-
-      if (endIndex !== -1 && endIndex > startIndex) {
-        jsonString = jsonString.substring(startIndex, endIndex + 1);
-      }
-    }
-  }
-
-  try {
-    const responseObject = JSON.parse(jsonString);
-    if (responseObject.tool && responseObject.args) {
-      const tool = tools.find((t) => t.name === responseObject.tool);
       if (tool) {
-        console.log(`Calling tool: ${tool.name}`);
-        const toolResult = await tool.execute(responseObject.args);
-        
-        let toolResultText = '';
-        if (Array.isArray(toolResult.content) && toolResult.content.length > 0) {
-          const firstPart = toolResult.content[0];
-          if (typeof firstPart === 'object' && firstPart !== null && 'type' in firstPart && firstPart.type === 'text' && 'text' in firstPart) {
-            toolResultText = firstPart.text as string;
+        console.log(`\n--- Action ---
+Calling tool: ${tool.name} with input: ${toolInput}`);
+        try {
+          const toolResult = await tool.execute(JSON.parse(toolInput));
+          let toolResultText = '';
+          if (Array.isArray(toolResult.content) && toolResult.content.length > 0) {
+            const firstPart = toolResult.content[0];
+            if (typeof firstPart === 'object' && firstPart !== null && 'type' in firstPart && firstPart.type === 'text' && 'text' in firstPart) {
+              toolResultText = firstPart.text as string;
+            }
+          } else {
+            toolResultText = JSON.stringify(toolResult.content);
           }
-        } else {
-          toolResultText = JSON.stringify(toolResult.content);
+          
+          console.log(`\n--- Observation ---
+${toolResultText}`);
+          const newPrompt = `${prompt}\nObservation: ${toolResultText}`;
+          response = await provider.generate(newPrompt);
+          console.log(`\n--- Thought ---
+${response}`);
+        } catch (error: any) {
+          console.log(`\n--- Observation ---
+Error executing tool ${toolName}: ${error.message}`);
+          const newPrompt = `${prompt}\nObservation: Error executing tool ${toolName}: ${error.message}`;
+          response = await provider.generate(newPrompt);
+          console.log(`\n--- Thought ---
+${response}`);
         }
-
-        // We can recursively call chat to process the tool's output
-        return chat(
-          `The tool ${tool.name} returned the following result: ${toolResultText}`,
-          config,
-          tools,
-          logs,
-        );
       } else {
-        return `Unknown tool: ${responseObject.tool}`;
+        const observation = `Unknown tool: ${toolName}`;
+        console.log(`\n--- Observation ---
+${observation}`);
+        const newPrompt = `${prompt}\nObservation: ${observation}`;
+        response = await provider.generate(newPrompt);
+        console.log(`\n--- Thought ---
+${response}`);
       }
+    } else {
+      // If there's no action, it's the final answer
+      return response;
     }
-  } catch (error) {
-    // If the response is not a valid JSON object, it's a regular message
-    return response;
   }
 
-  return response;
+  return "The agent could not produce a final answer after 5 iterations.";
 }
