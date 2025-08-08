@@ -139,6 +139,7 @@ program
   .option('-c, --context', 'Include recent logs as context.')
   .option('--mcp-server-url <url>', 'Dynamically connect to an MCP server to use its tools.')
   .action(async (message, options) => {
+    console.log("Input received by CLI:", message);
     const config = await loadConfig();
 
     if (options.mcpServerUrl) {
