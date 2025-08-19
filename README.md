@@ -16,6 +16,28 @@ It is highly scalable, capable of independent asynchronous analysis, and possess
 -   **Extremely Lightweight**: Built with performance in mind to minimize resource consumption.
 -   **Integrations**: Supports integrations with log forwarders, LLM providers, and monitoring tools.
 
+## Built-in SRE Tooling
+
+Seraph now comes with a built-in Model Context Protocol (MCP) server that provides essential SRE tools out-of-the-box. When you start the Seraph agent, it automatically starts a second server on the next available port (e.g., `8081`) that provides these tools to the agent for its investigations.
+
+### Included Tools
+
+-   **Git**: The agent can analyze the Git repository where your application's source code is located. It can read commit logs to correlate a production error with a recent code change.
+
+### Configuration
+
+To use the built-in Git tool, you must tell Seraph where your Git repository is located. Add the following section to your `seraph.config.json`:
+
+```json
+{
+  "builtInMcpServer": {
+    "gitRepoPath": "/path/to/your/local/git/repo"
+  }
+}
+```
+
+With this configuration, the agent will automatically have access to the `git_log` tool for its investigations.
+
 ## Dynamic Tool Integration with MCP
 
 Seraph now supports the **Model Context Protocol (MCP)**, allowing it to dynamically connect to and use external tools from any MCP-compliant server. This "plug and play" functionality makes the agent highly extensible and adaptable to new tasks without requiring any code changes.
@@ -30,33 +52,38 @@ This architecture allows you to easily expand the agent's capabilities by simply
 
 ### Using MCP Tools
 
-To connect to an MCP server, use the `--mcp-server-url` option with the `chat` command:
+There are two ways to connect Seraph to MCP servers:
 
-```bash
-seraph chat "What's the weather in London?" --mcp-server-url https://mcp.praison.ai
-```
+1.  **Custom Server**: You can connect to any MCP-compliant server using the `--mcp-server-url` flag. This is useful for development or for connecting to private, custom tool servers.
 
-The agent will connect to the specified server, discover its tools (like a weather tool), and use them to answer your question.
+    ```bash
+    seraph chat "What's the weather in London?" --mcp-server-url https://some-weather-mcp-server.com
+    ```
+
+2.  **Built-in Toolsets**: Seraph comes with a curated list of high-quality, pre-configured MCP servers that you can easily use with the `--tools` flag.
+
+    ```bash
+    seraph chat "What is the current time in Tokyo?" --tools time
+    ```
+
+    To see the list of all available built-in toolsets, run:
+    ```bash
+    seraph tools list
+    ```
 
 **Security Warning:** Only connect to MCP servers that you trust. A malicious MCP server could provide tools that could harm your system or exfiltrate data.
 
-## Autonomous Log Analysis and Alerting
+## Autonomous Log Analysis and Investigation
 
-Seraph's core feature is its ability to autonomously analyze logs and trigger alerts. When a log is ingested, it is passed to a worker thread, which then sends it to the configured LLM provider for analysis.
+Seraph's core feature is its ability to autonomously analyze logs and perform root cause analysis. The process involves two stages:
 
-The agent uses a prompt that asks the model to determine if the log entry requires an alert. The model responds with a JSON object containing a `decision` ("alert" or "ok") and a `reason`.
+1.  **Triage**: When a log is ingested, it is passed to a triage worker. This worker makes a quick decision on whether the log requires further attention. The model responds with a `decision` ("alert" or "ok") and a brief `reason`.
 
-If the decision is "alert", the agent will print an alert to the console. In a production environment, this could be configured to trigger a webhook to a service like Slack or PagerDuty.
+2.  **Investigation**: If the decision is "alert", the log is passed to an investigation worker. This worker uses a ReAct-style loop to conduct a detailed root cause analysis. It can use a variety of tools (like the built-in Git tool) to gather more context.
 
-**Example Alert:**
+3.  **Reporting**: The findings of the investigation, including the root cause analysis, impact assessment, and suggested remediation steps, are saved to a local SQLite database.
 
-If you send a log like this:
-`"level":"error","message":"Database connection failed: timeout expired"`
-
-The agent will output:
-`[Worker 12345] Anomaly detected! Reason: The log indicates a critical database connection failure.`
-
-This allows for proactive monitoring and response to issues as they happen.
+This multi-stage process allows Seraph to quickly filter through a high volume of logs and perform deep analysis only when necessary, making it both efficient and powerful.
 
 ## Setup and Installation
 
@@ -66,6 +93,8 @@ Seraph is distributed as an `npm` package. You can install it globally to use th
 npm install -g seraph-agent
 ```
 
+**Note on Native Addons**: The agent uses the `sqlite3` package to store investigation reports, which is a native Node.js addon. If you encounter installation issues, you may need to install the necessary build tools for your operating system. Please see the "Troubleshooting" section for more details.
+
 Alternatively, you can add it as a dependency to your project:
 
 ```bash
@@ -74,68 +103,37 @@ npm install seraph-agent
 
 ## Configuration
 
-Seraph can be configured via a `seraph.config.json` file or by using environment variables.
+Seraph is configured via a `seraph.config.json` file in your project root. Environment variables can also be used and will override settings in the file.
 
-### `seraph.config.json`
-
-Create a file named `seraph.config.json` in your project directory.
-
-```json
-{
-  "port": 8080,
-  "workers": 4,
-  "apiKey": "YOUR_API_KEY",
-  "llm": {
-    "provider": "gemini",
-    "model": "gemini-1.5-pro-latest"
-  },
-  "alertManager": {
-    "url": "http://localhost:9093/api/v2/alerts"
-  },
-  "preFilters": [
-    "level":"debug",
-    "status":"(200|204)"
-  ]
-}
-```
-
--   `port`: The port for the log ingestion server.
--   `workers`: The number of worker threads for log analysis.
--   `apiKey`: The API key for the selected LLM provider.
--   `serverApiKey`: An API key to secure the server endpoints. If set, requests must include an `Authorization: Bearer <key>` header.
--   `llm`: The LLM provider and model to use.
--   `alertManager`: The URL for the Alertmanager instance.
--   `preFilters`: An array of regular expressions to filter logs before analysis.
--   `rateLimit`: Configuration for the request rate limiter.
-    -   `window`: The time window in milliseconds.
-    -   `maxRequests`: The maximum number of requests per window.
--   `recentLogsMaxSizeMb`: The maximum size of the recent logs buffer in megabytes.
-
-The `apiKey` can be set in the `seraph.config.json` file. However, it's recommended to use environment variables for API keys, as they take precedence over the configuration file.
-
-### Pre-filtering Logs
-
-To improve efficiency and reduce costs, you can pre-filter logs to exclude entries that are unlikely to be anomalous. The `preFilters` option in `seraph.config.json` accepts an array of regular expression strings. If a log entry matches any of these expressions, it will be skipped and not sent to the LLM for analysis.
-
-**Example:**
-The following configuration will skip any log containing `level":"debug"` or a status of 200 or 204:
-```json
-"preFilters": [
-  "level":"debug",
-  "status":"(200|204)"
-]
-```
+For a detailed explanation of all available options, please see the well-commented example configuration file:
+[`config.example.json`](./config.example.json)
 
 ### Environment Variables
 
-
-You can also configure the agent using environment variables.
+The primary LLM API key is configured via environment variables.
 
 -   `GEMINI_API_KEY`: Your Gemini API key.
 -   `ANTHROPIC_API_KEY`: Your Anthropic API key.
 -   `OPENAI_API_KEY`: Your OpenAI API key.
 
-The `seraph.config.json` file will take precedence over environment variables.
+## Troubleshooting
+
+### `sqlite3` Native Addon Installation Issues
+
+The agent uses the `sqlite3` package to store investigation reports, which is a native Node.js addon. If you encounter errors during `npm install` related to `node-gyp` or `sqlite3`, it likely means you are missing the necessary build tools for your operating system.
+
+-   **Windows**:
+    ```bash
+    npm install --global windows-build-tools
+    ```
+-   **macOS**:
+    - Install the Xcode Command Line Tools: `xcode-select --install`
+-   **Debian/Ubuntu**:
+    ```bash
+    sudo apt-get install -y build-essential
+    ```
+
+For more detailed instructions, please refer to the [`node-gyp` installation guide](https://github.com/nodejs/node-gyp#installation).
 
 ## Integrations
 
@@ -188,6 +186,7 @@ Starts the agent and the log ingestion server.
 
 **Options:**
 - `--mcp-server-url <url>`: Connect to an MCP server to enable dynamic tool usage.
+- `--tools <names>`: A comma-separated list of built-in toolsets to use (e.g., "fetch,git").
 
 ### `seraph status`
 
@@ -203,7 +202,12 @@ Chat with the Seraph agent. Requires a configured LLM provider and API key.
 
 **Options:**
 - `-c, --context`: Include the last 100 logs as context for the chat. This allows you to ask questions like `"summarize the recent errors"`.
-- `--mcp-server-url <url>`: Connect to an MCP server to use its tools.
+- `--mcp-server-url <url>`: Connect to a custom MCP server to use its tools.
+- `--tools <names>`: A comma-separated list of built-in toolsets to use (e.g., "fetch,git").
+
+### `seraph tools list`
+
+Lists all available built-in toolsets.
 
 
 ## Running with Docker

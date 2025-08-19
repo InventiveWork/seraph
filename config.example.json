@@ -1,0 +1,66 @@
+{
+  "//": "This is an example configuration file for the Seraph Agent.",
+  "//": "You can create a 'seraph.config.json' in the root of the project to override these settings.",
+
+  "port": 8080,
+  "//": "The port on which the log ingestion server will listen.",
+
+  "workers": 4,
+  "//": "Number of worker threads for concurrent log analysis. Half are used for triage, half for investigation.",
+
+  "serverApiKey": null,
+  "//": "Optional API key that clients must provide in the 'X-API-Key' header to send logs. Set to a string to enable.",
+
+  "llm": {
+    "provider": "gemini",
+    "//": "The LLM provider to use. Options: 'gemini', 'anthropic', 'openai'.",
+    "model": "gemini-2.5-flash-lite",
+    "//": "Optional: The specific model to use. If not provided, a default will be used for the selected provider."
+  },
+  "//": "Note: The main LLM API key is not set here. It is loaded from environment variables:",
+  "//": "GEMINI_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY, depending on the provider.",
+
+  "alertManager": {
+    "url": "http://localhost:9093/api/v2/alerts",
+    "//": "The URL for your Prometheus Alertmanager instance to send alerts to. If empty, alerts are logged to the console."
+  },
+
+  "preFilters": [
+    "\"level\":\"debug\"",
+    "\"status\":\"(200|204)\""
+  ],
+  "//": "An array of regular expressions. Logs matching any of these will be skipped and not analyzed.",
+
+  "rateLimit": {
+    "window": 60000,
+    "//": "The time window in milliseconds for rate limiting log ingestion.",
+    "maxRequests": 100,
+    "//": "The maximum number of log ingestion requests allowed within the window."
+  },
+
+  "recentLogsMaxSizeMb": 10,
+  "//": "The maximum size in megabytes of recent logs to keep in memory for chat context.",
+
+  "reportRetentionDays": 30,
+  "//": "The number of days to keep investigation reports in the local database before deleting them.",
+
+  "defaultMcpServers": ["fetch", "time"],
+  "//": "A list of built-in toolsets to enable by default for the 'chat' command.",
+  "//": "Run 'seraph tools list' to see all available toolsets.",
+
+  "startupPrompts": [
+    "clone the repo https://github.com/InventiveWork/test_terraform.git into /tmp/test_terraform",
+    "summarize the git log for the cloned repository"
+  ],
+  "//": "A list of prompts to run automatically when the agent starts. Useful for pre-loading context or performing routine checks.",
+  "//": "Enhanced git_clone examples:",
+  "//": "  - 'clone https://github.com/user/repo.git' (uses secure temp directory)",
+  "//": "  - 'clone https://github.com/user/repo.git to /tmp/myproject' (custom destination)",
+  "//": "  - 'clone the repo https://github.com/user/repo.git into /var/tmp/analysis'",
+  "//": "Security: Custom destinations are restricted to /tmp/ and /var/tmp/ directories only.",
+
+  "builtInMcpServer": {
+    "gitRepoPath": "/path/to/your/local/git/repo",
+    "//": "The local filesystem path to a Git repository you want the agent to be able to analyze via the built-in 'git_log' tool."
+  }
+}

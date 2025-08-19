@@ -29,6 +29,6 @@ describe('AnthropicProvider', () => {
       apiKey: null,
       serverApiKey: null,
     };
-    expect(() => new AnthropicProvider(config)).toThrow('Anthropic API key not found in config.');
+    expect(() => new AnthropicProvider(config)).toThrow('Anthropic API key not found in config');
   });
 });
