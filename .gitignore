@@ -2,4 +2,3 @@ node_modules
 dist
 seraph.config.json
 .seraph.pid
-CLAUDE.md
