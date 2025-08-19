@@ -27,6 +27,6 @@ describe('GeminiProvider', () => {
     const response = await provider.generate('test prompt');
 
     expect(generateContent).toHaveBeenCalledWith('test prompt');
-    expect(response).toBe('test response');
+    expect(response).toEqual({ text: 'test response', toolCalls: undefined });
   });
 });

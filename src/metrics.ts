@@ -17,6 +17,7 @@ export const metrics = {
   activeWorkers: new Gauge({
     name: 'seraph_active_workers',
     help: 'Number of active worker threads.',
+    labelNames: ['type'],
     registers: [register],
   }),
   llmAnalysisLatency: new Histogram({

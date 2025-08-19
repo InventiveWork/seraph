@@ -6,9 +6,9 @@ replicaCount: 1
 
 image:
   repository: seraph-agent
-  pullPolicy: IfNotPresent
+  pullPolicy: Never
   # Overrides the image tag whose default is the chart appVersion.
-  tag: ""
+  tag: "local"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -88,10 +88,12 @@ seraphConfig:
   apiKey: ""
   serverApiKey: ""
   llm:
+    # The LLM provider to use. Options: "gemini", "anthropic", "openai"
     provider: "gemini"
-    model: "gemini-1.5-pro-latest"
+    # The specific model to use for analysis
+    model: "gemini-2.5-flash-lite"
   alertManager:
-    url: ""
+    url: "http://prometheus-kube-prometheus-alertmanager.monitoring.svc.cluster.local:9093"
   preFilters: []
     # - "level":"debug"
     # - "status":"(200|204)"
@@ -99,6 +101,18 @@ seraphConfig:
     window: 60000
     maxRequests: 100
   recentLogsMaxSizeMb: 10
+  defaultMcpServers: []
+    # - fetch
+    # - time
+  
+  # A list of prompts to run on startup after the agent is initialized.
+  startupPrompts: []
+
+# A list of secrets to mount as environment variables.
+# Each key-value pair in these secrets will be available as an environment variable.
+additionalSecrets: []
+  # - my-mcp-secret-1
+  # - my-mcp-secret-2
 
 # Name of the secret containing the API keys
 secrets:

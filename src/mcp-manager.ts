@@ -4,6 +4,7 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 export interface AgentTool {
   name: string;
   description: string;
+  inputSchema: any;
   execute: (args: Record<string, any>) => Promise<any>;
 }
 
@@ -15,9 +16,18 @@ class McpManager {
   private readonly MAX_RETRIES = 5;
   private readonly RETRY_DELAY_MS = 5000; // 5 seconds
 
+  public isInitialized(): boolean {
+    return this.client !== null && this.tools !== null;
+  }
+
   public async initialize(serverUrl: string) {
     if (this.isConnecting) {
       console.log("Already attempting to connect to MCP server.");
+      return;
+    }
+
+    if (this.isInitialized()) {
+      console.log("MCP manager already initialized.");
       return;
     }
 
@@ -33,10 +43,16 @@ class McpManager {
       console.log(`Successfully connected to MCP server at ${serverUrl}`);
       this.retryCount = 0; // Reset retry count on successful connection
 
-      this.tools = await this.client.listTools();
-      if (!Array.isArray(this.tools)) {
+      const toolResponse = await this.client.listTools();
+      // The response is an object with a 'tools' property which is an array
+      if (toolResponse && Array.isArray(toolResponse.tools)) {
+        this.tools = toolResponse.tools;
+      } else {
+        this.tools = [];
+      }
+
+      if (this.tools.length === 0) {
         console.log("Warning: The MCP server did not return a valid list of tools. Proceeding without external tools.");
-        this.tools = []; // Ensure this.tools is always an array
       }
       console.log(`Discovered ${this.tools.length} tools.`);
     } catch (error: any) {
@@ -65,6 +81,7 @@ class McpManager {
       dynamicTools.push({
         name: tool.name,
         description: tool.description || "",
+        inputSchema: tool.inputSchema,
         execute: async (args: Record<string, any>) => {
           if (!this.client) {
             throw new Error("MCP client is not initialized.");

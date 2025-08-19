@@ -23,10 +23,10 @@ describe('AnthropicProvider', () => {
     const response = await provider.generate('test prompt');
 
     expect(create).toHaveBeenCalledWith({
-      model: 'claude-3-opus-20240229',
+      model: 'claude-3-5-sonnet-20241022',
       max_tokens: 1024,
       messages: [{ role: 'user', content: 'test prompt' }],
     });
-    expect(response).toBe('test response');
+    expect(response).toEqual({ text: 'test response', toolCalls: undefined });
   });
 });
