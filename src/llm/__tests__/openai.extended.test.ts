@@ -29,6 +29,6 @@ describe('OpenAIProvider', () => {
       apiKey: null,
       serverApiKey: null,
     };
-    expect(() => new OpenAIProvider(config)).toThrow('OpenAI API key not found in config.');
+    expect(() => new OpenAIProvider(config)).toThrow('OpenAI API key not found in config');
   });
 });

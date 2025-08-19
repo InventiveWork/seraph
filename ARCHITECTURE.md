@@ -33,12 +33,12 @@ The server component is responsible for handling external communication. It runs
 -   **IPC Server**:
     -   A local Unix socket is used for communication between the running agent process and the `seraph chat` CLI command. This is primarily used to fetch recent logs to provide context for chat sessions.
 
-### 3. Agent (`src/agent.ts`)
+### 3. Agent (`src/agent-manager.ts` and `src/agent.worker.ts`)
 
-The agent is the core of the log analysis functionality.
+The agent is the core of the log analysis functionality. It is composed of two main parts:
 
--   **AgentManager**: This class manages a pool of worker threads for concurrent log processing. It receives logs from the server, applies pre-filtering rules, and distributes the logs to the workers in a round-robin fashion.
--   **Worker Threads**: Each worker runs in a separate thread. It receives a log, constructs a prompt for the LLM, and calls the configured LLM provider to analyze the log. If the analysis result indicates an anomaly, it triggers an alert via the `AlerterClient`.
+-   **AgentManager (`src/agent-manager.ts`)**: This class manages a pool of worker threads for concurrent log processing. It receives logs from the server, applies pre-filtering rules, and distributes the logs to the workers in a round-robin fashion.
+-   **AgentWorker (`src/agent.worker.ts`)**: This is the triage worker. Each worker runs in a separate thread, receives a log, and calls the configured LLM provider to analyze it. If the analysis result indicates an anomaly, it triggers an alert, which is then passed to an investigation worker.
 
 ### 4. Chat (`src/chat.ts`)
 
@@ -50,7 +50,12 @@ Seraph uses a modular approach for interacting with different LLMs. The `LLMProv
 
 ### 6. MCP Manager (`src/mcp-manager.ts`)
 
-The Model Context Protocol (MCP) Manager is responsible for dynamic tool integration. When a user initiates a chat session with an `--mcp-server-url`, this manager connects to the specified server, discovers the tools it provides, and makes them available to the chat module.
+The Model Context Protocol (MCP) Manager is responsible for dynamic tool integration. When a user initiates a chat session with an `--mcp-server-url`, this manager connects to the specified server, discovers the tools it provides, and makes them available to the chat module. The agent also includes a built-in MCP server (`src/mcp-server.ts`) that provides tools for interacting with Git repositories.
+
+### 7. Investigation and Reporting
+
+-   **InvestigationWorker (`src/investigation.worker.ts`)**: When a triage worker flags a log for an alert, it is passed to an investigation worker. This worker uses a ReAct-style loop to perform a root cause analysis, utilizing a suite of tools to gather more information.
+-   **ReportStore (`src/report-store.ts`)**: The results of an investigation are stored in a SQLite database. The `ReportStore` class manages the storage and retrieval of these reports, using a connection pool (`src/db-pool.ts`) for efficient database access.
 
 ## Data Flows
 
@@ -61,7 +66,9 @@ The Model Context Protocol (MCP) Manager is responsible for dynamic tool integra
 3.  The `AgentManager` applies pre-filters. If the log is not filtered, it is dispatched to one of the worker threads.
 4.  The worker thread constructs a prompt and sends the log to the configured LLM for analysis.
 5.  The LLM responds with a JSON object indicating whether the log is an "alert" or "ok".
-6.  If an alert is triggered, the worker uses the `AlerterClient` to send a notification.
+6.  If an alert is triggered, the `AgentManager` dispatches the alert to an `InvestigationWorker`.
+7.  The `InvestigationWorker` performs a root cause analysis and saves a report to the `ReportStore`.
+8.  The `AlerterClient` sends a notification with the enriched analysis.
 
 ### Chat & Tool Usage Flow
 

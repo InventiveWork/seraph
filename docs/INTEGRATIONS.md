@@ -48,78 +48,190 @@ scrape_configs:
       - targets: ['localhost:8080']
 ```
 
-## Inter-Agent Communication for Mitigation
+## Automated Investigation and Root Cause Analysis
 
-One of Seraph's core features is its ability to request help from other, more specialized AI agents to perform mitigation actions, such as proposing a code fix.
-
-This is handled by the **MitigationClient**.
+When Seraph detects an anomaly, it can trigger a deeper investigation to find the root cause. This is handled by the **InvestigationWorker**.
 
 ### How it Works
 
-1.  **Anomaly Detection**: A Seraph worker detects an anomaly in a log stream.
-2.  **Context Assembly**: The worker assembles a context object, including the log data and the reason for the anomaly detection.
-3.  **Mitigation Request**: The worker calls the `MitigationClient`, which sends the context to a configured external AI agent.
-4.  **Receiving a Suggestion**: The client can then receive a suggestion from the external agent (e.g., a code patch, a configuration change).
+1.  **Anomaly Detection**: A Seraph triage worker detects an anomaly in a log stream.
+2.  **Investigation Dispatch**: The `AgentManager` dispatches the alert to an `InvestigationWorker`.
+3.  **Root Cause Analysis**: The worker uses a ReAct-style loop, leveraging a suite of tools to gather more context and perform a root cause analysis.
+4.  **Reporting**: The findings of the investigation are saved as a report in a local SQLite database.
 
-### Configuring the MitigationClient
-
-The `MitigationClient` is configured in your `seraph.config.json` file. The most important setting is the `mitigationAgentApiKey`.
-
-```json
-{
-  "mitigationAgentApiKey": "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-}
-```
-
-### Integrating with Gemini for Code Modifications
-
-To integrate with a powerful code generation model like Google's Gemini, you would modify the `MitigationClient` in `src/mitigation.ts` to call the Gemini API.
-
-The key is to structure the request with a clear, actionable prompt and rich context. This might follow a protocol like the **Model Context Protocol (MCP)**, which is an emerging standard for this kind of interaction.
-
-Here is a conceptual example of how you might modify `src/mitigation.ts`:
-
-```typescript
-// Inside the requestMitigation method in src/mitigation.ts
-
-const geminiApiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
-const apiKey = this.config.mitigationAgentApiKey;
-
-const prompt = `
-  SRE Mitigation Request:
-  An anomaly was detected in our system logs.
-  Based on the following context, please provide a code patch to fix the issue.
-
-  Context: ${JSON.stringify(context, null, 2)}
-
-  Please return ONLY the code patch in a .diff format.
-`;
-
-try {
-  const response = await fetch(`${geminiApiUrl}?key=${apiKey}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }]
-    }),
-  });
-
-  const result = await response.json();
-  const patch = result.candidates[0].content.parts[0].text;
-  
-  console.log('[MitigationClient] Received patch from Gemini:', patch);
-  // Next, you could automate applying this patch or creating a pull request.
-
-} catch (error) {
-  console.error('[MitigationClient] Error calling Gemini API:', error);
-}
-```
-
-This example demonstrates how you can extend Seraph to turn insights from logs into automated actions, making it a powerful SRE automation platform.
+This automated investigation process allows Seraph to go beyond simple anomaly detection and provide actionable insights into the root cause of problems.
 
 ## Sending Seraph Anomalies to Alertmanager
 
 You can configure Seraph to send the anomalies it detects directly to Prometheus Alertmanager.
+
+## Dynamic Tool Integration with Model Context Protocol (MCP)
+
+Seraph can be extended with "tools" from external servers that follow the **Model Context Protocol (MCP)**. This allows the agent to perform a huge variety of tasks, from fetching web pages to interacting with version control systems.
+
+### Seraph's Built-in Tool Server
+
+Seraph includes a built-in MCP server that starts automatically on the next available port (e.g., 8081 if the main server is on 8080). This server provides powerful SRE-focused tools out of the box.
+
+-   **`git_log`**: Reads the commit history of a local Git repository. Requires `builtInMcpServer.gitRepoPath` to be set in your `seraph.config.json`.
+-   **`git_clone`**: Clones a Git repository into a secure directory for analysis. Supports both automatic temporary directories and custom destinations within secure paths.
+
+#### **Enhanced `git_clone` Tool Features**
+The `git_clone` tool now supports enhanced destination control while maintaining security:
+
+**Usage Examples:**
+- `"clone https://github.com/user/repo.git"` - Uses secure temporary directory (original behavior)
+- `"clone https://github.com/user/repo.git to /tmp/analysis"` - Uses custom secure destination
+- `"clone the repo https://github.com/user/repo.git into /var/tmp/project"` - Alternative syntax
+
+**Security Features:**
+- **Path Validation**: Custom destinations restricted to `/tmp/` and `/var/tmp/` directories only
+- **Path Traversal Protection**: Blocks `../`, `./`, and other traversal attempts
+- **System Directory Protection**: Prevents overwriting system temporary directories
+- **Absolute Path Resolution**: All paths normalized and validated before use
+
+#### **SECURITY CONSIDERATIONS**
+- **Execution Environment**: Clones into validated secure directories with comprehensive path checking
+- **Malicious Repositories**: A malicious actor could potentially trick the agent into cloning harmful content or large files
+- **Resource Usage**: Cloning large repositories can consume significant disk space and network bandwidth
+- **Custom Destinations**: Only `/tmp/` and `/var/tmp/` paths allowed to prevent system compromise
+- **Recommendation**: Use in properly sandboxed environments (Docker containers) with limited resources and permissions
+
+### How It Works
+
+When you provide Seraph with an MCP server, it connects to that server and asks for a "manifest" of the tools it provides. This manifest tells the agent what the tools are called, what they do, and what arguments they need. When you chat with the agent, it uses its intelligence to decide which tool is appropriate for your request and then invokes it.
+
+### Using MCP Tools
+
+There are two ways to enable MCP tools for the agent:
+
+#### 1. Using Built-in Toolsets
+
+Seraph comes with a pre-configured list of high-quality, public MCP servers, which we call "toolsets". This is the easiest way to get started.
+
+**To list the available toolsets, run:**
+```bash
+seraph tools list
+```
+
+**To use a toolset in a chat, use the `--tools` flag:**
+```bash
+# This command gives the agent the 'time' toolset for this one chat session.
+seraph chat "What time is it in London?" --tools time
+```
+
+#### 2. Connecting to a Custom Server
+
+You can connect to any MCP-compliant server, such as one you are developing locally or a private server within your organization, using the `--mcp-server-url` flag.
+
+```bash
+seraph chat "Get the status of the main branch" --mcp-server-url http://localhost:3001
+```
+
+### Setting Default Tools
+
+If you have a set of trusted tools you want the agent to use all the time, you can configure them in your `seraph.config.json` file using the `defaultMcpServers` key. The agent will then have access to these tools in every chat session.
+
+**Example `seraph.config.json`:**
+```json
+{
+  "port": 8080,
+  "llm": {
+    "provider": "gemini"
+  },
+  "defaultMcpServers": ["fetch", "time"]
+}
+```
+*Note: CLI flags like `--tools` and `--mcp-server-url` will always override the default settings for a single command.*
+
+### Available MCP Servers
+
+The MCP community is growing rapidly. Below is a list of known public MCP servers that you can connect to.
+
+**Security Warning:** The "Official" and "Reference" servers are maintained by the MCP team. Community servers are built by third parties. Always be cautious and only connect to servers that you trust, as a malicious server could expose your system to risks.
+
+#### Reference Servers
+*   **Everything** - Reference / test server with prompts, resources, and tools.
+*   **Fetch** - Web content fetching and conversion for efficient LLM usage.
+*   **Filesystem** - Secure file operations with configurable access controls.
+*   **Git** - Tools to read, search, and manipulate Git repositories.
+*   **Memory** - Knowledge graph-based persistent memory system.
+*   **Sequential Thinking** - Dynamic and reflective problem-solving through thought sequences.
+*   **Time** - Time and timezone conversion capabilities.
+
+#### Official and Community Servers
+This is a curated list of servers relevant to SRE, DevOps, and infrastructure management. For the most up-to-date and complete list, please visit the [MCP Servers GitHub Repository](https://github.com/modelcontextprotocol/servers).
+
+**Cloud & IaaS/PaaS:**
+*   AWS
+*   Alibaba Cloud
+*   Azure
+*   Cloudflare
+*   DigitalOcean
+*   Firebase
+*   Heroku
+*   Netlify
+*   Vercel
+
+**Databases & Data Stores:**
+*   Aiven
+*   Astra DB (Cassandra)
+*   Chroma
+*   ClickHouse
+*   Confluent (Kafka)
+*   Couchbase
+*   Elasticsearch
+*   Kafka
+*   MariaDB
+*   MongoDB
+*   MySQL
+*   Neo4j
+*   Pinecone
+*   PostgreSQL
+*   Qdrant
+*   Redis
+*   Snowflake
+*   Supabase
+
+**CI/CD & Version Control:**
+*   Atlassian (Jira, Confluence)
+*   CircleCI
+*   Docker
+*   Gitea
+*   GitHub
+*   Helm
+*   Jenkins
+*   Jira
+*   Kubernetes
+*   Terraform
+
+**Observability & Monitoring:**
+*   AgentOps
+*   Axiom
+*   Datadog
+*   Grafana
+*   PagerDuty
+*   Prometheus
+*   Sentry
+
+**Communication & ChatOps:**
+*   Discord
+*   Gmail
+*   Slack
+*   Telegram
+*   Twilio
+
+**Productivity & Project Management:**
+*   Archbee (Documentation)
+*   Asana
+*   Linear
+*   Notion
+*   Trello
+*   Zapier
+
+
+---
+
 
 ### Configuration
 

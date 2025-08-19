@@ -1,11 +1,21 @@
-import * as fs from 'fs';
-import * as path from 'path';
+import { promises as fs } from 'fs';
+import { join } from 'path';
+
+export interface RateLimitConfig {
+  window: number;
+  maxRequests: number;
+}
 
 export interface SeraphConfig {
   port: number;
   workers: number;
   apiKey: string | null;
   serverApiKey: string | null;
+  defaultMcpServers?: string[];
+  startupPrompts?: string[];
+  builtInMcpServer?: {
+    gitRepoPath?: string;
+  };
   llm?: {
     provider: 'gemini' | 'anthropic' | 'openai';
     model?: string;
@@ -14,11 +24,11 @@ export interface SeraphConfig {
     url: string;
   };
   preFilters?: string[];
-  rateLimit?: {
-    window: number;
-    maxRequests: number;
-  };
+  rateLimit?: RateLimitConfig;
   recentLogsMaxSizeMb?: number;
+  disableValidation?: boolean;
+  reportRetentionDays?: number;
+  verbose?: boolean;
 }
 
 const defaultConfig: SeraphConfig = {
@@ -26,6 +36,7 @@ const defaultConfig: SeraphConfig = {
   workers: 4,
   apiKey: process.env.SERAPH_API_KEY || null,
   serverApiKey: process.env.SERVER_API_KEY || null,
+  defaultMcpServers: [],
   llm: {
     provider: 'gemini',
   },
@@ -41,12 +52,12 @@ const defaultConfig: SeraphConfig = {
 };
 
 export async function loadConfig(): Promise<SeraphConfig> {
-  const configPath = path.join(process.cwd(), 'seraph.config.json');
+  const configPath = join(process.cwd(), 'seraph.config.json');
   let userConfig: Partial<SeraphConfig> = {};
 
   try {
-    await fs.promises.access(configPath);
-    userConfig = JSON.parse(await fs.promises.readFile(configPath, 'utf-8'));
+    await fs.access(configPath);
+    userConfig = JSON.parse(await fs.readFile(configPath, 'utf-8'));
   } catch (error: any) {
     if (error.code !== 'ENOENT') {
       console.error("Error reading or parsing 'seraph.config.json'.", error);
@@ -126,6 +137,12 @@ export async function loadConfig(): Promise<SeraphConfig> {
 
   if (userConfig.recentLogsMaxSizeMb !== undefined && (typeof userConfig.recentLogsMaxSizeMb !== 'number' || userConfig.recentLogsMaxSizeMb <= 0)) {
     throw new Error('Invalid configuration: recentLogsMaxSizeMb must be a positive number.');
+  }
+
+  if (config.defaultMcpServers) {
+    if (!Array.isArray(config.defaultMcpServers) || !config.defaultMcpServers.every(s => typeof s === 'string')) {
+      throw new Error('Invalid configuration: defaultMcpServers must be an array of strings.');
+    }
   }
 
   return config;

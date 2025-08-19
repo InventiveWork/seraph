@@ -31,6 +31,6 @@ describe('GeminiProvider', () => {
       apiKey: null,
       serverApiKey: null,
     };
-    expect(() => new GeminiProvider(config)).toThrow('Gemini API key not found in config.');
+    expect(() => new GeminiProvider(config)).toThrow('Gemini API key not found in config');
   });
 });

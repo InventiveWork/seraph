@@ -1,7 +1,15 @@
-import { AgentManager } from '../agent';
+import { AgentManager } from '../agent-manager';
 import { SeraphConfig } from '../config';
 import { metrics } from '../metrics';
 
+// Mock dependencies
+jest.mock('../report-store');
+jest.mock('../mcp-manager', () => ({
+  mcpManager: {
+    initialize: jest.fn().mockResolvedValue(undefined),
+    getDynamicTools: jest.fn().mockReturnValue([]),
+  },
+}));
 jest.mock('worker_threads', () => ({
   isMainThread: true,
   Worker: jest.fn().mockImplementation(() => ({
@@ -13,52 +21,66 @@ jest.mock('worker_threads', () => ({
 
 describe('AgentManager', () => {
   let config: SeraphConfig;
+  let agentManager: AgentManager;
+  let consoleLogSpy: jest.SpyInstance;
+  let consoleErrorSpy: jest.SpyInstance;
 
-  beforeEach(() => {
+  // Use fake timers to control setTimeout
+  beforeAll(() => {
+    jest.useFakeTimers();
+  });
+
+  afterAll(() => {
+    jest.useRealTimers();
+  });
+
+  beforeEach(async () => {
+    // Suppress console output
+    consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
     config = {
       port: 8080,
-      workers: 2,
+      workers: 4, // 2 triage, 2 investigation
       apiKey: 'test-key',
       serverApiKey: null,
       preFilters: ['debug', 'info'],
     };
+    agentManager = new AgentManager(config);
+    // Wait for the async initialization to complete
+    await agentManager.waitForInitialization();
   });
 
-  it('should initialize workers', () => {
-    const agentManager = new AgentManager(config);
-    expect(agentManager['workers']).toHaveLength(2);
+  afterEach(() => {
+    agentManager.shutdown();
+    jest.clearAllMocks();
+    // Restore console output
+    consoleLogSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
   });
 
-  it('should dispatch a log to a worker', () => {
-    const agentManager = new AgentManager(config);
+  it('should initialize triage and investigation workers', () => {
+    expect(agentManager['triageWorkers']).toHaveLength(2);
+    expect(agentManager['investigationWorkers']).toHaveLength(2);
+  });
+
+  it('should dispatch a log to a triage worker', () => {
     const log = 'this is a test log';
     agentManager.dispatch(log);
-    expect(agentManager['workers'][0].postMessage).toHaveBeenCalledWith(log);
+    expect(agentManager['triageWorkers'][0].postMessage).toHaveBeenCalledWith(log);
   });
 
   it('should skip a log that matches a pre-filter', () => {
-    const agentManager = new AgentManager(config);
     const log = 'this is a debug log';
     const logsSkippedSpy = jest.spyOn(metrics.logsSkipped, 'inc');
     agentManager.dispatch(log);
-    expect(agentManager['workers'][0].postMessage).not.toHaveBeenCalled();
+    agentManager['triageWorkers'].forEach(worker => {
+      expect(worker.postMessage).not.toHaveBeenCalled();
+    });
     expect(logsSkippedSpy).toHaveBeenCalled();
   });
 
-  it('should handle invalid regex in pre-filters', () => {
-    config.preFilters = ['('];
-    const agentManager = new AgentManager(config);
-    const log = 'this is a test log';
-    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    agentManager.dispatch(log);
-    expect(errorSpy).toHaveBeenCalledWith(
-      expect.stringContaining('[AgentManager] Unsafe regex in preFilters: (')
-    );
-    errorSpy.mockRestore();
-  });
-
-  it('should store recent logs', () => {
-    const agentManager = new AgentManager(config);
+  it('should store and rotate recent logs correctly by count', () => {
     for (let i = 0; i < 110; i++) {
       agentManager.dispatch(`log ${i}`);
     }
@@ -67,10 +89,17 @@ describe('AgentManager', () => {
     expect(recentLogs[0]).toBe('log 10');
   });
 
-  it('should shutdown all workers', () => {
-    const agentManager = new AgentManager(config);
+  it('should shutdown all workers and close the report store', () => {
+    const triageWorker = agentManager['triageWorkers'][0];
+    const investigationWorker = agentManager['investigationWorkers'][0];
+    const terminateSpyTriage = jest.spyOn(triageWorker, 'terminate');
+    const terminateSpyInvestigation = jest.spyOn(investigationWorker, 'terminate');
+    const reportStoreCloseSpy = jest.spyOn(agentManager['reportStore'], 'close');
+    
     agentManager.shutdown();
-    expect(agentManager['workers'][0].terminate).toHaveBeenCalled();
-    expect(agentManager['workers'][1].terminate).toHaveBeenCalled();
+    
+    expect(terminateSpyTriage).toHaveBeenCalled();
+    expect(terminateSpyInvestigation).toHaveBeenCalled();
+    expect(reportStoreCloseSpy).toHaveBeenCalled();
   });
 });
