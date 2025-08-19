@@ -1,13 +1,32 @@
-import * as http from 'http';
-import * as net from 'net';
-import * as fs from 'fs';
-import * as path from 'path';
-import { AgentManager } from './agent';
+import { createServer, IncomingMessage, ServerResponse } from 'http';
+import { createServer as createNetServer, Socket } from 'net';
+import { readFileSync, existsSync, unlinkSync, promises as fs, chmodSync } from 'fs';
+import { join } from 'path';
+import { AgentManager } from './agent-manager';
 import { SeraphConfig } from './config';
-import { register } from './metrics';
-import * as chat from './chat';
+// Lazy load metrics and chat modules only when needed
+import { validateLogEntry, sanitizeErrorMessage, generateCorrelationId } from './validation';
 
+// Memory-efficient request tracking
 let requestCounts = new Map<string, number>();
+
+// Buffer pool for reusing memory
+const BUFFER_POOL_SIZE = 10;
+const bufferPool: Buffer[] = [];
+const POOL_BUFFER_SIZE = 1024 * 64; // 64KB buffers
+
+function getPooledBuffer(): Buffer {
+  return bufferPool.pop() || Buffer.alloc(POOL_BUFFER_SIZE);
+}
+
+function returnBufferToPool(buffer: Buffer): void {
+  if (bufferPool.length < BUFFER_POOL_SIZE && buffer.length >= POOL_BUFFER_SIZE) {
+    // Resize buffer to exact pool size if larger, or skip if smaller
+    const poolBuffer = buffer.length === POOL_BUFFER_SIZE ? buffer : buffer.subarray(0, POOL_BUFFER_SIZE);
+    poolBuffer.fill(0); // Clear for security
+    bufferPool.push(poolBuffer);
+  }
+}
 
 export function resetRequestCounts() {
   requestCounts.clear();
@@ -19,15 +38,35 @@ export function startServer(config: SeraphConfig, agentManager: AgentManager) {
 
   const intervalId = setInterval(() => requestCounts.clear(), RATE_LIMIT_WINDOW);
 
-  const server = http.createServer(async (req, res) => {
+  const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
     const clientIp = req.socket.remoteAddress;
+    const correlationId = generateCorrelationId();
+
+    if (config.verbose) {
+      console.log(`[${correlationId}] Received request: ${req.method} ${req.url}`);
+    }
+    
+    // Add correlation ID header to response
+    res.setHeader('X-Correlation-ID', correlationId);
+    
+    // Add security headers
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    res.setHeader('Content-Security-Policy', "default-src 'self'");
     
     // Global error handler for the request
-    req.on('error', (err) => {
-      console.error('Request error:', err);
+    req.on('error', (err: Error) => {
+      const sanitizedError = sanitizeErrorMessage(err);
+      console.error(`[${correlationId}] Request error:`, sanitizedError);
       if (!res.headersSent) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ status: 'error', message: 'Internal Server Error' }));
+        res.end(JSON.stringify({ 
+          status: 'error', 
+          message: 'Internal Server Error',
+          correlationId 
+        }));
       }
     });
 
@@ -53,74 +92,208 @@ export function startServer(config: SeraphConfig, agentManager: AgentManager) {
         requestCounts.set(clientIp, requestCount);
         if (requestCount > RATE_LIMIT_MAX_REQUESTS) {
           res.writeHead(429, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ status: 'error', message: 'Too Many Requests' }));
+          res.end(JSON.stringify({ 
+            status: 'error', 
+            message: 'Too Many Requests',
+            correlationId 
+          }));
           return;
         }
       }
 
       const MAX_PAYLOAD_SIZE = 1024 * 1024; // 1MB
-      let body = '';
-      req.on('data', chunk => {
+      const chunks: Buffer[] = [];
+      let totalSize = 0;
+      
+      req.on('data', (chunk: Buffer) => {
         if (res.headersSent) return;
-        body += chunk.toString();
-        if (body.length > MAX_PAYLOAD_SIZE) {
+        
+        totalSize += chunk.length;
+        if (totalSize > MAX_PAYLOAD_SIZE) {
           res.writeHead(413, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ status: 'error', message: 'Payload Too Large' }));
-        }
-      });
-      req.on('end', () => {
-        if (res.headersSent) return;
-        if (typeof body !== 'string' || body.trim() === '') {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ status: 'error', message: 'Request body must be a non-empty string.' }));
+          res.end(JSON.stringify({ 
+            status: 'error', 
+            message: 'Payload Too Large',
+            correlationId 
+          }));
           return;
         }
         
-        try {
-          // A simple check to see if it could be JSON
-          if (body.startsWith('{') || body.startsWith('[')) {
-            JSON.parse(body);
-          }
-        } catch (error) {
+        chunks.push(chunk);
+      });
+      
+      req.on('end', () => {
+        if (res.headersSent) return;
+        
+        const body = Buffer.concat(chunks).toString('utf8');
+        if (config.verbose) {
+          console.log(`[${correlationId}] Received request body:`, body);
+        }
+
+        if (!body || body.trim() === '') {
           res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ status: 'error', message: 'Invalid JSON format in log.' }));
+          res.end(JSON.stringify({ 
+            status: 'error', 
+            message: 'Request body must be a non-empty string',
+            correlationId 
+          }));
           return;
         }
 
         try {
-          agentManager.dispatch(body);
+          // Handle concatenated JSON logs from Fluent Bit BEFORE validation
+          if (body.includes('"}{"')) {
+            // Split concatenated JSON logs and process each one separately
+            const logParts = body.split('"}{"').map((part, index, array) => {
+              if (index === 0) return part + '"}';
+              if (index === array.length - 1) return '{"' + part;
+              return '{"' + part + '"}';
+            });
+            
+            // Filter out incomplete JSON parts with more thorough validation
+            const completeParts = logParts.filter(part => {
+              const trimmed = part.trim();
+              if (!trimmed.startsWith('{') || !trimmed.endsWith('}') || trimmed.length <= 2) {
+                return false;
+              }
+              
+              // Additional check for proper JSON structure
+              try {
+                JSON.parse(trimmed);
+                return true;
+              } catch (e) {
+                return false;
+              }
+            });
+            
+            let validPartsProcessed = 0;
+            for (const logPart of completeParts) {
+              try {
+                // Double validation: JSON structure and content validation
+                if (!config.disableValidation) {
+                  const partValidation = validateLogEntry(logPart);
+                  if (!partValidation.valid) {
+                    console.warn(`[${correlationId}] Invalid log part: ${partValidation.errors.join(', ')}`);
+                    continue;
+                  }
+                }
+                
+                agentManager.dispatch(logPart);
+                validPartsProcessed++;
+              } catch (e) {
+                // Skip malformed log parts with more detailed logging
+                const errorMsg = e instanceof Error ? e.message : 'Unknown error';
+                console.warn(`[${correlationId}] Skipping malformed log part (${errorMsg}):`, logPart.substring(0, 100));
+              }
+            }
+            
+            // If no valid parts were processed, return error
+            if (validPartsProcessed === 0) {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ 
+                status: 'error', 
+                message: 'No valid log entries found in concatenated logs',
+                correlationId 
+              }));
+              return;
+            }
+          } else {
+            // Single log entry - validate first
+            if (!config.disableValidation) {
+              const validation = validateLogEntry(body);
+              if (!validation.valid) {
+                console.warn(`[${correlationId}] Invalid log entry: ${validation.errors.join(', ')}`);
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ 
+                  status: 'error', 
+                  message: 'Invalid log entry',
+                  errors: validation.errors,
+                  correlationId 
+                }));
+                return;
+              }
+            }
+            agentManager.dispatch(body);
+          }
           res.writeHead(202, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ status: 'accepted' }));
+          res.end(JSON.stringify({ 
+            status: 'accepted',
+            correlationId 
+          }));
         } catch (error) {
+          const sanitizedError = sanitizeErrorMessage(error as Error);
+          console.error(`[${correlationId}] Error processing log:`, sanitizedError);
           res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ status: 'error', message: 'Internal server error while processing log.' }));
+          res.end(JSON.stringify({ 
+            status: 'error', 
+            message: 'Internal server error while processing log',
+            correlationId 
+          }));
         }
       });
     } else if (req.url === '/status' && req.method === 'GET') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ status: 'ok' }));
     } else if (req.url === '/metrics' && req.method === 'GET') {
+      const { register } = await import('./metrics');
       res.setHeader('Content-Type', register.contentType);
       res.end(await register.metrics());
     } else if (req.url === '/chat' && req.method === 'POST') {
-      let body = '';
-      req.on('data', (chunk) => {
-        body += chunk.toString();
+      const chunks: Buffer[] = [];
+      let totalSize = 0;
+      const MAX_CHAT_PAYLOAD = 10 * 1024; // 10KB for chat messages
+      
+      req.on('data', (chunk: Buffer) => {
+        totalSize += chunk.length;
+        if (totalSize > MAX_CHAT_PAYLOAD) {
+          res.writeHead(413, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ 
+            status: 'error', 
+            message: 'Chat message too large',
+            correlationId 
+          }));
+          return;
+        }
+        chunks.push(chunk);
       });
+      
       req.on('end', async () => {
         try {
+          const body = Buffer.concat(chunks).toString('utf8');
+          
           if (!body) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ status: 'error', message: 'message is required' }));
+            res.end(JSON.stringify({ 
+              status: 'error', 
+              message: 'message is required',
+              correlationId 
+            }));
             return;
           }
+          
           const { message } = JSON.parse(body);
-          if (!message) {
+          if (!message || typeof message !== 'string') {
             res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ status: 'error', message: 'message is required' }));
+            res.end(JSON.stringify({ 
+              status: 'error', 
+              message: 'message is required and must be a string',
+              correlationId 
+            }));
             return;
           }
-          const response = await chat.chat(
+          
+          if (message.length > 1000) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ 
+              status: 'error', 
+              message: 'message too long (max 1000 characters)',
+              correlationId 
+            }));
+            return;
+          }
+          
+          const { chat } = await import('./chat');
+          const response = await chat(
             message,
             config,
             [], // No MCP tools available in server mode
@@ -129,25 +302,25 @@ export function startServer(config: SeraphConfig, agentManager: AgentManager) {
           res.writeHead(200, { 'Content-Type': 'text/plain' });
           res.end(response);
         } catch (error: any) {
+          const sanitizedError = sanitizeErrorMessage(error);
+          console.error(`[${correlationId}] Chat error:`, sanitizedError);
+          
           if (error instanceof SyntaxError) {
-            res.writeHead(400, {
-              'Content-Type': 'application/json',
-            });
-            res.end(
-              JSON.stringify({
-                status: 'error',
-                message: 'Invalid JSON format',
-              }),
-            );
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+              status: 'error',
+              message: 'Invalid JSON format',
+              correlationId
+            }));
             return;
           }
+          
           res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(
-            JSON.stringify({
-              status: 'error',
-              message: 'Internal Server Error',
-            }),
-          );
+          res.end(JSON.stringify({
+            status: 'error',
+            message: 'Internal Server Error',
+            correlationId
+          }));
         }
       });
     } else {
@@ -161,9 +334,9 @@ export function startServer(config: SeraphConfig, agentManager: AgentManager) {
   });
 
   // IPC server
-  const ipcSocketPath = path.join(process.cwd(), '.seraph.sock');
-  const ipcServer = net.createServer((socket) => {
-    socket.on('data', (data) => {
+  const ipcSocketPath = join(process.cwd(), '.seraph.sock');
+  const ipcServer = createNetServer((socket: Socket) => {
+    socket.on('data', (data: Buffer) => {
       const message = data.toString();
       if (message === 'get_logs') {
         socket.write(JSON.stringify(agentManager.getRecentLogs()));
@@ -173,8 +346,8 @@ export function startServer(config: SeraphConfig, agentManager: AgentManager) {
 
   const cleanupSocket = async () => {
     try {
-      await fs.promises.access(ipcSocketPath);
-      await fs.promises.unlink(ipcSocketPath);
+      await fs.access(ipcSocketPath);
+      await fs.unlink(ipcSocketPath);
     } catch (error: any) {
       if (error.code !== 'ENOENT') {
         console.error('Error removing old IPC socket file:', error);
@@ -185,7 +358,7 @@ export function startServer(config: SeraphConfig, agentManager: AgentManager) {
   cleanupSocket().then(() => {
     ipcServer.listen(ipcSocketPath, async () => {
       try {
-        await fs.promises.chmod(ipcSocketPath, 0o600);
+        await fs.chmod(ipcSocketPath, 0o600);
         console.log('IPC server started');
       } catch (error) {
         console.error('Error setting permissions on IPC socket file:', error);

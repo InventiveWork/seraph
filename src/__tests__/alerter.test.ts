@@ -3,6 +3,7 @@ import { SeraphConfig } from '../config';
 import fetch from 'node-fetch';
 
 jest.mock('node-fetch', () => jest.fn());
+jest.mock('uuid', () => ({ v4: () => 'mock-uuid' }));
 
 const { Response } = jest.requireActual('node-fetch');
 
@@ -22,29 +23,41 @@ describe('AlerterClient', () => {
     consoleErrorSpy.mockRestore();
   });
 
-  it('should send an alert to the configured Alertmanager URL', async () => {
-    const config: SeraphConfig = {
-      port: 8080,
-      workers: 1,
-      apiKey: 'test-key',
-      serverApiKey: null,
-      alertManager: {
-        url: 'http://fake-alertmanager:9093/api/v2/alerts',
-      },
-    };
-    const alerter = new AlerterClient(config);
+  const baseConfig: SeraphConfig = {
+    port: 8080,
+    workers: 1,
+    apiKey: 'test-key',
+    serverApiKey: null,
+    alertManager: {
+      url: 'http://fake-alertmanager:9093/api/v2/alerts',
+    },
+  };
+
+  it('should send an initial alert', async () => {
+    const alerter = new AlerterClient(baseConfig);
+    mockFetch.mockResolvedValue(new Response('OK', { status: 200 }));
+
+    await alerter.sendInitialAlert('test log', 'test reason');
+
+    expect(mockFetch).toHaveBeenCalledWith(baseConfig.alertManager?.url, expect.any(Object));
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body)[0];
+    expect(body.labels.alertname).toBe('SeraphAnomalyTriage');
+    expect(body.labels.incidentId).toBe('mock-uuid');
+  });
+
+  it('should send a system alert to the configured Alertmanager URL', async () => {
+    const alerter = new AlerterClient(baseConfig);
     const context = {
       source: 'test-source',
       type: 'test-type',
       details: 'This is a test alert',
-      log: 'test log entry',
     };
 
     mockFetch.mockResolvedValue(new Response('OK', { status: 200 }));
 
-    await alerter.sendAlert(context);
+    await alerter.sendSystemAlert(context);
 
-    expect(mockFetch).toHaveBeenCalledWith(config.alertManager?.url, {
+    expect(mockFetch).toHaveBeenCalledWith(baseConfig.alertManager?.url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -52,14 +65,13 @@ describe('AlerterClient', () => {
       body: JSON.stringify([
         {
           labels: {
-            alertname: 'SeraphAnomalyDetected',
+            alertname: 'SeraphSystemEvent',
             source: 'test-source',
             type: 'test-type',
           },
           annotations: {
-            summary: 'Anomaly detected in test-source',
+            summary: 'System event in test-source',
             description: 'This is a test alert',
-            log: 'test log entry',
           },
         },
       ]),
@@ -67,72 +79,35 @@ describe('AlerterClient', () => {
   });
 
   it('should not send an alert if the Alertmanager URL is not configured', async () => {
-    const config: SeraphConfig = {
-      port: 8080,
-      workers: 1,
-      apiKey: 'test-key',
-      serverApiKey: null,
-    };
-    const alerter = new AlerterClient(config);
-    const context = {
-      source: 'test-source',
-      type: 'test-type',
-      details: 'This is a test alert',
-      log: 'test log entry',
-    };
-
-    await alerter.sendAlert(context);
+    const configWithoutUrl: SeraphConfig = { ...baseConfig, alertManager: { url: '' } };
+    const alerter = new AlerterClient(configWithoutUrl);
+    
+    // We expect this to log an error, but not throw, so we can't await a rejection.
+    // Instead we check that fetch was not called.
+    await alerter.sendInitialAlert('test log', 'test reason');
 
     expect(mockFetch).not.toHaveBeenCalled();
+    expect(console.error).not.toHaveBeenCalled(); // It should not error, just log
   });
 
-  it('should handle errors when sending an alert', async () => {
-    const config: SeraphConfig = {
-      port: 8080,
-      workers: 1,
-      apiKey: 'test-key',
-      serverApiKey: null,
-      alertManager: {
-        url: 'http://fake-alertmanager:9093/api/v2/alerts',
-      },
-    };
-    const alerter = new AlerterClient(config);
-    const context = {
-      source: 'test-source',
-      type: 'test-type',
-      details: 'This is a test alert',
-      log: 'test log entry',
-    };
 
+  it('should handle network errors when sending an alert', async () => {
+    const alerter = new AlerterClient(baseConfig);
     mockFetch.mockRejectedValue(new Error('Network error'));
 
-    await alerter.sendAlert(context);
+    await alerter.sendInitialAlert('test log', 'test reason');
 
     expect(mockFetch).toHaveBeenCalled();
+    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to send initial alert'), expect.any(String));
   });
 
   it('should handle non-ok responses from Alertmanager', async () => {
-    const config: SeraphConfig = {
-      port: 8080,
-      workers: 1,
-      apiKey: 'test-key',
-      serverApiKey: null,
-      alertManager: {
-        url: 'http://fake-alertmanager:9093/api/v2/alerts',
-      },
-    };
-    const alerter = new AlerterClient(config);
-    const context = {
-      source: 'test-source',
-      type: 'test-type',
-      details: 'This is a test alert',
-      log: 'test log entry',
-    };
-
+    const alerter = new AlerterClient(baseConfig);
     mockFetch.mockResolvedValue(new Response('Internal Server Error', { status: 500 }));
 
-    await alerter.sendAlert(context);
+    await alerter.sendInitialAlert('test log', 'test reason');
 
     expect(mockFetch).toHaveBeenCalled();
+    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to send initial alert'), expect.any(String));
   });
 });

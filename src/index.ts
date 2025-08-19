@@ -6,16 +6,19 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as net from 'net';
 import { startServer } from './server';
-import { AgentManager } from './agent';
+import { AgentManager } from './agent-manager';
 import { loadConfig } from './config';
 import { chat } from './chat';
 import { mcpManager } from './mcp-manager';
+import { ReportStore } from './report-store';
+import { mcpServerRegistry } from './mcp-registry';
+import { startMcpServer } from './mcp-server';
 
 const program = new Command();
 
 program
   .name('seraph-agent')
-  .version('1.0.1')
+  .version('1.0.13')
   .description('A lightweight, autonomous SRE AI agent.');
 
 program.addHelpText('after', `
@@ -58,10 +61,30 @@ program
     const config = await loadConfig();
     const agentManager = new AgentManager(config);
     startServer(config, agentManager);
+    startMcpServer(config); // Start the built-in MCP server
     await fs.promises.writeFile(pidFilePath, process.pid.toString());
     console.log(`Log ingestion server started on port ${config.port}`);
     console.log(`Agent manager is running with ${config.workers} workers.`);
     console.log(`PID: ${process.pid}`);
+
+    // Wait for the agent to fully initialize
+    await agentManager.waitForInitialization();
+
+    // Execute startup prompts if they exist
+    if (config.startupPrompts && config.startupPrompts.length > 0) {
+      console.log('Executing startup prompts...');
+      for (const prompt of config.startupPrompts) {
+        console.log(`> ${prompt}`);
+        try {
+          const tools = mcpManager.getDynamicTools();
+          const response = await chat(prompt, config, tools);
+          console.log(response);
+        } catch (error) {
+          console.error(`Error executing startup prompt: "${prompt}"`, error);
+        }
+      }
+      console.log('Finished executing startup prompts.');
+    }
   });
 
 program
@@ -89,7 +112,7 @@ program
         }
       });
 
-      req.on('error', (e) => {
+      req.on('error', () => {
         if (retries > 0) {
           retries--;
           setTimeout(tryConnect, 500);
@@ -137,13 +160,44 @@ program
   .command('chat <message>')
   .description('Chat with the Seraph agent.')
   .option('-c, --context', 'Include recent logs as context.')
-  .option('--mcp-server-url <url>', 'Dynamically connect to an MCP server to use its tools.')
+  .option('--mcp-server-url <url>', 'Dynamically connect to a custom MCP server to use its tools.')
+  .option('--tools <names>', 'A comma-separated list of built-in toolsets to use (e.g., "fetch,git").')
   .action(async (message, options) => {
     console.log("Input received by CLI:", message);
     const config = await loadConfig();
 
-    if (options.mcpServerUrl) {
-      await mcpManager.initialize(options.mcpServerUrl);
+    let mcpUrl = options.mcpServerUrl;
+
+    // CLI flags take precedence
+    if (options.tools) {
+      const toolNames = options.tools.split(',');
+      const selectedServer = mcpServerRegistry.find(server => server.name === toolNames[0]);
+      if (selectedServer) {
+        mcpUrl = selectedServer.url;
+        if (toolNames.length > 1) {
+          console.warn('Warning: Multiple toolsets are not yet supported. Using the first one found:', selectedServer.name);
+        }
+      } else {
+        console.error(`Error: Toolset "${toolNames[0]}" not found. Use 'seraph tools list' to see available toolsets.`);
+        process.exit(1);
+      }
+    } else if (!mcpUrl && config.defaultMcpServers && config.defaultMcpServers.length > 0) {
+      // Use default from config if no CLI flags are provided
+      const defaultServerName = config.defaultMcpServers[0];
+      const selectedServer = mcpServerRegistry.find(server => server.name === defaultServerName);
+      if (selectedServer) {
+        mcpUrl = selectedServer.url;
+        if (config.defaultMcpServers.length > 1) {
+          console.warn('Warning: Multiple default toolsets are not yet supported. Using the first one:', selectedServer.name);
+        }
+      } else {
+        console.error(`Error: Default toolset "${defaultServerName}" from config not found. Use 'seraph tools list' to see available toolsets.`);
+        process.exit(1);
+      }
+    }
+
+    if (mcpUrl) {
+      await mcpManager.initialize(mcpUrl);
     }
 
     const tools = mcpManager.getDynamicTools();
@@ -161,13 +215,51 @@ program
         client.end();
       });
 
-      client.on('error', (err) => {
+      client.on('error', () => {
         console.error('Error connecting to Seraph agent IPC server. Is the agent running?');
       });
     } else {
       const response = await chat(message, config, tools);
       console.log(response);
     }
+  });
+
+const reports = program.command('reports')
+  .description('Manage and view reports.');
+
+reports
+  .command('list')
+  .description('List all reports.')
+  .action(async () => {
+    const reportStore = new ReportStore();
+    const reports = await reportStore.listReports();
+    console.table(reports);
+    await reportStore.close();
+  });
+
+reports
+  .command('view <incidentId>')
+  .description('View a specific report.')
+  .action(async (incidentId) => {
+    const reportStore = new ReportStore();
+    const report = await reportStore.getReport(incidentId);
+    if (report) {
+      console.log(JSON.stringify(report, null, 2));
+    } else {
+      console.log(`Report with ID "${incidentId}" not found.`);
+    }
+    await reportStore.close();
+  });
+
+const tools = program.command('tools')
+  .description('Manage and view available toolsets.');
+
+tools
+  .command('list')
+  .description('List all available built-in toolsets.')
+  .action(() => {
+    console.log('Available toolsets:');
+    console.table(mcpServerRegistry);
   });
 
 program.parse(process.argv);

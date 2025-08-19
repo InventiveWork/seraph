@@ -1,13 +1,21 @@
 import * as http from 'http';
 import request from 'supertest';
 import { startServer, resetRequestCounts } from '../server';
-import { AgentManager } from '../agent';
+import { AgentManager } from '../agent-manager';
 import { SeraphConfig } from '../config';
 import * as chat from '../chat';
 
-jest.mock('../agent');
+jest.mock('../agent-manager');
 jest.mock('../chat', () => ({
   chat: jest.fn(),
+}));
+// Mock ReportStore to prevent database interactions in server tests
+jest.mock('../report-store', () => ({
+  ReportStore: jest.fn().mockImplementation(() => ({
+    saveReport: jest.fn(),
+    pruneOldReports: jest.fn(),
+    close: jest.fn().mockResolvedValue(undefined),
+  })),
 }));
 
 describe('Server', () => {
@@ -16,16 +24,18 @@ describe('Server', () => {
   let agentManager: AgentManager;
   let config: SeraphConfig;
   let consoleLogSpy: jest.SpyInstance;
+  let consoleErrorSpy: jest.SpyInstance;
 
   beforeEach(() => {
     jest.useFakeTimers(); // Ensure fake timers are used before server starts
     resetRequestCounts(); // Reset rate limit counts before each test
     consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     agentManager = new AgentManager({} as SeraphConfig);
     agentManager.dispatch = jest.fn();
     agentManager.getRecentLogs = jest.fn(() => ['log1', 'log2']);
     config = {
-      port: 8082,
+      port: 8089,
       workers: 4,
       apiKey: 'test-key',
       serverApiKey: null,
@@ -37,6 +47,7 @@ describe('Server', () => {
 
   afterEach((done) => {
     consoleLogSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
     shutdown(() => {
       jest.clearAllTimers(); // Clear any remaining timers
       jest.useRealTimers(); // Ensure real timers are restored
@@ -48,7 +59,7 @@ describe('Server', () => {
     const response = await request(server).post('/logs').send('');
     expect(response.status).toBe(400);
     expect(response.body.message).toBe(
-      'Request body must be a non-empty string.',
+      'Request body must be a non-empty string',
     );
   });
 

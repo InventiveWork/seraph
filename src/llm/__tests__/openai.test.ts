@@ -26,6 +26,6 @@ describe('OpenAIProvider', () => {
       model: 'gpt-4-turbo',
       messages: [{ role: 'user', content: 'test prompt' }],
     });
-    expect(response).toBe('test response');
+    expect(response).toEqual({ text: 'test response', toolCalls: undefined });
   });
 });

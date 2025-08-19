@@ -63,6 +63,11 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.secrets.name }}
                   key: seraph-mitigation-api-key
+          envFrom:
+            {{- range .Values.additionalSecrets }}
+            - secretRef:
+                name: {{ . }}
+            {{- end }}
           volumeMounts:
             - name: config
               mountPath: /usr/src/app/seraph.config.json
