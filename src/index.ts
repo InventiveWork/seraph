@@ -18,7 +18,7 @@ const program = new Command();
 
 program
   .name('seraph-agent')
-  .version('1.0.13')
+  .version('1.0.14')
   .description('A lightweight, autonomous SRE AI agent.');
 
 program.addHelpText('after', `
@@ -70,20 +70,93 @@ program
     // Wait for the agent to fully initialize
     await agentManager.waitForInitialization();
 
+    // Clone the repository for Git context during investigations
+    if (config.builtInMcpServer?.gitRepoPath && config.builtInMcpServer?.gitRepoUrl) {
+      console.log(`Cloning repository from ${config.builtInMcpServer.gitRepoUrl} for Git context...`);
+      try {
+        const { spawn } = await import('child_process');
+        const gitRepoPath = config.builtInMcpServer.gitRepoPath;
+        const gitRepoUrl = config.builtInMcpServer.gitRepoUrl;
+        const gitClone = spawn('git', [
+          'clone',
+          gitRepoUrl,
+          gitRepoPath
+        ], {
+          stdio: 'pipe'
+        });
+
+        await new Promise<void>((resolve, reject) => {
+          let output = '';
+          let errorOutput = '';
+
+          gitClone.stdout?.on('data', (data: Buffer) => {
+            output += data.toString();
+          });
+
+          gitClone.stderr?.on('data', (data: Buffer) => {
+            errorOutput += data.toString();
+          });
+
+          gitClone.on('close', (code: number | null) => {
+            if (code === 0) {
+              console.log(`✓ Repository cloned successfully to ${gitRepoPath}`);
+              resolve();
+            } else {
+              // If clone fails (e.g., directory exists), try to update instead
+              console.log(`Git clone failed (exit code ${code}), attempting to update existing repository...`);
+              const gitPull = spawn('git', ['-C', gitRepoPath, 'pull'], { stdio: 'pipe' });
+
+              gitPull.on('close', (pullCode: number | null) => {
+                if (pullCode === 0) {
+                  console.log(`✓ Repository updated successfully`);
+                  resolve();
+                } else {
+                  console.warn(`Git operations failed, but continuing with existing repository if available`);
+                  resolve();
+                }
+              });
+
+              gitPull.on('error', (err: Error) => {
+                console.warn(`Git pull failed: ${err.message}, continuing anyway`);
+                resolve();
+              });
+            }
+          });
+
+          gitClone.on('error', (err: Error) => {
+            console.warn(`Git clone failed: ${err.message}, continuing anyway`);
+            resolve();
+          });
+        });
+      } catch (error) {
+        console.warn(`Failed to clone repository: ${error}. Continuing without Git context.`);
+      }
+    }
+
     // Execute startup prompts if they exist
     if (config.startupPrompts && config.startupPrompts.length > 0) {
-      console.log('Executing startup prompts...');
+      console.log('Executing startup prompts as investigations...');
       for (const prompt of config.startupPrompts) {
         console.log(`> ${prompt}`);
         try {
-          const tools = mcpManager.getDynamicTools();
-          const response = await chat(prompt, config, tools);
-          console.log(response);
+          // Trigger a full investigation for each startup prompt
+          const syntheticLog = `Demo investigation request: ${prompt}`;
+          const reason = `Startup investigation: ${prompt.substring(0, 50)}${prompt.length > 50 ? '...' : ''}`;
+          
+          const success = agentManager.triggerInvestigation(syntheticLog, reason);
+          if (success) {
+            console.log(`Investigation triggered for: ${reason}`);
+          } else {
+            console.log(`Investigation skipped for: ${reason} (deduplication or queue full)`);
+          }
+          
+          // Add a small delay between investigations to avoid overwhelming the system
+          await new Promise(resolve => setTimeout(resolve, 2000));
         } catch (error) {
-          console.error(`Error executing startup prompt: "${prompt}"`, error);
+          console.error(`Error executing startup investigation: "${prompt}"`, error);
         }
       }
-      console.log('Finished executing startup prompts.');
+      console.log('Finished executing startup investigations.');
     }
   });
 

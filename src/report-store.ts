@@ -10,6 +10,7 @@ export interface Report {
   triageReason: string;
   investigationTrace: any;
   finalAnalysis: any;
+  toolUsage?: Array<{tool: string, timestamp: string, args: any, success: boolean, executionTime?: number}>;
   status: 'open' | 'acknowledged' | 'resolved';
 }
 
@@ -35,12 +36,24 @@ export class ReportStore {
             triageReason TEXT,
             investigationTrace BLOB,
             finalAnalysis BLOB,
+            toolUsage BLOB,
             status TEXT NOT NULL,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
           );
         `;
         await conn.run(sql);
+        
+        // Add migration for toolUsage column if it doesn't exist
+        try {
+          await conn.run(`ALTER TABLE reports ADD COLUMN toolUsage BLOB;`);
+          console.log('Added toolUsage column to existing reports table');
+        } catch (error: any) {
+          // Column already exists or other error, ignore
+          if (!error.message.includes('duplicate column name')) {
+            console.warn('Warning during toolUsage column migration:', error.message);
+          }
+        }
         
         // Create index for better query performance
         await conn.run(`
@@ -76,11 +89,12 @@ export class ReportStore {
 
       const compressedTrace = gzipSync(JSON.stringify(newReport.investigationTrace));
       const compressedAnalysis = gzipSync(JSON.stringify(newReport.finalAnalysis));
+      const compressedToolUsage = newReport.toolUsage ? gzipSync(JSON.stringify(newReport.toolUsage)) : null;
 
       await this.pool.execute(async (conn) => {
         const sql = `
-          INSERT INTO reports (incidentId, timestamp, initialLog, triageReason, investigationTrace, finalAnalysis, status)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO reports (incidentId, timestamp, initialLog, triageReason, investigationTrace, finalAnalysis, toolUsage, status)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `;
 
         await conn.run(sql, [
@@ -90,6 +104,7 @@ export class ReportStore {
           newReport.triageReason,
           compressedTrace,
           compressedAnalysis,
+          compressedToolUsage,
           newReport.status,
         ]);
       });
@@ -131,6 +146,7 @@ export class ReportStore {
             ...row,
             investigationTrace: JSON.parse(gunzipSync(row.investigationTrace).toString()),
             finalAnalysis: JSON.parse(gunzipSync(row.finalAnalysis).toString()),
+            toolUsage: row.toolUsage ? JSON.parse(gunzipSync(row.toolUsage).toString()) : undefined,
           };
           return report;
         }

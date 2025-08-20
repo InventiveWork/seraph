@@ -162,7 +162,12 @@ export class AgentManager {
     }
   }
 
-  private handleAlert(log: string, reason: string) {
+  // Trigger investigations programmatically
+  public triggerInvestigation(log: string, reason: string): boolean {
+    return this.handleAlert(log, reason);
+  }
+
+  private handleAlert(log: string, reason: string): boolean {
     // Check for deduplication
     const reasonKey = this.normalizeReason(reason);
     const now = Date.now();
@@ -170,14 +175,14 @@ export class AgentManager {
     
     if (lastSeen && (now - lastSeen) < this.DEDUPLICATION_WINDOW_MS) {
       console.log(`Skipping duplicate alert for: ${reason} (last seen ${Math.round((now - lastSeen) / 1000)}s ago)`);
-      return;
+      return false;
     }
     
     // Check concurrent investigation limit
     if (this.activeInvestigations.size >= this.MAX_CONCURRENT_INVESTIGATIONS) {
       console.log(`Investigation queue full (${this.activeInvestigations.size}/${this.MAX_CONCURRENT_INVESTIGATIONS}). Queuing alert: ${reason}`);
       // Could implement a queue here, for now just skip
-      return;
+      return false;
     }
     
     console.log(`Triage alert received for: ${reason}. Dispatching to investigation worker...`);
@@ -208,6 +213,7 @@ export class AgentManager {
     
     // Safe round-robin worker selection
     this.nextInvestigationWorker = (this.nextInvestigationWorker + 1) % this.investigationWorkers.length;
+    return true;
   }
 
   private normalizeReason(reason: string): string {
@@ -272,7 +278,7 @@ export class AgentManager {
   }
 
   private async handleInvestigationComplete(data: any) {
-    const { investigationId, initialLog, triageReason, investigationTrace, finalAnalysis } = data;
+    const { investigationId, initialLog, triageReason, investigationTrace, finalAnalysis, toolUsage } = data;
     
     const investigation = this.activeInvestigations.get(investigationId);
     if (investigation) {
@@ -284,8 +290,8 @@ export class AgentManager {
 
     try {
       const initialAlert = await this.alerterClient.sendInitialAlert(initialLog, triageReason);
-      const report = await this.reportStore.saveReport({ initialLog, triageReason, investigationTrace, finalAnalysis });
-      await this.alerterClient.sendEnrichedAnalysis(initialAlert.incidentId, finalAnalysis, report.incidentId);
+      const report = await this.reportStore.saveReport({ initialLog, triageReason, investigationTrace, finalAnalysis, toolUsage });
+      await this.alerterClient.sendEnrichedAnalysis(initialAlert.incidentId, finalAnalysis, report.incidentId, toolUsage);
 
       console.log(`Report ${report.incidentId} saved and enriched analysis sent for incident ${initialAlert.incidentId}.`);
     } catch (error) {
