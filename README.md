@@ -24,19 +24,28 @@ Seraph now comes with a built-in Model Context Protocol (MCP) server that provid
 
 -   **Git**: The agent can analyze the Git repository where your application's source code is located. It can read commit logs to correlate a production error with a recent code change.
 
+-   **Prometheus**: The agent can query your Prometheus instance to investigate metrics, alerts, targets, and rules. This enables correlation of log anomalies with system metrics and infrastructure health.
+
 ### Configuration
 
-To use the built-in Git tool, you must tell Seraph where your Git repository is located. Add the following section to your `seraph.config.json`:
+To use the built-in tools, configure them in your `seraph.config.json`:
 
 ```json
 {
   "builtInMcpServer": {
-    "gitRepoPath": "/path/to/your/local/git/repo"
+    "gitRepoPath": "/path/to/your/local/git/repo",
+    "prometheusUrl": "http://localhost:9090"
   }
 }
 ```
 
-With this configuration, the agent will automatically have access to the `git_log` tool for its investigations.
+With this configuration, the agent will automatically have access to:
+- `git_log` and `git_clone` tools for code analysis
+- `prometheus_query` for custom PromQL queries
+- `prometheus_metrics` to explore available metrics
+- `prometheus_alerts` to check current alert status
+- `prometheus_targets` to verify scrape target health
+- `prometheus_rules` to inspect alerting and recording rules
 
 ## Dynamic Tool Integration with MCP
 

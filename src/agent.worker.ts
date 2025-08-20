@@ -78,18 +78,20 @@ const analyzeLog = async (log: string) => {
   const truncatedLog = processedLog.length > 1500 ? processedLog.substring(0, 1500) + '...[truncated]' : processedLog;
 
   const prompt = `
-  You are a high-speed SRE triage system. Analyze the following log entry and MUST use the "log_triage" tool to indicate your decision.
+  You are a high-speed SRE triage system. Analyze this log entry and use the available tool to respond.
 
-  Rules:
-  - ALWAYS call the log_triage tool with your decision
-  - Use "alert" for errors, failures, timeouts, or problems requiring attention
-  - Use "ok" for successful operations, info messages, or routine events
-  - Provide a brief 5-word reason
+  CRITICAL: You must call the "log_triage" tool function with two parameters:
+  - decision: either "alert" or "ok" 
+  - reason: brief 5-word explanation
 
-  Log entry to analyze:
+  Decision criteria:
+  - Use "alert" for: errors, failures, timeouts, crashes, exceptions, or problems requiring attention
+  - Use "ok" for: successful operations, info messages, routine events, normal status updates
+
+  Log to analyze:
   ${truncatedLog}
 
-  REMEMBER: You MUST call the log_triage tool now.
+  Call the log_triage tool now with your decision and reason.
   `;
 
   try {
@@ -109,9 +111,22 @@ const analyzeLog = async (log: string) => {
       };
     }
     
-    // If LLM doesn't use tool, try to extract decision from response text
+    // Parse response text for decision patterns
     if (response.text) {
       const content = response.text.toLowerCase();
+      
+      // Extract decision from malformed responses
+      const decisionMatch = content.match(/decision\s*=\s*['"]?(alert|ok)['"]?/);
+      const reasonMatch = content.match(/reason\s*=\s*['"]([^'"]+)['"]?/);
+      
+      if (decisionMatch) {
+        return {
+          decision: decisionMatch[1] as 'alert' | 'ok',
+          reason: reasonMatch?.[1]?.substring(0, 50) || 'Parsed from malformed response'
+        };
+      }
+      
+      // Legacy fallback for content-based detection
       if (content.includes('alert') || content.includes('error') || content.includes('fail') || content.includes('problem') || content.includes('timeout')) {
         return { decision: 'alert', reason: 'Content suggests alert needed' };
       } else if (content.includes('ok') || content.includes('normal') || content.includes('routine') || content.includes('success')) {
