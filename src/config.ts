@@ -14,7 +14,11 @@ export interface SeraphConfig {
   defaultMcpServers?: string[];
   startupPrompts?: string[];
   builtInMcpServer?: {
+    gitRepoUrl?: string;
     gitRepoPath?: string;
+    prometheusUrl?: string;
+    kubernetesContext?: string;
+    kubernetesNamespace?: string;
   };
   llm?: {
     provider: 'gemini' | 'anthropic' | 'openai';

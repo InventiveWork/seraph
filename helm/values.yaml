@@ -23,6 +23,10 @@ serviceAccount:
   # If not set and create is true, a name is generated using the fullname template
   name: ""
 
+rbac:
+  # Specifies whether RBAC resources should be created
+  create: true
+
 podAnnotations: {}
 
 podSecurityContext: {}
@@ -107,6 +111,17 @@ seraphConfig:
   
   # A list of prompts to run on startup after the agent is initialized.
   startupPrompts: []
+  
+  # Built-in MCP server configuration for Git, Prometheus, and Kubernetes tools
+  builtInMcpServer:
+    # Path to local Git repository for analysis
+    gitRepoPath: ""
+    # Prometheus server URL for metrics queries
+    prometheusUrl: "http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090"
+    # Kubernetes context for kubectl commands (optional)
+    kubernetesContext: ""
+    # Default Kubernetes namespace (optional, uses 'default' if not specified)
+    kubernetesNamespace: "default"
 
 # A list of secrets to mount as environment variables.
 # Each key-value pair in these secrets will be available as an environment variable.
