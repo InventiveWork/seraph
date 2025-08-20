@@ -10,8 +10,13 @@ COPY package*.json ./
 # Install app dependencies
 RUN npm install
 
-# Install git and create a demo repository for the built-in MCP server
-RUN apk add --no-cache git && \
+# Install git, kubectl and create a demo repository for the built-in MCP server
+RUN apk add --no-cache git curl && \
+    ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then ARCH="amd64"; elif [ "$ARCH" = "aarch64" ]; then ARCH="arm64"; fi && \
+    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/${ARCH}/kubectl" && \
+    chmod +x kubectl && \
+    mv kubectl /usr/local/bin/ && \
     git config --global user.email "demo@seraph.ai" && \
     git config --global user.name "Seraph Demo" && \
     git init /usr/src/app/demo-repo && \

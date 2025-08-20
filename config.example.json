@@ -61,6 +61,12 @@
 
   "builtInMcpServer": {
     "gitRepoPath": "/path/to/your/local/git/repo",
-    "//": "The local filesystem path to a Git repository you want the agent to be able to analyze via the built-in 'git_log' tool."
+    "//": "The local filesystem path to a Git repository you want the agent to be able to analyze via the built-in 'git_log' tool.",
+    "prometheusUrl": "http://localhost:9090",
+    "//": "The URL of your Prometheus instance for metrics queries and investigation. Used by prometheus_* tools.",
+    "kubernetesContext": "my-cluster",
+    "//": "Kubernetes context to use for kubectl commands (optional, uses current context if not specified).",
+    "kubernetesNamespace": "default",
+    "//": "Default Kubernetes namespace for kubectl commands (optional, uses 'default' if not specified)."
   }
 }
