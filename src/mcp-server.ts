@@ -37,34 +37,100 @@ function handleGitLog(args: any, config: SeraphConfig): Promise<any> {
 }
 
 // Security function to validate destination paths
-function validateDestinationPath(destination: string): string {
+export async function validateDestinationPath(destination: string): Promise<string> {
   if (!destination) {
     throw new Error("Destination path cannot be empty");
   }
 
-  // Resolve to absolute path and normalize
-  const resolvedPath = path.resolve(destination);
-  
-  // Security checks
-  const allowedPrefixes = ['/tmp/', '/var/tmp/'];
-  const isAllowed = allowedPrefixes.some(prefix => resolvedPath.startsWith(prefix));
-  
-  if (!isAllowed) {
-    throw new Error(`Security violation: Destination must be within ${allowedPrefixes.join(' or ')}. Got: ${resolvedPath}`);
-  }
-  
-  // Check for path traversal attempts
-  if (resolvedPath.includes('..') || resolvedPath.includes('./') || resolvedPath.includes('.\\')) {
+  // Check for path traversal BEFORE resolving (but allow safe relative paths)
+  if (destination.includes('..') || destination.includes('.\\') || 
+      destination.includes('%2e%2e') || destination.includes('%2f') || destination.includes('%5c')) {
     throw new Error("Security violation: Path traversal detected in destination");
   }
   
-  // Ensure we're not overwriting system directories
-  const systemPaths = ['/tmp/systemd', '/tmp/.X11-unix', '/var/tmp/systemd'];
-  if (systemPaths.some(sysPath => resolvedPath.startsWith(sysPath))) {
-    throw new Error("Security violation: Cannot overwrite system temporary directories");
+  // Reject patterns that could be used for traversal
+  if (destination.match(/\/\.\//g) || destination.match(/\\\.\\/) || destination.includes('../')) {
+    throw new Error("Security violation: Path traversal detected in destination");
   }
 
-  return resolvedPath;
+  // Normalize and resolve to absolute path
+  const resolvedPath = path.resolve(destination);
+  
+  // Define allowed base directories (canonical paths)
+  let allowedBaseDirs: string[];
+  try {
+    allowedBaseDirs = [
+      await fs.realpath('/tmp'),
+      await fs.realpath('/var/tmp')
+    ];
+  } catch {
+    // Fallback if realpath fails
+    allowedBaseDirs = ['/tmp', '/var/tmp'];
+  }
+  
+  let canonicalPath: string;
+  try {
+    // Get canonical path (resolves symlinks)
+    canonicalPath = await fs.realpath(path.dirname(resolvedPath));
+    canonicalPath = path.join(canonicalPath, path.basename(resolvedPath));
+  } catch (error) {
+    // If directory doesn't exist, validate parent directories
+    const parentDir = path.dirname(resolvedPath);
+    try {
+      const canonicalParent = await fs.realpath(parentDir);
+      canonicalPath = path.join(canonicalParent, path.basename(resolvedPath));
+    } catch {
+      // Parent doesn't exist, validate against resolved path
+      canonicalPath = resolvedPath;
+    }
+  }
+  
+  // Additional protection against system directories BEFORE allowlist check
+  const protectedPaths = [
+    '/tmp/systemd',
+    '/tmp/.X11-unix', 
+    '/var/tmp/systemd',
+    '/tmp/.ICE-unix',
+    '/tmp/.Test-unix'
+  ];
+  
+  for (const protectedPath of protectedPaths) {
+    if (canonicalPath.startsWith(protectedPath) || resolvedPath.startsWith(protectedPath)) {
+      throw new Error("Security violation: Cannot access protected system directories");
+    }
+  }
+  
+  // Check if either the resolved path or canonical path is within allowed directories
+  const isPathAllowed = (pathToCheck: string): boolean => {
+    return allowedBaseDirs.some(allowedDir => {
+      // Normalize both paths for comparison
+      const normalizedAllowed = allowedDir.endsWith(path.sep) ? allowedDir : allowedDir + path.sep;
+      const normalizedPath = pathToCheck.endsWith(path.sep) ? pathToCheck : pathToCheck + path.sep;
+      
+      return pathToCheck.startsWith(normalizedAllowed) || 
+             pathToCheck === allowedDir ||
+             normalizedPath.startsWith(normalizedAllowed);
+    });
+  };
+  
+  const isAllowed = isPathAllowed(canonicalPath) || isPathAllowed(resolvedPath);
+  
+  if (!isAllowed) {
+    throw new Error(`Security violation: Destination must be within ${allowedBaseDirs.join(' or ')}. Got: ${canonicalPath}`);
+  }
+
+  // Ensure the final path doesn't escape allowed directories through symlinks
+  if (canonicalPath !== resolvedPath) {
+    // Additional check: ensure symlink target is still within allowed dirs
+    const symlinkAllowed = allowedBaseDirs.some(allowedDir => 
+      canonicalPath.startsWith(allowedDir)
+    );
+    if (!symlinkAllowed) {
+      throw new Error("Security violation: Symlink target outside allowed directories");
+    }
+  }
+
+  return canonicalPath;
 }
 
 async function handleGitClone(args: any, config: SeraphConfig): Promise<any> {
@@ -77,7 +143,7 @@ async function handleGitClone(args: any, config: SeraphConfig): Promise<any> {
   let cloneDir: string;
   if (destination) {
     // Use validated custom destination
-    cloneDir = validateDestinationPath(destination);
+    cloneDir = await validateDestinationPath(destination);
     
     // Create directory if it doesn't exist
     try {
