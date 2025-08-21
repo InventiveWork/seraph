@@ -1,4 +1,4 @@
-# Seraph Agent
+# Seraph Guardian Agent
 
 **Seraph is an extremely lightweight, SRE autonomous AI agent designed for seamless integration with common observability tasks.**
 
