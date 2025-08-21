@@ -70,17 +70,37 @@ export async function validateDestinationPath(destination: string): Promise<stri
   
   let canonicalPath: string;
   try {
-    // Get canonical path (resolves symlinks)
-    canonicalPath = await fs.realpath(path.dirname(resolvedPath));
-    canonicalPath = path.join(canonicalPath, path.basename(resolvedPath));
+    // Try to resolve the full path including any symlinks
+    canonicalPath = await fs.realpath(resolvedPath);
   } catch (error) {
-    // If directory doesn't exist, validate parent directories
-    const parentDir = path.dirname(resolvedPath);
+    // If the full path doesn't exist, try to resolve the parent directory
     try {
+      const parentDir = path.dirname(resolvedPath);
       const canonicalParent = await fs.realpath(parentDir);
       canonicalPath = path.join(canonicalParent, path.basename(resolvedPath));
+      
+      // If this is a symlink, we need to check what it points to
+      try {
+        const symlinkTarget = await fs.readlink(resolvedPath);
+        // If it's an absolute symlink, resolve it
+        if (path.isAbsolute(symlinkTarget)) {
+          canonicalPath = await fs.realpath(symlinkTarget);
+        } else {
+          // Relative symlink - resolve relative to the symlink's directory
+          const absoluteTarget = path.resolve(canonicalParent, symlinkTarget);
+          try {
+            canonicalPath = await fs.realpath(absoluteTarget);
+          } catch {
+            // Target doesn't exist, but validate the target path anyway
+            canonicalPath = absoluteTarget;
+          }
+        }
+      } catch {
+        // Not a symlink or can't read link, use the canonical parent + basename
+        canonicalPath = path.join(canonicalParent, path.basename(resolvedPath));
+      }
     } catch {
-      // Parent doesn't exist, validate against resolved path
+      // Parent doesn't exist either, validate against resolved path
       canonicalPath = resolvedPath;
     }
   }
