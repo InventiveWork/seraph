@@ -19,6 +19,7 @@ const llmCache = new SimpleRedisCache({
   } : undefined,
   similarityThreshold: config.llmCache?.similarityThreshold || 0.85,
   ttlSeconds: config.llmCache?.ttlSeconds || 3600, // 1 hour
+  verbose: config.verbose || false,
 });
 
 // Initialize cache connection on worker startup
