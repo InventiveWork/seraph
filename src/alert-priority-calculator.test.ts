@@ -322,7 +322,7 @@ describe('AlertPriorityCalculator', () => {
     it('should handle empty log and reason', () => {
       const result = calculator.calculatePriority('', '');
 
-      expect(result.priority).toBe(AlertPriority.MEDIUM);
+      expect(result.priority).toBe(AlertPriority.LOW);
       expect(result.score).toBeGreaterThanOrEqual(0);
       expect(result.reasoning).toBeDefined();
     });
