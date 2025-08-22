@@ -1,0 +1,285 @@
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: fluent-bit
+  labels:
+    app.kubernetes.io/name: fluent-bit
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: fluent-bit
+  labels:
+    app.kubernetes.io/name: fluent-bit
+rules:
+- apiGroups: [""]
+  resources:
+  - namespaces
+  - pods
+  - nodes
+  - nodes/proxy
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: fluent-bit
+  labels:
+    app.kubernetes.io/name: fluent-bit
+roleRef:
+  kind: ClusterRole
+  name: fluent-bit
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+- kind: ServiceAccount
+  name: fluent-bit
+  namespace: default
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluent-bit-config
+  labels:
+    app.kubernetes.io/name: fluent-bit
+data:
+  fluent-bit.conf: |
+    [SERVICE]
+        Flush         1
+        DNS.Mode      TCP
+        DNS.Resolver  Kube-DNS
+        Log_Level     info
+        Daemon        off
+        Parsers_File  parsers.conf
+
+    # Kubernetes container logs
+    [INPUT]
+        Name              tail
+        Path              /var/log/containers/*.log
+        Parser            cri
+        Tag               kube.containers.*
+        Mem_Buf_Limit     5MB
+        Skip_Long_Lines   On
+        Exclude_Path      /var/log/containers/seraph-demo-seraph-agent-*,/var/log/containers/fluent-bit-*
+
+    # Kubernetes system component logs (kubelet, kube-proxy, etc.)
+    [INPUT]
+        Name              systemd
+        Tag               kube.systemd.*
+        Systemd_Filter    _SYSTEMD_UNIT=kubelet.service
+        Systemd_Filter    _SYSTEMD_UNIT=kube-proxy.service
+        Systemd_Filter    _SYSTEMD_UNIT=docker.service
+        Systemd_Filter    _SYSTEMD_UNIT=containerd.service
+        Read_From_Tail    On
+
+    # Kubernetes audit logs (if available)
+    [INPUT]
+        Name              tail
+        Path              /var/log/audit/audit.log
+        Tag               kube.audit
+        Parser            json
+        Mem_Buf_Limit     5MB
+        Skip_Long_Lines   On
+
+    # System logs (syslog, messages)
+    [INPUT]
+        Name              tail
+        Path              /var/log/messages
+        Tag               system.messages
+        Mem_Buf_Limit     5MB
+        Skip_Long_Lines   On
+
+    [INPUT]
+        Name              tail
+        Path              /var/log/syslog
+        Tag               system.syslog
+        Mem_Buf_Limit     5MB
+        Skip_Long_Lines   On
+
+    # Kernel logs
+    [INPUT]
+        Name              kmsg
+        Tag               system.kernel
+
+    # Security-related logs
+    [INPUT]
+        Name              tail
+        Path              /var/log/auth.log
+        Tag               security.auth
+        Mem_Buf_Limit     5MB
+        Skip_Long_Lines   On
+
+    [INPUT]
+        Name              tail
+        Path              /var/log/secure
+        Tag               security.secure
+        Mem_Buf_Limit     5MB
+        Skip_Long_Lines   On
+
+    # Add Kubernetes metadata to container logs
+    [FILTER]
+        Name                kubernetes
+        Match               kube.containers.*
+        Kube_URL            https://kubernetes.default.svc:443
+        Kube_CA_File        /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        Kube_Token_File     /var/run/secrets/kubernetes.io/serviceaccount/token
+        Kube_Tag_Prefix     kube.containers.var.log.containers.
+        Merge_Log           On
+        Merge_Log_Key       log_processed
+        K8S-Logging.Parser  On
+        K8S-Logging.Exclude Off
+        Annotations         Off
+        Labels              On
+
+    # Parse JSON logs from applications
+    [FILTER]
+        Name          parser
+        Match         kube.containers.*
+        Key_Name      log
+        Parser        json
+        Reserve_Data  On
+        Preserve_Key  On
+        Unescape_Key  Off
+
+    # Filter out Seraph's own logs to prevent feedback loops
+    [FILTER]
+        Name         grep
+        Match        kube.containers.*
+        Exclude      kubernetes.labels.app.kubernetes.io/name seraph-agent
+
+    # Add source metadata to all logs
+    [FILTER]
+        Name          modify
+        Match         *
+        Add           source_type fluent-bit
+        Add           cluster_name demo-cluster
+        Add           environment demo
+
+    # Tag system logs for easier filtering
+    [FILTER]
+        Name          modify
+        Match         system.*
+        Add           log_type system
+
+    [FILTER]
+        Name          modify
+        Match         security.*
+        Add           log_type security
+
+    [FILTER]
+        Name          modify
+        Match         kube.*
+        Add           log_type kubernetes
+
+    # Forward all logs to Seraph
+    [OUTPUT]
+        Name          http
+        Match         *
+        Host          seraph-demo-seraph-agent
+        Port          8080
+        URI           /logs
+        Format        json_stream
+        Json_date_key false
+        Header        Content-Type application/x-ndjson
+        Retry_Limit   3
+
+  parsers.conf: |
+    [PARSER]
+        Name        cri
+        Format      regex
+        Regex       ^(?<time>[^ ]+) (?<stream>stdout|stderr) (?<logtag>[^ ]*) (?<log>.*)$
+        Time_Key    time
+        Time_Format %Y-%m-%dT%H:%M:%S.%L%z
+    [PARSER]
+        Name        json
+        Format      json
+        Time_Key    false
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fluent-bit
+  labels:
+    app.kubernetes.io/name: fluent-bit
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: fluent-bit
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: fluent-bit
+    spec:
+      serviceAccountName: fluent-bit
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+      - name: fluent-bit
+        image: fluent/fluent-bit:2.1
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: varlog
+          mountPath: /var/log
+          readOnly: true
+        - name: varlibdockercontainers
+          mountPath: /var/lib/docker/containers
+          readOnly: true
+        - name: fluent-bit-config
+          mountPath: /fluent-bit/etc/
+        - name: runlogjournal
+          mountPath: /run/log/journal
+          readOnly: true
+        - name: machine-id
+          mountPath: /etc/machine-id
+          readOnly: true
+        - name: systemd
+          mountPath: /run/systemd
+          readOnly: true
+        - name: proc
+          mountPath: /host/proc
+          readOnly: true
+        - name: sys
+          mountPath: /host/sys
+          readOnly: true
+        env:
+        - name: FLUENT_CONF
+          value: /fluent-bit/etc/fluent-bit.conf
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        resources:
+          limits:
+            memory: 200Mi
+          requests:
+            cpu: 100m
+            memory: 200Mi
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - name: varlog
+        hostPath:
+          path: /var/log
+      - name: varlibdockercontainers
+        hostPath:
+          path: /var/lib/docker/containers
+      - name: fluent-bit-config
+        configMap:
+          name: fluent-bit-config
+      - name: runlogjournal
+        hostPath:
+          path: /run/log/journal
+      - name: machine-id
+        hostPath:
+          path: /etc/machine-id
+          type: File
+      - name: systemd
+        hostPath:
+          path: /run/systemd
+      - name: proc
+        hostPath:
+          path: /proc
+      - name: sys
+        hostPath:
+          path: /sys

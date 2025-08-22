@@ -1,0 +1,55 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluent-bit
+  namespace: monitoring # Or the namespace where your Fluent Bit pods will run
+  labels:
+    app.kubernetes.io/name: fluent-bit
+    app.kubernetes.io/instance: your-fluent-bit-instance # Optional: Customize
+data:
+  # Configuration file for Fluent Bit
+  fluent-bit.conf: |
+    [SERVICE]
+        # Configure the global Fluent Bit service settings.
+        # Flush interval determines how often Fluent Bit sends its buffered data.
+        # Default is 1 second. Setting it higher, e.g., 5 seconds, will slow down sending.
+        Flush        5
+        Daemon       off
+        Log_Level    info
+        # If you have custom parsers, ensure the parsers.conf file is also mounted
+        # or included here. For simplicity, we'll assume default parsers for now.
+        # Parsers_File parsers.conf
+        HTTP_Server  On
+        HTTP_Listen  0.0.0.0
+        HTTP_Port    2020
+
+    [INPUT]
+        # Input plugin to read from a dummy log file.
+        # In a real K8s deployment, you'd typically use 'tail' for /var/log/containers/*.log
+        # or 'systemd' if collecting from systemd-journald.
+        Name         tail
+        Tag          my_app_logs
+        Path         /var/log/my-app/*.log # IMPORTANT: Adjust this path based on where logs are actually written in your Pod/Node
+        Mem_Buf_Limit 5MB
+        Skip_Long_Lines On
+        # Set a buffer limit to prevent excessive memory usage.
+        Buffer_Chunk_Size 1M
+        Buffer_Max_Size 6M
+
+    [OUTPUT]
+        # Output plugin to send logs to an HTTP endpoint.
+        Name         http
+        Match        * # Matches all tags from all input plugins
+        Host         localhost
+        Port         8080
+        URI          /            # The path to send the logs to on the HTTP server
+        Format       json         # Send logs as JSON
+        # Optional: You can add HTTP_User and HTTP_Pass for basic authentication
+        # HTTP_User    your_username
+        # HTTP_Pass    your_password
+        # If your HTTP server requires SSL/TLS, configure here:
+        # TLS          On
+        # TLS_Verify   Off # Set to On for production with proper certs
+        # TLS_CA_File  /path/to/ca.crt
+        # TLS_Cert_File /path/to/client.crt
+        # TLS_Key_File  /path/to/client.key
