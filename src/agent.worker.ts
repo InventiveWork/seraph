@@ -3,9 +3,36 @@
 import { parentPort, workerData } from 'worker_threads';
 import { createLLMProvider } from './llm';
 import { metrics } from './metrics';
+import { SimpleRedisCache } from './simple-redis-cache';
 
 const { config } = workerData;
 const provider = createLLMProvider(config);
+
+// Initialize simple Redis cache for this worker
+const llmCache = new SimpleRedisCache({
+  redis: config.llmCache?.redis ? {
+    url: config.llmCache.redis.url || process.env.REDIS_URL,
+    host: config.llmCache.redis.host || process.env.REDIS_HOST || 'localhost',
+    port: config.llmCache.redis.port || parseInt(process.env.REDIS_PORT || '6379'),
+    password: config.llmCache.redis.password || process.env.REDIS_PASSWORD,
+    keyPrefix: config.llmCache.redis.keyPrefix || 'agent:',
+  } : undefined,
+  similarityThreshold: config.llmCache?.similarityThreshold || 0.85,
+  ttlSeconds: config.llmCache?.ttlSeconds || 3600, // 1 hour
+});
+
+// Initialize cache connection on worker startup
+let cacheInitialized = false;
+(async () => {
+  try {
+    await llmCache.ensureInitialized();
+    cacheInitialized = true;
+    console.log(`[Worker ${process.pid}] Redis cache initialized successfully`);
+  } catch (error) {
+    console.error(`[Worker ${process.pid}] Failed to initialize Redis cache:`, error);
+    cacheInitialized = true; // Mark as initialized even on failure to proceed without cache
+  }
+})();
 
 const triageTool = {
   name: 'log_triage',
@@ -84,9 +111,21 @@ const analyzeLog = async (log: string) => {
   - decision: either "alert" or "ok" 
   - reason: brief 5-word explanation
 
-  Decision criteria:
-  - Use "alert" for: errors, failures, timeouts, crashes, exceptions, or problems requiring attention
-  - Use "ok" for: successful operations, info messages, routine events, normal status updates
+  Decision criteria for "alert":
+  - Kubernetes pod errors: CrashLoopBackOff, ImagePullBackOff, Failed, Error syncing pod
+  - Application crashes: crashed, memory leak, out of memory, segfault, panic
+  - System failures: connection failed, timeout, refused, unavailable, down
+  - Security issues: authentication failed, access denied, unauthorized
+  - Resource issues: disk full, no space, resource exhausted
+  - Error levels: ERROR, FATAL, CRITICAL, SEVERE
+  
+  Decision criteria for "ok":
+  - Successful operations: successful, completed, ready, started
+  - Info messages: INFO, DEBUG level logs
+  - Routine events: metrics requests, health checks, normal status updates
+  - Container lifecycle: created, started (without errors), stopped (planned)
+
+  Pay special attention to Kubernetes error patterns even in verbose JSON logs.
 
   Log to analyze:
   ${truncatedLog}
@@ -95,7 +134,25 @@ const analyzeLog = async (log: string) => {
   `;
 
   try {
-    const response = await provider.generate(prompt, [triageTool]);
+    // Check cache first - estimate tokens for triage (usually ~100-200 tokens)
+    const estimatedTokens = Math.min(200, prompt.length / 4); // Rough estimate: 4 chars per token
+    const cachedResponse = await llmCache.get(prompt, estimatedTokens);
+    
+    let response;
+    if (cachedResponse) {
+      // Cache hit! Use cached response
+      response = cachedResponse;
+      metrics.llmCacheHits?.inc();
+    } else {
+      // Cache miss - call LLM and cache result
+      response = await provider.generate(prompt, [triageTool]);
+      
+      if (response && (response.toolCalls || response.text)) {
+        // Cache the response for future use
+        await llmCache.set(prompt, response, estimatedTokens);
+      }
+      metrics.llmCacheMisses?.inc();
+    }
 
     if (!response || !response.toolCalls) {
       console.error(`[Worker ${process.pid}] Malformed response from LLM:`, response);
@@ -144,6 +201,12 @@ const analyzeLog = async (log: string) => {
 };
 
 parentPort?.on('message', async (log: string) => {
+  // Wait for cache initialization on first message
+  if (!cacheInitialized) {
+    await llmCache.ensureInitialized();
+    cacheInitialized = true;
+  }
+  
   // Worker only handles log analysis
   const analysis = await analyzeLog(log);
   if (analysis.decision === 'alert') {

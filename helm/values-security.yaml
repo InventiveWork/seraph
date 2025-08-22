@@ -1,0 +1,86 @@
+# Custom values for deploying Seraph with security fixes
+# This file overrides the default values.yaml
+
+replicaCount: 1
+
+image:
+  repository: seraph-agent
+  pullPolicy: Never
+  # Use our security-fixed image
+  tag: "1.0.15-security"
+
+# Enable RBAC for Kubernetes tools
+rbac:
+  create: true
+
+serviceAccount:
+  create: true
+  annotations: {}
+
+# Security context for the pod
+podSecurityContext:
+  fsGroup: 2000
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false  # Seraph needs write access for temp files
+  runAsNonRoot: true
+  runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 8080
+
+# Add resource limits for security
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# seraph.config.json values
+seraphConfig:
+  port: 8080
+  workers: 2  # Reduced for demo environment
+  apiKey: ""  # Will be set via secret
+  serverApiKey: ""  # Will be set via secret
+  llm:
+    provider: "gemini"
+    model: "gemini-2.5-flash-lite"
+  alertManager:
+    url: "http://prometheus-kube-prometheus-alertmanager.monitoring.svc.cluster.local:9093"
+  preFilters: []
+  rateLimit:
+    window: 60000
+    maxRequests: 100
+  recentLogsMaxSizeMb: 5  # Reduced for demo
+  defaultMcpServers: []
+  
+  # Demo startup prompts to show the security fixes
+  startupPrompts:
+    - "Check the system status and verify security controls are in place"
+    - "Analyze recent logs for any security-related events"
+  
+  # Built-in MCP server configuration
+  builtInMcpServer:
+    # Use the demo repo created in the Docker image
+    gitRepoPath: "/usr/src/app/demo-repo"
+    # Point to local Prometheus if available
+    prometheusUrl: "http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090"
+    kubernetesContext: ""
+    kubernetesNamespace: "default"
+
+# Security: mount additional secrets if needed
+additionalSecrets: []
+
+secrets:
+  name: "seraph-secrets"
+
+# Add pod annotations for monitoring
+podAnnotations:
+  seraph.ai/version: "1.0.15-security"
+  seraph.ai/security-patch: "path-traversal-fix"
