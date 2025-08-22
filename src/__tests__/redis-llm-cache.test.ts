@@ -19,6 +19,11 @@ describe('SimpleRedisCache', () => {
     }
   });
 
+  afterAll(async () => {
+    // Ensure all Redis connections are closed
+    await new Promise(resolve => setTimeout(resolve, 100));
+  });
+
   test('should handle cache operations without Redis', async () => {
     const prompt = 'ERROR: Database connection failed';
     const response = { text: 'Database error detected', toolCalls: [] };
@@ -46,6 +51,9 @@ describe('SimpleRedisCache', () => {
 
     const prompt = 'ERROR: Connection failed';
     const response = { text: 'Error handling test' };
+
+    // Ensure initialization completes (even with failure)
+    await redisCache.ensureInitialized();
 
     // Should gracefully handle connection failure
     await redisCache.set(prompt, response, 100);

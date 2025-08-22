@@ -24,6 +24,7 @@ export interface SimpleCacheConfig {
   similarityThreshold?: number;
   ttlSeconds?: number;
   embeddingDim?: number;
+  verbose?: boolean;
 }
 
 export class SimpleRedisCache {
@@ -37,8 +38,14 @@ export class SimpleRedisCache {
       similarityThreshold: 0.85,
       ttlSeconds: 3600, // 1 hour
       embeddingDim: 384, // sentence-transformer dimension
+      verbose: false, // Default to false for logging
       ...config
     };
+    
+    // Disable verbose logging during tests to prevent Jest cleanup issues
+    if (process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID !== undefined) {
+      this.config.verbose = false;
+    }
     
     if (config.redis) {
       // Store the promise so we can await it later
@@ -57,12 +64,14 @@ export class SimpleRedisCache {
     try {
       const redisConfig = this.config.redis!;
       
-      console.log('[SimpleRedisCache] Attempting Redis connection to:', {
-        host: redisConfig.host || 'localhost',
-        port: redisConfig.port || 6379,
-        hasPassword: !!redisConfig.password,
-        keyPrefix: redisConfig.keyPrefix
-      });
+      if (this.config.verbose) {
+        console.log('[SimpleRedisCache] Attempting Redis connection to:', {
+          host: redisConfig.host || 'localhost',
+          port: redisConfig.port || 6379,
+          hasPassword: !!redisConfig.password,
+          keyPrefix: redisConfig.keyPrefix
+        });
+      }
       
       if (redisConfig.url) {
         this.redis = new Redis(redisConfig.url);
@@ -72,10 +81,14 @@ export class SimpleRedisCache {
           port: redisConfig.port || 6379,
           password: redisConfig.password,
           lazyConnect: true,
-          maxRetriesPerRequest: 2,
+          maxRetriesPerRequest: this.config.verbose === false ? 0 : 2, // No retries when not verbose (e.g., tests)
+          connectTimeout: this.config.verbose === false ? 1000 : 10000, // Faster timeout when not verbose
+          commandTimeout: this.config.verbose === false ? 1000 : 5000,
           retryStrategy: (times) => {
-            if (times > 3) {
-              console.error('[SimpleRedisCache] Max Redis connection retries reached');
+            if (times > (this.config.verbose === false ? 1 : 3)) {
+              if (this.config.verbose) {
+                console.error('[SimpleRedisCache] Max Redis connection retries reached');
+              }
               return null;
             }
             return Math.min(times * 100, 2000);
@@ -86,23 +99,31 @@ export class SimpleRedisCache {
       await this.redis.connect();
       this.isConnected = true;
       metrics.llmCacheRedisConnected?.set(1);
-      console.log('[SimpleRedisCache] Successfully connected to Redis');
+      if (this.config.verbose) {
+        console.log('[SimpleRedisCache] Successfully connected to Redis');
+      }
       
       this.redis.on('error', (err) => {
-        console.error('[SimpleRedisCache] Redis error:', err.message);
+        if (this.config.verbose) {
+          console.error('[SimpleRedisCache] Redis error:', err.message);
+        }
         this.isConnected = false;
         metrics.llmCacheRedisConnected?.set(0);
       });
       
       this.redis.on('connect', () => {
-        console.log('[SimpleRedisCache] Redis reconnected');
+        if (this.config.verbose) {
+          console.log('[SimpleRedisCache] Redis reconnected');
+        }
         this.isConnected = true;
         metrics.llmCacheRedisConnected?.set(1);
       });
       
     } catch (error) {
-      console.error('[SimpleRedisCache] Redis connection failed:', error instanceof Error ? error.message : error);
-      console.error('[SimpleRedisCache] Cache will be disabled for this session');
+      if (this.config.verbose) {
+        console.error('[SimpleRedisCache] Redis connection failed:', error instanceof Error ? error.message : error);
+        console.error('[SimpleRedisCache] Cache will be disabled for this session');
+      }
       this.redis = null;
       this.isConnected = false;
       metrics.llmCacheRedisConnected?.set(0);
@@ -211,7 +232,9 @@ export class SimpleRedisCache {
         await this.updateHitCount(bestMatch.key, bestMatch.entry);
         metrics.llmCacheHits?.inc();
         metrics.llmTokensSaved?.inc(bestMatch.entry.tokens);
-        console.log(`[SimpleRedisCache] Similarity hit: ${bestSimilarity.toFixed(3)}`);
+        if (this.config.verbose) {
+          console.log(`[SimpleRedisCache] Similarity hit: ${bestSimilarity.toFixed(3)}`);
+        }
         return bestMatch.entry.response;
       }
       
@@ -219,7 +242,9 @@ export class SimpleRedisCache {
       return null;
       
     } catch (error) {
-      console.warn('[SimpleRedisCache] Get error:', error);
+      if (this.config.verbose) {
+        console.warn('[SimpleRedisCache] Get error:', error);
+      }
       metrics.llmCacheRedisErrors?.inc();
       return null;
     }
@@ -246,7 +271,9 @@ export class SimpleRedisCache {
       metrics.llmCacheRedisWrites?.inc();
       
     } catch (error) {
-      console.warn('[SimpleRedisCache] Set error:', error);
+      if (this.config.verbose) {
+        console.warn('[SimpleRedisCache] Set error:', error);
+      }
       metrics.llmCacheRedisErrors?.inc();
     }
   }
@@ -303,12 +330,18 @@ export class SimpleRedisCache {
   async close(): Promise<void> {
     if (this.redis) {
       try {
+        // First disconnect to stop any pending operations
+        this.redis.disconnect();
+        // Then quit to properly close
         await this.redis.quit();
       } catch {
-        // Ignore close errors
+        // Force disconnect if quit fails
+        this.redis.disconnect();
+      } finally {
+        this.redis = null;
+        this.isConnected = false;
+        metrics.llmCacheRedisConnected?.set(0);
       }
-      this.redis = null;
-      this.isConnected = false;
     }
   }
 
@@ -342,7 +375,9 @@ export class SimpleRedisCache {
         }
       }
     } catch (error) {
-      console.warn('[SimpleRedisCache] Cleanup error:', error);
+      if (this.config.verbose) {
+        console.warn('[SimpleRedisCache] Cleanup error:', error);
+      }
     }
   }
 }
