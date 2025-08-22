@@ -132,3 +132,59 @@ additionalSecrets: []
 # Name of the secret containing the API keys
 secrets:
   name: "seraph-secrets"
+
+# Redis configuration for LLM response caching
+redis:
+  # Whether to deploy Redis for LLM caching
+  enabled: true
+  
+  image:
+    repository: redis
+    tag: "7-alpine"
+    pullPolicy: IfNotPresent
+  
+  # Redis authentication
+  auth:
+    # Redis password - CHANGE THIS IN PRODUCTION
+    password: "seraph-redis-cache-key"
+  
+  # Memory configuration
+  maxMemory: "256mb"
+  maxMemoryPolicy: "allkeys-lru"
+  
+  # Persistence configuration
+  persistence:
+    enabled: true
+    storageClass: ""  # Use default storage class
+    size: "1Gi"
+  
+  # Resource configuration
+  resources:
+    limits:
+      cpu: 200m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  
+  # Node selection
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# LLM Cache configuration
+llmCache:
+  # Enable LLM response caching
+  enabled: true
+  
+  # Redis configuration (only used if redis.enabled is true)
+  redis:
+    # Redis host (automatically set to service name when Redis is enabled)
+    host: ""  # Will be auto-configured
+    port: 6379
+    password: ""  # Will be auto-configured
+    keyPrefix: "seraph:cache:"
+  
+  # Cache behavior
+  similarityThreshold: 0.85
+  ttlSeconds: 3600  # 1 hour

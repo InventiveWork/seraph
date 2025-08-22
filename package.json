@@ -1,6 +1,6 @@
 {
   "name": "seraph-agent",
-  "version": "1.0.15",
+  "version": "1.0.16",
   "description": "An extremely lightweight, SRE autonomous AI agent for seamless integration with common observability tasks.",
   "main": "dist/index.js",
   "bin": {
@@ -11,7 +11,7 @@
     "build": "tsc",
     "dev": "ts-node src/index.ts",
     "lint": "eslint . --ext .ts",
-    "test": "jest --runInBand --detectOpenHandles"
+    "test": "npm run build && jest --runInBand --detectOpenHandles"
   },
   "keywords": [
     "sre",
@@ -27,7 +27,7 @@
   "homepage": "https://github.com/InventiveWork/seraph#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/InventiveWork/seraph.git"
+    "url": "git+https://github.com/InventiveWork/seraph.git"
   },
   "bugs": {
     "url": "https://github.com/InventiveWork/seraph/issues"
@@ -37,6 +37,7 @@
     "@google/generative-ai": "^0.24.1",
     "@modelcontextprotocol/sdk": "^1.17.0",
     "commander": "^12.1.0",
+    "ioredis": "^5.7.0",
     "k6": "^0.0.0",
     "node-fetch": "^2.7.0",
     "openai": "^5.12.0",
