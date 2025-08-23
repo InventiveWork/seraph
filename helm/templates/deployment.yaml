@@ -64,6 +64,17 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.secrets.name }}
                   key: seraph-mitigation-api-key
+            {{- if and .Values.redis.enabled .Values.llmCache.enabled }}
+            - name: REDIS_HOST
+              value: {{ include "seraph.fullname" . }}-redis
+            - name: REDIS_PORT
+              value: "6379"
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "seraph.fullname" . }}-redis-secret
+                  key: redis-password
+            {{- end }}
           envFrom:
             {{- range .Values.additionalSecrets }}
             - secretRef:

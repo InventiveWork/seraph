@@ -6,4 +6,19 @@ metadata:
     {{- include "seraph.labels" . | nindent 4 }}
 data:
   seraph.config.json: |
-    {{- .Values.seraphConfig | toPrettyJson | nindent 4 }}
+    {{- $config := .Values.seraphConfig -}}
+    {{- if and .Values.redis.enabled .Values.llmCache.enabled -}}
+    {{- $_ := set $config "llmCache" (dict 
+        "maxSize" 1000
+        "ttlMs" (mul .Values.llmCache.ttlSeconds 1000)
+        "similarityThreshold" .Values.llmCache.similarityThreshold
+        "enableSemantic" true
+        "redis" (dict 
+          "enabled" true
+          "host" (printf "%s-redis" (include "seraph.fullname" .))
+          "port" 6379
+          "keyPrefix" .Values.llmCache.redis.keyPrefix
+        )
+      ) -}}
+    {{- end -}}
+    {{- $config | toPrettyJson | nindent 4 }}
