@@ -1,4 +1,4 @@
-import { jest, describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+import { jest, describe, it, expect, beforeAll, beforeEach, afterEach } from '@jest/globals';
 
 // Mock child_process
 const mockSpawn = jest.fn();
@@ -12,19 +12,26 @@ import { SeraphConfig } from '../config';
 
 describe('Kubernetes MCP Tools', () => {
   let server: any;
-  const config: SeraphConfig = {
-    port: 8080,
-    workers: 4,
-    apiKey: 'test-key',
-    serverApiKey: null,
-    builtInMcpServer: {
-      kubernetesContext: 'test-context',
-      kubernetesNamespace: 'test-namespace'
-    },
-    llm: {
-      provider: 'gemini'
-    }
-  };
+  let testPort: number;
+  let config: SeraphConfig;
+
+  beforeAll(() => {
+    // Use a random port to avoid conflicts with other tests
+    testPort = 9000 + Math.floor(Math.random() * 1000);
+    config = {
+      port: testPort,
+      workers: 4,
+      apiKey: 'test-key',
+      serverApiKey: null,
+      builtInMcpServer: {
+        kubernetesContext: 'test-context',
+        kubernetesNamespace: 'test-namespace'
+      },
+      llm: {
+        provider: 'gemini'
+      }
+    };
+  });
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -41,7 +48,7 @@ describe('Kubernetes MCP Tools', () => {
 
   describe('Security Tests', () => {
     it('should block access to secrets', async () => {
-      const response = await fetch('http://localhost:8081/mcp', {
+      const response = await fetch(`http://localhost:${testPort + 1}/mcp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -60,7 +67,7 @@ describe('Kubernetes MCP Tools', () => {
     }, 10000);
 
     it('should sanitize shell injection attempts', async () => {
-      const response = await fetch('http://localhost:8081/mcp', {
+      const response = await fetch(`http://localhost:${testPort + 1}/mcp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -82,7 +89,7 @@ describe('Kubernetes MCP Tools', () => {
     }, 10000);
 
     it('should block dangerous kubectl arguments', async () => {
-      const response = await fetch('http://localhost:8081/mcp', {
+      const response = await fetch(`http://localhost:${testPort + 1}/mcp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -123,7 +130,7 @@ describe('Kubernetes MCP Tools', () => {
       
       mockSpawn.mockReturnValue(mockKubectl);
 
-      const response = await fetch('http://localhost:8081/mcp', {
+      const response = await fetch(`http://localhost:${testPort + 1}/mcp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -162,7 +169,7 @@ describe('Kubernetes MCP Tools', () => {
       
       mockSpawn.mockReturnValue(mockKubectl);
 
-      const response = await fetch('http://localhost:8081/mcp', {
+      const response = await fetch(`http://localhost:${testPort + 1}/mcp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -205,7 +212,7 @@ describe('Kubernetes MCP Tools', () => {
       
       mockSpawn.mockReturnValue(mockKubectl);
 
-      const response = await fetch('http://localhost:8081/mcp', {
+      const response = await fetch(`http://localhost:${testPort + 1}/mcp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -227,7 +234,7 @@ describe('Kubernetes MCP Tools', () => {
 
   describe('Tool Listing', () => {
     it('should list all Kubernetes tools', async () => {
-      const response = await fetch('http://localhost:8081/mcp', {
+      const response = await fetch(`http://localhost:${testPort + 1}/mcp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

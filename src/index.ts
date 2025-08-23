@@ -22,7 +22,7 @@ const program = new Command();
 
 program
   .name('seraph-agent')
-  .version('1.0.17')
+  .version('1.0.18')
   .description('A lightweight, autonomous SRE AI agent.');
 
 program.addHelpText('after', `

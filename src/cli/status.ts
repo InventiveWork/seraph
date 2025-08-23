@@ -66,7 +66,7 @@ export class StatusCommand {
     
     let status: AgentStatus = {
       running: false,
-      version: '1.0.17',
+      version: '1.0.18',
       mcpEnabled: !!config.builtInMcpServer,
       redisConnected: false,
       totalLogs: 0,

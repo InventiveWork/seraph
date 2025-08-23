@@ -1,4 +1,4 @@
-import { jest, describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+import { jest, describe, it, expect, beforeAll, beforeEach, afterEach } from '@jest/globals';
 import fetch from 'node-fetch';
 
 // Mock node-fetch
@@ -11,18 +11,25 @@ import { SeraphConfig } from '../config';
 
 describe('Prometheus MCP Tools', () => {
   let server: any;
-  const config: SeraphConfig = {
-    port: 8080,
-    workers: 4,
-    apiKey: 'test-key',
-    serverApiKey: null,
-    builtInMcpServer: {
-      prometheusUrl: 'http://localhost:9090'
-    },
-    llm: {
-      provider: 'gemini'
-    }
-  };
+  let testPort: number;
+  let config: SeraphConfig;
+
+  beforeAll(() => {
+    // Use a different random port to avoid conflicts with other tests
+    testPort = 9100 + Math.floor(Math.random() * 1000);
+    config = {
+      port: testPort,
+      workers: 4,
+      apiKey: 'test-key',
+      serverApiKey: null,
+      builtInMcpServer: {
+        prometheusUrl: 'http://localhost:9090'
+      },
+      llm: {
+        provider: 'gemini'
+      }
+    };
+  });
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -53,7 +60,7 @@ describe('Prometheus MCP Tools', () => {
     };
     mockedFetch.mockResolvedValue(mockResponse as any);
 
-    const response = await fetch('http://localhost:8081/mcp', {
+    const response = await fetch(`http://localhost:${testPort + 1}/mcp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -79,7 +86,7 @@ describe('Prometheus MCP Tools', () => {
     };
     mockedFetch.mockResolvedValue(mockResponse as any);
 
-    const response = await fetch('http://localhost:8081/mcp', {
+    const response = await fetch(`http://localhost:${testPort + 1}/mcp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -114,7 +121,7 @@ describe('Prometheus MCP Tools', () => {
     };
     mockedFetch.mockResolvedValue(mockResponse as any);
 
-    const response = await fetch('http://localhost:8081/mcp', {
+    const response = await fetch(`http://localhost:${testPort + 1}/mcp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -149,7 +156,7 @@ describe('Prometheus MCP Tools', () => {
     };
     mockedFetch.mockResolvedValue(mockResponse as any);
 
-    const response = await fetch('http://localhost:8081/mcp', {
+    const response = await fetch(`http://localhost:${testPort + 1}/mcp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -192,7 +199,7 @@ describe('Prometheus MCP Tools', () => {
     };
     mockedFetch.mockResolvedValue(mockResponse as any);
 
-    const response = await fetch('http://localhost:8081/mcp', {
+    const response = await fetch(`http://localhost:${testPort + 1}/mcp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -209,7 +216,7 @@ describe('Prometheus MCP Tools', () => {
   });
 
   it('should handle tool listing', async () => {
-    const response = await fetch('http://localhost:8081/mcp', {
+    const response = await fetch(`http://localhost:${testPort + 1}/mcp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
