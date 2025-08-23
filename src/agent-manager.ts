@@ -6,7 +6,10 @@ import { AlerterClient } from './alerter';
 import { metrics } from './metrics';
 import { ReportStore } from './report-store';
 import { mcpManager } from './mcp-manager';
+import { InvestigationScheduler, SchedulerConfig } from './investigation-scheduler';
+import { PriorityCalculatorConfig } from './alert-priority-calculator';
 import { join } from 'path';
+import { existsSync } from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 
 interface ActiveInvestigation {
@@ -27,12 +30,17 @@ export class AgentManager {
   private restartAttempts: Map<number, number> = new Map();
   private readonly MAX_RESTART_ATTEMPTS = 5;
   private readonly RESTART_DELAY_MS = 5000;
-  private readonly INVESTIGATION_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
+  // Priority queue system
+  private investigationScheduler: InvestigationScheduler | null = null;
+  private priorityQueueEnabled: boolean;
+
+  // Legacy simple queue (fallback)
   private activeInvestigations: Map<string, ActiveInvestigation> = new Map();
   private recentReasons: Map<string, number> = new Map(); // For deduplication
   private readonly MAX_CONCURRENT_INVESTIGATIONS = 3;
   private readonly DEDUPLICATION_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+  private readonly INVESTIGATION_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
   private reportStore: ReportStore;
   private alerterClient: AlerterClient;
@@ -48,6 +56,7 @@ export class AgentManager {
     this.maxLogsSize = (config.recentLogsMaxSizeMb || 10) * 1024 * 1024; // Cache calculation
     this.workerCount = config.workers || 4; // Cache worker count
     this.maxLogSizeTenth = this.maxLogsSize * 0.1; // Pre-compute 10% threshold
+    this.priorityQueueEnabled = config.priorityQueue?.enabled || false;
     this.reportStore = new ReportStore();
     this.alerterClient = new AlerterClient(config);
     this.builtInMcpUrl = `http://localhost:${(this.config.port || 8080) + 1}/mcp`;
@@ -63,6 +72,11 @@ export class AgentManager {
     await this.initMcpManager();
     this.initTriageWorkers();
     this.initInvestigationWorkers();
+    
+    // Initialize priority queue system if enabled
+    if (this.priorityQueueEnabled) {
+      this.initPriorityQueueSystem();
+    }
   }
 
   private async initMcpManager() {
@@ -91,8 +105,67 @@ export class AgentManager {
     }
   }
 
+  private initPriorityQueueSystem() {
+    console.log('[AgentManager] Initializing priority queue system...');
+    
+    const schedulerConfig: SchedulerConfig = {
+      maxConcurrentInvestigations: this.config.priorityQueue?.maxConcurrentInvestigations || 5,
+      maxQueueSize: this.config.priorityQueue?.maxQueueSize || 100,
+      investigationTimeoutMs: this.config.priorityQueue?.investigationTimeoutMs || 300000, // 5 min
+      preemptionEnabled: this.config.priorityQueue?.preemptionEnabled || true,
+      preemptionThreshold: this.config.priorityQueue?.preemptionThreshold || 0.3,
+      burstModeEnabled: this.config.priorityQueue?.burstModeEnabled || true,
+      burstModeConcurrency: this.config.priorityQueue?.burstModeConcurrency || 8,
+      burstModeThreshold: this.config.priorityQueue?.burstModeThreshold || 2, // HIGH priority
+    };
+
+    const priorityCalculatorConfig: PriorityCalculatorConfig = {
+      weights: this.config.priorityQueue?.priorityWeights || {
+        keywords: 0.3,
+        serviceImpact: 0.4,
+        timeContext: 0.2,
+        historical: 0.1,
+      },
+      services: this.config.priorityQueue?.services || [],
+      businessHours: this.config.priorityQueue?.businessHours || {
+        start: 9,
+        end: 17,
+        timezone: 'UTC',
+      },
+      criticalKeywords: this.config.priorityQueue?.criticalKeywords || [],
+      highPriorityKeywords: this.config.priorityQueue?.highPriorityKeywords || [],
+      mediumPriorityKeywords: this.config.priorityQueue?.mediumPriorityKeywords || [],
+    };
+
+    this.investigationScheduler = new InvestigationScheduler(
+      schedulerConfig,
+      priorityCalculatorConfig,
+      this.investigationWorkers
+    );
+
+    console.log('[AgentManager] Priority queue system initialized successfully');
+  }
+
+  private getWorkerPath(filename: string): string {
+    // First try relative to current __dirname (works in production when compiled)
+    const currentDirPath = join(__dirname, filename);
+    if (existsSync(currentDirPath)) {
+      return currentDirPath;
+    }
+
+    // For test environment, try dist directory
+    const distPath = join(process.cwd(), 'dist', filename);
+    if (existsSync(distPath)) {
+      return distPath;
+    }
+
+    // Fallback to current __dirname path (will throw appropriate error if not found)
+    return currentDirPath;
+  }
+
   private createTriageWorker(index: number) {
-    const workerPath = join(__dirname, 'agent.worker.js');
+    // Always use compiled JS files for workers, even in test environment
+    const workerPath = this.getWorkerPath('agent.worker.js');
     const worker = new Worker(workerPath, { workerData: { config: this.config } });
     this.triageWorkers[index] = worker;
 
@@ -105,7 +178,8 @@ export class AgentManager {
   }
 
   private createInvestigationWorker(index: number) {
-    const workerPath = join(__dirname, 'investigation.worker.js');
+    // Always use compiled JS files for workers, even in test environment
+    const workerPath = this.getWorkerPath('investigation.worker.js');
     const worker = new Worker(workerPath, { workerData: { config: this.config } });
     this.investigationWorkers[index] = worker;
 
@@ -168,6 +242,54 @@ export class AgentManager {
   }
 
   private handleAlert(log: string, reason: string): boolean {
+    // Use priority queue system if enabled
+    if (this.priorityQueueEnabled && this.investigationScheduler) {
+      return this.handleAlertWithPriorityQueue(log, reason);
+    }
+    
+    // Fallback to legacy simple queue
+    return this.handleAlertLegacy(log, reason);
+  }
+
+  private handleAlertWithPriorityQueue(log: string, reason: string): boolean {
+    console.log(`[AgentManager] Processing alert with priority queue: ${reason}`);
+    
+    // Check for deduplication (still needed for priority queue)
+    const reasonKey = this.normalizeReason(reason);
+    const now = Date.now();
+    const lastSeen = this.recentReasons.get(reasonKey);
+    
+    if (lastSeen && (now - lastSeen) < this.DEDUPLICATION_WINDOW_MS) {
+      console.log(`[AgentManager] Skipping duplicate alert: ${reason} (last seen ${Math.round((now - lastSeen) / 1000)}s ago)`);
+      return false;
+    }
+    
+    this.recentReasons.set(reasonKey, now);
+    this.cleanupOldReasons(now);
+    
+    // Extract metadata for priority calculation
+    const metadata = {
+      source: 'agent-manager',
+      timestamp: now,
+    };
+    
+    // Schedule with priority queue
+    this.investigationScheduler!.scheduleAlert(log, reason, metadata)
+      .then(investigationId => {
+        if (investigationId) {
+          console.log(`[AgentManager] Alert scheduled with ID: ${investigationId}`);
+        } else {
+          console.warn(`[AgentManager] Failed to schedule alert: ${reason}`);
+        }
+      })
+      .catch(error => {
+        console.error(`[AgentManager] Error scheduling alert: ${error.message}`);
+      });
+    
+    return true;
+  }
+
+  private handleAlertLegacy(log: string, reason: string): boolean {
     // Check for deduplication
     const reasonKey = this.normalizeReason(reason);
     const now = Date.now();
@@ -180,8 +302,7 @@ export class AgentManager {
     
     // Check concurrent investigation limit
     if (this.activeInvestigations.size >= this.MAX_CONCURRENT_INVESTIGATIONS) {
-      console.log(`Investigation queue full (${this.activeInvestigations.size}/${this.MAX_CONCURRENT_INVESTIGATIONS}). Queuing alert: ${reason}`);
-      // Could implement a queue here, for now just skip
+      console.log(`Investigation queue full (${this.activeInvestigations.size}/${this.MAX_CONCURRENT_INVESTIGATIONS}). Dropping alert: ${reason}`);
       return false;
     }
     
@@ -280,13 +401,18 @@ export class AgentManager {
   private async handleInvestigationComplete(data: any) {
     const { investigationId, initialLog, triageReason, investigationTrace, finalAnalysis, toolUsage } = data;
     
-    const investigation = this.activeInvestigations.get(investigationId);
-    if (investigation) {
-      clearTimeout(investigation.timeoutHandle);
-      this.activeInvestigations.delete(investigationId);
+    // Handle completion in priority queue system
+    if (this.priorityQueueEnabled && this.investigationScheduler) {
+      await this.investigationScheduler.onInvestigationComplete(investigationId, true);
+    } else {
+      // Legacy handling
+      const investigation = this.activeInvestigations.get(investigationId);
+      if (investigation) {
+        clearTimeout(investigation.timeoutHandle);
+        this.activeInvestigations.delete(investigationId);
+      }
+      console.log(`Investigation ${investigationId} complete for: ${triageReason}. Active investigations: ${this.activeInvestigations.size}/${this.MAX_CONCURRENT_INVESTIGATIONS}`);
     }
-
-    console.log(`Investigation ${investigationId} complete for: ${triageReason}. Active investigations: ${this.activeInvestigations.size}/${this.MAX_CONCURRENT_INVESTIGATIONS}`);
 
     try {
       const initialAlert = await this.alerterClient.sendInitialAlert(initialLog, triageReason);
@@ -369,8 +495,43 @@ export class AgentManager {
 
   public shutdown() {
     console.log("Shutting down all workers...");
+    
+    // Shutdown priority queue system if enabled
+    if (this.investigationScheduler) {
+      this.investigationScheduler.shutdown();
+    }
+    
+    // Legacy cleanup
     this.activeInvestigations.forEach(inv => clearTimeout(inv.timeoutHandle));
     [...this.triageWorkers, ...this.investigationWorkers].forEach(w => w.terminate());
     this.reportStore.close();
+  }
+
+  /**
+   * Get priority queue metrics (for monitoring/debugging)
+   */
+  public getPriorityQueueMetrics() {
+    if (this.priorityQueueEnabled && this.investigationScheduler) {
+      return this.investigationScheduler.getMetrics();
+    }
+    return null;
+  }
+
+  /**
+   * Enable or disable priority queue system at runtime
+   */
+  public setPriorityQueueEnabled(enabled: boolean) {
+    if (enabled && !this.priorityQueueEnabled) {
+      this.priorityQueueEnabled = true;
+      this.initPriorityQueueSystem();
+      console.log('[AgentManager] Priority queue system enabled');
+    } else if (!enabled && this.priorityQueueEnabled) {
+      this.priorityQueueEnabled = false;
+      if (this.investigationScheduler) {
+        this.investigationScheduler.shutdown();
+        this.investigationScheduler = null;
+      }
+      console.log('[AgentManager] Priority queue system disabled');
+    }
   }
 }

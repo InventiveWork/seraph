@@ -6,6 +6,58 @@ export interface RateLimitConfig {
   maxRequests: number;
 }
 
+export interface LLMCacheConfig {
+  redis?: {
+    url?: string;
+    host?: string;
+    port?: number;
+    password?: string;
+    keyPrefix?: string;
+  };
+  similarityThreshold?: number;
+  ttlSeconds?: number;
+}
+
+export interface PriorityQueueConfig {
+  enabled?: boolean;
+  maxConcurrentInvestigations?: number;
+  maxQueueSize?: number;
+  investigationTimeoutMs?: number;
+  preemptionEnabled?: boolean;
+  preemptionThreshold?: number;
+  burstModeEnabled?: boolean;
+  burstModeConcurrency?: number;
+  burstModeThreshold?: number; // AlertPriority enum value
+  
+  // Priority calculation weights
+  priorityWeights?: {
+    keywords: number;
+    serviceImpact: number;
+    timeContext: number;
+    historical: number;
+  };
+  
+  // Service configurations
+  services?: Array<{
+    name: string;
+    criticality: 'critical' | 'high' | 'medium' | 'low';
+    businessImpact: number;
+    userCount?: number;
+  }>;
+  
+  // Business hours configuration
+  businessHours?: {
+    start: number;
+    end: number;
+    timezone: string;
+  };
+  
+  // Priority keywords
+  criticalKeywords?: string[];
+  highPriorityKeywords?: string[];
+  mediumPriorityKeywords?: string[];
+}
+
 export interface SeraphConfig {
   port: number;
   workers: number;
@@ -24,6 +76,8 @@ export interface SeraphConfig {
     provider: 'gemini' | 'anthropic' | 'openai';
     model?: string;
   };
+  llmCache?: LLMCacheConfig;
+  priorityQueue?: PriorityQueueConfig;
   alertManager?: {
     url: string;
   };
@@ -74,6 +128,7 @@ export async function loadConfig(): Promise<SeraphConfig> {
     llm: { ...defaultConfig.llm, ...userConfig.llm } as SeraphConfig['llm'],
     alertManager: { ...defaultConfig.alertManager, ...userConfig.alertManager } as SeraphConfig['alertManager'],
     rateLimit: { ...defaultConfig.rateLimit, ...userConfig.rateLimit } as SeraphConfig['rateLimit'],
+    llmCache: userConfig.llmCache,
   };
 
   // Set API key from environment variables if not already set

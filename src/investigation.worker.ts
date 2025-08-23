@@ -4,14 +4,58 @@ import { parentPort, workerData } from 'worker_threads';
 import { createLLMProvider } from './llm';
 import { LLMProvider } from './llm/provider';
 import { AgentTool } from './mcp-manager';
+import { MemoryManager } from './memory-manager';
+import { metrics } from './metrics';
 
 const { config } = workerData;
 const provider: LLMProvider = createLLMProvider(config);
 
-async function investigate(log: string, reason: string, tools: AgentTool[], investigationId: string): Promise<any> {
+// Initialize memory manager with investigation focus
+const memoryManager = new MemoryManager({
+  redis: config.llmCache?.redis ? {
+    url: config.llmCache.redis.url || process.env.REDIS_URL,
+    host: config.llmCache.redis.host || process.env.REDIS_HOST || 'localhost',
+    port: config.llmCache.redis.port || parseInt(process.env.REDIS_PORT || '6379'),
+    password: config.llmCache.redis.password || process.env.REDIS_PASSWORD,
+  } : undefined,
+  shortTermTtl: 86400,    // 24 hours for incidents
+  sessionTtl: 3600,       // 1 hour for sessions
+  maxIncidents: 1000,     // Track last 1000 incidents
+});
+
+async function investigate(log: string, reason: string, tools: AgentTool[], investigationId: string, sessionId?: string): Promise<any> {
+  console.log(`[Investigator ${process.pid}] Starting memory-enhanced investigation ${investigationId}`);
+  
+  // ===== MEMORY RECALL PHASE =====
+  
+  // 1. Build enhanced context from memory
+  const memoryContext = await memoryManager.buildEnhancedContext(log, sessionId);
+  
+  // 2. Get similar incidents
+  const similarIncidents = await memoryManager.recallSimilarIncidents(log, 3);
+  
+  // 3. Detect relevant patterns
+  const patterns = await memoryManager.detectPatterns();
+  const relevantPatterns = patterns.filter(p => p.confidence > 0.3).slice(0, 2);
+  
   const MAX_TURNS = 5;
-  let scratchpad: any[] = [{ 
-    observation: `Initial alert for log: "${log}". Reason: "${reason}". 
+  const scratchpad: any[] = [{ 
+    observation: `Memory-Enhanced Investigation for: "${log}"
+    
+    Reason: "${reason}"
+    ${memoryContext}
+    
+    INVESTIGATION STRATEGY:
+    ${similarIncidents.length > 0 ? 
+      `- Consider similar recent incidents: ${similarIncidents.map(i => i.reason).join(', ')}` : 
+      '- No similar recent incidents found'
+    }
+    ${relevantPatterns.length > 0 ? 
+      `- Apply known patterns: ${relevantPatterns.map(p => p.signature).join(', ')}` : 
+      '- No established patterns detected'
+    }
+    - Use systematic troubleshooting approach
+    - Document findings for future reference
     
     INVESTIGATION REQUIREMENTS:
     - MUST write multiple custom Prometheus queries to investigate metrics around this incident
@@ -19,7 +63,8 @@ async function investigate(log: string, reason: string, tools: AgentTool[], inve
     - MUST use time-based queries to understand trends before/during the incident
     - MUST use Git tools to check recent commits and correlate with incident timing
     - MUST clone or examine the Seraph repository for code context
-    - MUST correlate metrics data, log patterns, and code changes for comprehensive root cause analysis` 
+    - MUST correlate metrics data, log patterns, and code changes for comprehensive root cause analysis
+    - Incorporate insights from similar incidents and patterns` 
   }];
   
   // Track tool usage for enhanced alerting
@@ -30,9 +75,31 @@ async function investigate(log: string, reason: string, tools: AgentTool[], inve
   console.log(`[Investigator ${process.pid}] Starting investigation ${investigationId} with tools: ${JSON.stringify(toolSchemas.map(t => t.name))}`);
 
   for (let i = 0; i < MAX_TURNS; i++) {
-    console.log(`[Investigator ${process.pid}] Investigation ${investigationId} Turn ${i + 1}`);
+    console.log(`[Investigator ${process.pid}] Memory-enhanced investigation ${investigationId} Turn ${i + 1}`);
     const prompt = `
-      You are an SRE investigator performing a root cause analysis. Use ALL available tools systematically to investigate infrastructure issues.
+      You are a memory-enhanced SRE investigator performing root cause analysis with access to historical context.
+
+      MEMORY CONTEXT:
+      ${memoryContext}
+      
+      ${similarIncidents.length > 0 ? `
+      SIMILAR RECENT INCIDENTS:
+      ${similarIncidents.map(incident => `
+      - ${incident.log}
+        Resolution: ${incident.resolution || 'Unresolved'}
+        Tags: ${incident.tags.join(', ')}
+      `).join('\n')}
+      ` : ''}
+      
+      ${relevantPatterns.length > 0 ? `
+      DETECTED PATTERNS:
+      ${relevantPatterns.map(pattern => `
+      - Pattern: ${pattern.signature}
+        Frequency: ${pattern.frequency} occurrences
+        Confidence: ${(pattern.confidence * 100).toFixed(0)}%
+        Common resolutions: ${pattern.commonResolutions.slice(0, 2).join(', ')}
+      `).join('\n')}
+      ` : ''}
 
       CRITICAL: You MUST write custom Prometheus queries during EVERY investigation to:
       - Query specific metrics related to the incident (error rates, latency, resource usage)
@@ -74,23 +141,45 @@ async function investigate(log: string, reason: string, tools: AgentTool[], inve
       6. Correlate metrics data with log patterns and Kubernetes state
       7. Use Git tools to check for recent code changes if relevant
 
-      Based on your investigation so far, what is your next thought? If you need to use a tool, call it. If you have gathered enough information, call the "FINISH" tool.
+      Based on your memory-enhanced investigation and context from similar incidents, what is your next thought? 
+      Use the FINISH tool when you have a complete analysis incorporating memory insights.
     `;
 
     const finishTool = { 
       name: 'FINISH', 
-      description: 'Call this when you have a complete root cause analysis.',
+      description: 'Call when you have a complete memory-enhanced analysis.',
       inputSchema: {
         type: 'object',
         properties: {
-          summary: { type: 'string', description: 'A detailed summary of your findings and root cause analysis.' },
+          summary: { type: 'string', description: 'Complete analysis incorporating memory insights.' },
+          newPattern: { type: 'string', description: 'Any new pattern detected during investigation.' },
+          tags: { type: 'array', items: { type: 'string' }, description: 'Tags for this incident.' },
         },
         required: ['summary'],
       }
     };
     const availableTools = [...tools, finishTool];
     
-    const response = await provider.generate(prompt, availableTools);
+    // Check cache first - estimate tokens for investigation (usually ~500-1500 tokens)
+    const estimatedTokens = Math.min(1500, prompt.length / 3); // More complex prompts = more tokens
+    const cachedResponse = await memoryManager.get(prompt, estimatedTokens);
+    
+    let response;
+    if (cachedResponse) {
+      // Cache hit! Use cached response
+      response = cachedResponse;
+      metrics.llmCacheHits?.inc();
+      console.log(`[Investigator ${process.pid}] Cache hit for investigation ${investigationId} turn ${i + 1}`);
+    } else {
+      // Cache miss - call LLM and cache result
+      response = await provider.generate(prompt, availableTools);
+      
+      if (response && (response.toolCalls || response.text)) {
+        // Cache the response for future use
+        await memoryManager.set(prompt, response, estimatedTokens);
+      }
+      metrics.llmCacheMisses?.inc();
+    }
     
     if (response.text) {
       scratchpad.push({ thought: response.text });
@@ -101,6 +190,27 @@ async function investigate(log: string, reason: string, tools: AgentTool[], inve
       scratchpad.push({ thought: `I should use the ${toolCall.name} tool with args ${JSON.stringify(toolCall.arguments)}.` });
 
       if (toolCall.name === 'FINISH') {
+        // Extract final analysis and memory updates
+        const analysis = toolCall.arguments;
+        
+        // Store this incident in memory for future reference
+        await memoryManager.rememberIncident({
+          log,
+          reason,
+          timestamp: Date.now(),
+          resolution: analysis.summary,
+          tags: analysis.tags || ['investigation', 'auto-resolved'],
+        });
+        
+        // Update session context
+        if (sessionId) {
+          await memoryManager.updateSessionContext(sessionId, {
+            recentQueries: [log],
+            serviceContext: analysis.tags?.filter((t: string) => t.startsWith('service:')) || [],
+          });
+        }
+        
+        console.log(`[Investigator ${process.pid}] Investigation complete with memory updates`);
         break;
       }
 
@@ -164,12 +274,19 @@ async function investigate(log: string, reason: string, tools: AgentTool[], inve
   }
 
   const synthesisPrompt = `
-    You are an expert SRE. An incident has occurred. Based on the following investigation trace, provide a detailed analysis.
+    Memory-Enhanced Investigation Summary
     
-    Investigation Trace:
-    ${JSON.stringify(scratchpad, null, 2)}
-
-    Provide your final analysis as a JSON object with the following fields:
+    Investigation trace: ${JSON.stringify(scratchpad, null, 2)}
+    
+    Memory context: ${memoryContext}
+    
+    Provide a comprehensive analysis incorporating:
+    1. Root cause analysis with memory insights
+    2. Impact assessment considering historical patterns
+    3. Specific actionable remediation steps
+    4. Lessons learned for future incidents
+    
+    Format as JSON with fields:
     - "rootCauseAnalysis" (string): Your detailed analysis of the likely root cause.
     - "impactAssessment" (string): Who or what is likely affected by this issue.
     - "suggestedRemediation" (array of strings): A list of SPECIFIC, ACTIONABLE steps to fix the issue immediately.
@@ -193,10 +310,36 @@ async function investigate(log: string, reason: string, tools: AgentTool[], inve
     ✗ "Check system resources"
     ✗ "Restart services if needed"
   `;
-  const finalReportResponse = await provider.generate(synthesisPrompt);
+  // Check cache for final synthesis as well
+  const synthesisTokens = Math.min(1000, synthesisPrompt.length / 3);
+  const cachedSynthesis = await memoryManager.get(synthesisPrompt, synthesisTokens);
+  
+  let finalReportResponse;
+  if (cachedSynthesis) {
+    finalReportResponse = cachedSynthesis;
+    metrics.llmCacheHits?.inc();
+    console.log(`[Investigator ${process.pid}] Cache hit for final synthesis ${investigationId}`);
+  } else {
+    finalReportResponse = await provider.generate(synthesisPrompt);
+    
+    if (finalReportResponse && finalReportResponse.text) {
+      await memoryManager.set(synthesisPrompt, finalReportResponse, synthesisTokens);
+    }
+    metrics.llmCacheMisses?.inc();
+  }
   console.log(`[Investigator ${process.pid}] Final report response:`, finalReportResponse.text?.substring(0, 500));
   
-  let finalAnalysis = { rootCauseAnalysis: "Could not determine root cause.", impactAssessment: "Unknown.", suggestedRemediation: ["Manual investigation required."] };
+  let finalAnalysis = { 
+    rootCauseAnalysis: "Could not determine root cause.", 
+    impactAssessment: "Unknown.", 
+    suggestedRemediation: ["Manual investigation required."],
+    lessonsLearned: ["Investigate similar patterns in the future."],
+    memoryInsights: {
+      similarIncidents: similarIncidents.length,
+      appliedPatterns: relevantPatterns.length,
+      newPatternDetected: false,
+    }
+  };
   
   if (finalReportResponse.text) {
     try {
@@ -257,7 +400,13 @@ async function investigate(log: string, reason: string, tools: AgentTool[], inve
             impactAssessment: impactMatch ? impactMatch[1] : "Unknown.",
             suggestedRemediation: remediationMatch ? 
               remediationMatch[1].split(',').map(s => s.replace(/"/g, '').trim()).filter(s => s.length > 0) :
-              ["Manual investigation required."]
+              ["Manual investigation required."],
+            lessonsLearned: ["Investigate similar patterns in the future."],
+            memoryInsights: {
+              similarIncidents: 0,
+              appliedPatterns: 0,
+              newPatternDetected: false
+            }
           };
         }
       } catch (fallbackError) {
@@ -267,15 +416,24 @@ async function investigate(log: string, reason: string, tools: AgentTool[], inve
   } else {
     console.error(`[Investigator ${process.pid}] No response text received`);
   }
-  return { finalAnalysis, investigationTrace: scratchpad, toolUsage: toolUsageLog };
+  return { 
+    finalAnalysis, 
+    investigationTrace: scratchpad, 
+    toolUsage: toolUsageLog,
+    memoryContext: {
+      similarIncidents,
+      appliedPatterns: relevantPatterns,
+      memoryStats: await memoryManager.getMemoryStats(),
+    }
+  };
 }
 
 
 parentPort?.on('message', async (message: any) => {
   if (message.type === 'investigate') {
-    const { log, reason, tools, investigationId } = message.data;
+    const { log, reason, tools, investigationId, sessionId } = message.data;
     // Don't initialize MCP in worker - main thread handles all MCP connections
-    const result = await investigate(log, reason, tools, investigationId);
+    const result = await investigate(log, reason, tools, investigationId, sessionId);
     parentPort?.postMessage({ type: 'investigation_complete', data: { ...result, initialLog: log, triageReason: reason, investigationId } });
   }
 });

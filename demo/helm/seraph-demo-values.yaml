@@ -1,0 +1,101 @@
+
+# Demo values for the Seraph Helm chart
+replicaCount: 1
+
+image:
+  repository: inventivework/seraph-agent
+  pullPolicy: IfNotPresent
+  tag: "1.0.16"
+
+# We don't need an ingress for this demo
+ingress:
+  enabled: false
+
+# Enable RBAC for Kubernetes MCP tools
+rbac:
+  create: true
+
+serviceAccount:
+  create: true
+
+# Configure the agent
+# We will pass the API key via a secret
+env:
+  # This is a placeholder; the actual key will be in a secret
+  GEMINI_API_KEY: "from-secret"
+
+# Seraph configuration file
+seraphConfig:
+  port: 8080
+  workers: 3
+  # Filter out Seraph's own logs and common noise to prevent feedback loops
+  preFilters:
+    - 'fluent'
+    - 'chunk'
+    - 'seraph-agent'
+    - 'Received request: POST /logs'
+    - 'Investigation'
+    - 'Worker'
+    - 'Investigator'
+    - 'AlerterClient'
+    - 'ReportStore'
+    - 'Built-in MCP'
+    - 'Starting Seraph Agent'
+  # Set a retention policy for the reports database
+  reportRetentionDays: 7
+  disableValidation: false
+  verbose: true
+  rateLimit:
+    window: 60000
+    maxRequests: 1000
+  # Configure the alerter to point to the Alertmanager service
+  alertManager:
+    url: "http://prometheus-kube-prometheus-alertmanager.monitoring.svc.cluster.local:9093/api/v2/alerts"
+  # Configure the built-in MCP server to use the Seraph git repository, Prometheus, and Kubernetes.
+  builtInMcpServer:
+    gitRepoPath: "/tmp/seraph_repo"
+    prometheusUrl: "http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090"
+    kubernetesContext: ""
+    kubernetesNamespace: "default"
+  
+  # Run a single investigation prompt on startup to demonstrate enhanced investigation capabilities with Git context
+  startupPrompts:
+    - "investigate cluster infrastructure health by checking prometheus alerts, kubernetes pod status, and correlating with recent git commits in the seraph repository"
+  
+  # Git MCP tools integration:
+  # The Seraph repository (https://github.com/InventiveWork/seraph) is automatically cloned
+  # at startup to provide code context for investigations. Available Git tools:
+  # - git_log: Examine recent commits and correlate with incident timing
+  # - git_clone: Clone additional repositories for analysis if needed
+  # 
+  # Enhanced git_clone tool notes:
+  # - Supports custom destinations within /tmp/ or /var/tmp/ for security
+  # - Falls back to secure temp directory if no destination specified
+  # - Includes path traversal and security validation
+  # - Automatically authenticates with GITHUB_TOKEN if available
+  # Examples:
+  #   - "clone https://github.com/user/repo.git" (secure temp dir)
+  #   - "clone https://github.com/user/repo.git to /tmp/analysis" (custom path)
+  
+  # Kubernetes MCP tools (5 read-only investigation tools):
+  # - k8s_get: Get Kubernetes resources (pods, services, deployments, etc.)
+  # - k8s_describe: Detailed resource descriptions for troubleshooting
+  # - k8s_logs: Pod log retrieval with filtering (since, tail, container)
+  # - k8s_events: Cluster events for incident correlation and timeline
+  # - k8s_top: Resource usage statistics for nodes and pods
+  # 
+  # Security features:
+  # - Only allows read-only kubectl commands (get, describe, logs, top, explain)
+  # - Blocks access to secrets and serviceaccounts
+  # - Shell injection protection with argument sanitization
+  # - Command validation and resource type filtering
+  # 
+  # Investigation capabilities:
+  # - Automatic cluster health checks in investigation prompts
+  # - Pod status and event correlation for root cause analysis
+  # - Resource usage monitoring for performance issues
+  # - Container log analysis with time-based filtering
+
+# A list of secrets to mount as environment variables for the demo.
+additionalSecrets:
+  - github-mcp-secret
