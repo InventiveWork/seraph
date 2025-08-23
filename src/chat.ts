@@ -41,7 +41,7 @@ When you receive a request, you may reason and use the available tools to gather
     }
 
     if (!response.toolCalls || response.toolCalls.length === 0) {
-      return response.text || "I am unable to provide a response.";
+      return response.text || 'I am unable to provide a response.';
     }
 
     const toolCall = response.toolCalls[0];
@@ -69,5 +69,5 @@ ${toolResultText}`);
   }
 
   const lastResponse = conversation.filter(m => m.role === 'assistant').pop();
-  return lastResponse?.content || "The agent could not produce a final answer after 5 iterations.";
+  return lastResponse?.content || 'The agent could not produce a final answer after 5 iterations.';
 }

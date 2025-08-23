@@ -72,7 +72,7 @@ program
 
     console.log('Starting Seraph Agent...');
     if (options.mcpServerUrl) {
-      console.log(`MCP server specified. The agent will connect to it when you use the chat command.`);
+      console.log('MCP server specified. The agent will connect to it when you use the chat command.');
     }
 
     const config = await loadConfig();
@@ -97,9 +97,9 @@ program
         const gitClone = spawn('git', [
           'clone',
           gitRepoUrl,
-          gitRepoPath
+          gitRepoPath,
         ], {
-          stdio: 'pipe'
+          stdio: 'pipe',
         });
 
         await new Promise<void>((resolve, reject) => {
@@ -125,10 +125,10 @@ program
 
               gitPull.on('close', (pullCode: number | null) => {
                 if (pullCode === 0) {
-                  console.log(`✓ Repository updated successfully`);
+                  console.log('✓ Repository updated successfully');
                   resolve();
                 } else {
-                  console.warn(`Git operations failed, but continuing with existing repository if available`);
+                  console.warn('Git operations failed, but continuing with existing repository if available');
                   resolve();
                 }
               });
@@ -221,7 +221,7 @@ program
   .option('--mcp-server-url <url>', 'Dynamically connect to a custom MCP server to use its tools.')
   .option('--tools <names>', 'A comma-separated list of built-in toolsets to use (e.g., "fetch,git").')
   .action(async (message, options) => {
-    console.log("Input received by CLI:", message);
+    console.log('Input received by CLI:', message);
     const config = await loadConfig();
 
     let mcpUrl = options.mcpServerUrl;
@@ -342,7 +342,7 @@ reports
             r.incidentId,
             r.status,
             new Date(r.timestamp).toLocaleString(),
-            (r.triageReason || '').substring(0, 50) + ((r.triageReason || '').length > 50 ? '...' : '')
+            (r.triageReason || '').substring(0, 50) + ((r.triageReason || '').length > 50 ? '...' : ''),
           ]);
           
           console.log(formatter.table(headers, rows, formatOptions));
@@ -383,7 +383,7 @@ reports
           `**Status:** ${report.status}`,
           `**Timestamp:** ${new Date(report.timestamp).toLocaleString()}`,
           `**Reason:** ${report.triageReason || 'N/A'}`,
-          `**Log:** ${(report.initialLog || '').substring(0, 100)}${(report.initialLog || '').length > 100 ? '...' : ''}`
+          `**Log:** ${(report.initialLog || '').substring(0, 100)}${(report.initialLog || '').length > 100 ? '...' : ''}`,
         ], formatOptions));
         console.log();
         
@@ -468,7 +468,7 @@ program
     console.log(formatter.section('System Information', [
       `Node.js: ${process.version}`,
       `Platform: ${process.platform} (${process.arch})`,
-      `NPM: ${process.env.npm_version || 'Unknown'}`
+      `NPM: ${process.env.npm_version || 'Unknown'}`,
     ], options));
   });
 

@@ -65,11 +65,11 @@ export class MemoryManager extends SimpleRedisCache {
   // ===== SHORT-TERM MEMORY OPERATIONS =====
 
   async rememberIncident(incident: Omit<Incident, 'id' | 'embedding'>): Promise<void> {
-    if (!this.redis || !this.isConnected) return;
+    if (!this.redis || !this.isConnected) {return;}
 
     try {
       const id = this.generateIncidentId(incident);
-      const embedding = this.createEmbedding(incident.log + ' ' + incident.reason);
+      const embedding = this.createEmbedding(`${incident.log  } ${  incident.reason}`);
       
       const fullIncident: Incident = {
         ...incident,
@@ -82,21 +82,21 @@ export class MemoryManager extends SimpleRedisCache {
       await this.redis.setex(
         key, 
         this.config.shortTermTtl!, 
-        JSON.stringify(fullIncident)
+        JSON.stringify(fullIncident),
       );
 
       // Add to incident timeline
       await this.redis.zadd(
         'incident:timeline', 
         incident.timestamp, 
-        id
+        id,
       );
 
       // Trim timeline to max incidents
       await this.redis.zremrangebyrank(
         'incident:timeline', 
         0, 
-        -(this.config.maxIncidents! + 1)
+        -(this.config.maxIncidents! + 1),
       );
 
     } catch (error) {
@@ -105,7 +105,7 @@ export class MemoryManager extends SimpleRedisCache {
   }
 
   async recallSimilarIncidents(query: string, limit: number = 5): Promise<Incident[]> {
-    if (!this.redis || !this.isConnected) return [];
+    if (!this.redis || !this.isConnected) {return [];}
 
     try {
       const queryEmbedding = this.createEmbedding(query);
@@ -142,14 +142,14 @@ export class MemoryManager extends SimpleRedisCache {
   }
 
   async getRecentIncidents(hours: number = 24): Promise<Incident[]> {
-    if (!this.redis || !this.isConnected) return [];
+    if (!this.redis || !this.isConnected) {return [];}
 
     try {
       const cutoff = Date.now() - (hours * 60 * 60 * 1000);
       const recentIds = await this.redis.zrangebyscore(
         'incident:timeline', 
         cutoff, 
-        '+inf'
+        '+inf',
       );
 
       const incidents: Incident[] = [];
@@ -175,7 +175,7 @@ export class MemoryManager extends SimpleRedisCache {
   // ===== SESSION MEMORY OPERATIONS =====
 
   async updateSessionContext(sessionId: string, context: Partial<SessionContext>): Promise<void> {
-    if (!this.redis || !this.isConnected) return;
+    if (!this.redis || !this.isConnected) {return;}
 
     try {
       const key = `session:${sessionId}`;
@@ -199,7 +199,7 @@ export class MemoryManager extends SimpleRedisCache {
       await this.redis.setex(
         key,
         this.config.sessionTtl!,
-        JSON.stringify(sessionContext)
+        JSON.stringify(sessionContext),
       );
 
     } catch (error) {
@@ -208,7 +208,7 @@ export class MemoryManager extends SimpleRedisCache {
   }
 
   async getSessionContext(sessionId: string): Promise<SessionContext | null> {
-    if (!this.redis || !this.isConnected) return null;
+    if (!this.redis || !this.isConnected) {return null;}
 
     try {
       const data = await this.redis.get(`session:${sessionId}`);
@@ -222,7 +222,7 @@ export class MemoryManager extends SimpleRedisCache {
   // ===== PATTERN RECOGNITION =====
 
   async detectPatterns(): Promise<Pattern[]> {
-    if (!this.redis || !this.isConnected) return [];
+    if (!this.redis || !this.isConnected) {return [];}
 
     try {
       // Get recent incidents for pattern analysis
@@ -259,7 +259,8 @@ export class MemoryManager extends SimpleRedisCache {
           confidence: Math.min(pattern.frequency / 10, 1.0), // Max confidence at 10 occurrences
         }))
         .filter(pattern => pattern.frequency >= 2) // At least 2 occurrences
-        .sort((a, b) => b.confidence - a.confidence);
+        .sort((a, b) => b.confidence - a.confidence)
+        .slice(0, 20); // Limit to top 20 patterns to prevent unbounded growth
 
       return patterns;
 
@@ -279,7 +280,7 @@ export class MemoryManager extends SimpleRedisCache {
     if (similarIncidents.length > 0) {
       contextParts.push(
         'Similar recent incidents:',
-        ...similarIncidents.map(i => `- ${i.log} (resolved: ${i.resolution || 'pending'})`)
+        ...similarIncidents.map(i => `- ${i.log} (resolved: ${i.resolution || 'pending'})`),
       );
     }
 
@@ -289,7 +290,7 @@ export class MemoryManager extends SimpleRedisCache {
       if (session?.recentQueries.length) {
         contextParts.push(
           'Recent queries in this session:',
-          ...session.recentQueries.slice(-3).map(q => `- ${q}`)
+          ...session.recentQueries.slice(-3).map(q => `- ${q}`),
         );
       }
     }
@@ -299,16 +300,16 @@ export class MemoryManager extends SimpleRedisCache {
     const relevantPatterns = patterns.filter(p => 
       this.cosineSimilarity(
         this.createEmbedding(query),
-        this.createEmbedding(p.signature)
-      ) > 0.6
+        this.createEmbedding(p.signature),
+      ) > 0.6,
     ).slice(0, 2);
 
     if (relevantPatterns.length > 0) {
       contextParts.push(
         'Relevant patterns:',
         ...relevantPatterns.map(p => 
-          `- ${p.signature} (${p.frequency}x, confidence: ${(p.confidence * 100).toFixed(0)}%)`
-        )
+          `- ${p.signature} (${p.frequency}x, confidence: ${(p.confidence * 100).toFixed(0)}%)`,
+        ),
       );
     }
 

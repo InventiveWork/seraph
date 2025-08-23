@@ -1,14 +1,14 @@
-import { createServer, IncomingMessage, ServerResponse } from 'http';
-import { createServer as createNetServer, Socket } from 'net';
-import { readFileSync, existsSync, unlinkSync, promises as fs, chmodSync } from 'fs';
+import { IncomingMessage, ServerResponse, createServer } from 'http';
+import { Socket, createServer as createNetServer } from 'net';
+import { chmodSync, existsSync, promises as fs, readFileSync, unlinkSync } from 'fs';
 import { join } from 'path';
 import { AgentManager } from './agent-manager';
 import { SeraphConfig } from './config';
 // Lazy load metrics and chat modules only when needed
-import { validateLogEntry, sanitizeErrorMessage, generateCorrelationId } from './validation';
+import { generateCorrelationId, sanitizeErrorMessage, validateLogEntry } from './validation';
 
 // Memory-efficient request tracking
-let requestCounts = new Map<string, number>();
+const requestCounts = new Map<string, number>();
 
 // Buffer pool for reusing memory
 const BUFFER_POOL_SIZE = 10;
@@ -16,7 +16,8 @@ const bufferPool: Buffer[] = [];
 const POOL_BUFFER_SIZE = 1024 * 64; // 64KB buffers
 
 function getPooledBuffer(): Buffer {
-  return bufferPool.pop() || Buffer.alloc(POOL_BUFFER_SIZE);
+  const pooledBuffer = bufferPool.pop();
+  return pooledBuffer ?? Buffer.alloc(POOL_BUFFER_SIZE);
 }
 
 function returnBufferToPool(buffer: Buffer): void {
@@ -65,7 +66,7 @@ export function startServer(config: SeraphConfig, agentManager: AgentManager) {
         res.end(JSON.stringify({ 
           status: 'error', 
           message: 'Internal Server Error',
-          correlationId 
+          correlationId, 
         }));
       }
     });
@@ -73,7 +74,7 @@ export function startServer(config: SeraphConfig, agentManager: AgentManager) {
     // Authentication middleware
     if (config.serverApiKey && req.url !== '/metrics') {
       const authHeader = req.headers.authorization;
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      if (!authHeader?.startsWith('Bearer ')) {
         res.writeHead(401, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ status: 'error', message: 'Unauthorized' }));
         return;
@@ -95,7 +96,7 @@ export function startServer(config: SeraphConfig, agentManager: AgentManager) {
           res.end(JSON.stringify({ 
             status: 'error', 
             message: 'Too Many Requests',
-            correlationId 
+            correlationId, 
           }));
           return;
         }
@@ -106,7 +107,7 @@ export function startServer(config: SeraphConfig, agentManager: AgentManager) {
       let totalSize = 0;
       
       req.on('data', (chunk: Buffer) => {
-        if (res.headersSent) return;
+        if (res.headersSent) {return;}
         
         totalSize += chunk.length;
         if (totalSize > MAX_PAYLOAD_SIZE) {
@@ -114,7 +115,7 @@ export function startServer(config: SeraphConfig, agentManager: AgentManager) {
           res.end(JSON.stringify({ 
             status: 'error', 
             message: 'Payload Too Large',
-            correlationId 
+            correlationId, 
           }));
           return;
         }
@@ -123,7 +124,7 @@ export function startServer(config: SeraphConfig, agentManager: AgentManager) {
       });
       
       req.on('end', () => {
-        if (res.headersSent) return;
+        if (res.headersSent) {return;}
         
         const body = Buffer.concat(chunks).toString('utf8');
         if (config.verbose) {
@@ -135,7 +136,7 @@ export function startServer(config: SeraphConfig, agentManager: AgentManager) {
           res.end(JSON.stringify({ 
             status: 'error', 
             message: 'Request body must be a non-empty string',
-            correlationId 
+            correlationId, 
           }));
           return;
         }
@@ -145,9 +146,9 @@ export function startServer(config: SeraphConfig, agentManager: AgentManager) {
           if (body.includes('"}{"')) {
             // Split concatenated JSON logs and process each one separately
             const logParts = body.split('"}{"').map((part, index, array) => {
-              if (index === 0) return part + '"}';
-              if (index === array.length - 1) return '{"' + part;
-              return '{"' + part + '"}';
+              if (index === 0) {return `${part  }"}`;}
+              if (index === array.length - 1) {return `{"${  part}`;}
+              return `{"${  part  }"}`;
             });
             
             // Filter out incomplete JSON parts with more thorough validation
@@ -193,7 +194,7 @@ export function startServer(config: SeraphConfig, agentManager: AgentManager) {
               res.end(JSON.stringify({ 
                 status: 'error', 
                 message: 'No valid log entries found in concatenated logs',
-                correlationId 
+                correlationId, 
               }));
               return;
             }
@@ -208,7 +209,7 @@ export function startServer(config: SeraphConfig, agentManager: AgentManager) {
                   status: 'error', 
                   message: 'Invalid log entry',
                   errors: validation.errors,
-                  correlationId 
+                  correlationId, 
                 }));
                 return;
               }
@@ -218,7 +219,7 @@ export function startServer(config: SeraphConfig, agentManager: AgentManager) {
           res.writeHead(202, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ 
             status: 'accepted',
-            correlationId 
+            correlationId, 
           }));
         } catch (error) {
           const sanitizedError = sanitizeErrorMessage(error as Error);
@@ -227,7 +228,7 @@ export function startServer(config: SeraphConfig, agentManager: AgentManager) {
           res.end(JSON.stringify({ 
             status: 'error', 
             message: 'Internal server error while processing log',
-            correlationId 
+            correlationId, 
           }));
         }
       });
@@ -256,8 +257,8 @@ export function startServer(config: SeraphConfig, agentManager: AgentManager) {
         health: {
           memory: process.memoryUsage().heapUsed / process.memoryUsage().heapTotal < 0.9 ? 'healthy' : 'warning',
           uptime: process.uptime() > 60 ? 'healthy' : 'starting',
-          workers: 'running'
-        }
+          workers: 'running',
+        },
       };
       
       res.end(JSON.stringify(statusInfo, null, 2));
@@ -277,7 +278,7 @@ export function startServer(config: SeraphConfig, agentManager: AgentManager) {
           res.end(JSON.stringify({ 
             status: 'error', 
             message: 'Chat message too large',
-            correlationId 
+            correlationId, 
           }));
           return;
         }
@@ -293,7 +294,7 @@ export function startServer(config: SeraphConfig, agentManager: AgentManager) {
             res.end(JSON.stringify({ 
               status: 'error', 
               message: 'message is required',
-              correlationId 
+              correlationId, 
             }));
             return;
           }
@@ -304,7 +305,7 @@ export function startServer(config: SeraphConfig, agentManager: AgentManager) {
             res.end(JSON.stringify({ 
               status: 'error', 
               message: 'message is required and must be a string',
-              correlationId 
+              correlationId, 
             }));
             return;
           }
@@ -314,7 +315,7 @@ export function startServer(config: SeraphConfig, agentManager: AgentManager) {
             res.end(JSON.stringify({ 
               status: 'error', 
               message: 'message too long (max 1000 characters)',
-              correlationId 
+              correlationId, 
             }));
             return;
           }
@@ -328,8 +329,8 @@ export function startServer(config: SeraphConfig, agentManager: AgentManager) {
           );
           res.writeHead(200, { 'Content-Type': 'text/plain' });
           res.end(response);
-        } catch (error: any) {
-          const sanitizedError = sanitizeErrorMessage(error);
+        } catch (error: unknown) {
+          const sanitizedError = sanitizeErrorMessage(error instanceof Error ? error : String(error));
           console.error(`[${correlationId}] Chat error:`, sanitizedError);
           
           if (error instanceof SyntaxError) {
@@ -337,7 +338,7 @@ export function startServer(config: SeraphConfig, agentManager: AgentManager) {
             res.end(JSON.stringify({
               status: 'error',
               message: 'Invalid JSON format',
-              correlationId
+              correlationId,
             }));
             return;
           }
@@ -346,7 +347,7 @@ export function startServer(config: SeraphConfig, agentManager: AgentManager) {
           res.end(JSON.stringify({
             status: 'error',
             message: 'Internal Server Error',
-            correlationId
+            correlationId,
           }));
         }
       });
@@ -373,42 +374,54 @@ export function startServer(config: SeraphConfig, agentManager: AgentManager) {
 
   const cleanupSocket = async () => {
     try {
-      await fs.access(ipcSocketPath);
+      // Try to remove the socket file directly, handle ENOENT gracefully
       await fs.unlink(ipcSocketPath);
-    } catch (error: any) {
-      if (error.code !== 'ENOENT') {
-        console.error('Error removing old IPC socket file:', error);
+    } catch (error: unknown) {
+      // Check if this is an ENOENT error (file doesn't exist) which is expected
+      if (error && typeof error === 'object' && 'code' in error && (error as any).code === 'ENOENT') {
+        // Silently ignore - socket file doesn't exist, which is expected
+        return;
       }
+      
+      // Log other errors
+      console.error('Error removing old IPC socket file:', error);
     }
   };
 
-  cleanupSocket().then(() => {
-    ipcServer.listen(ipcSocketPath, async () => {
-      try {
-        await fs.chmod(ipcSocketPath, 0o600);
-        console.log('IPC server started');
-      } catch (error) {
-        console.error('Error setting permissions on IPC socket file:', error);
-      }
+  cleanupSocket()
+    .then(() => {
+      ipcServer.listen(ipcSocketPath, async () => {
+        try {
+          await fs.chmod(ipcSocketPath, 0o600);
+          console.log('IPC server started');
+        } catch (error) {
+          console.error('Error setting permissions on IPC socket file:', error);
+        }
+      });
+    })
+    .catch(error => {
+      console.error('Failed to cleanup IPC socket, skipping IPC server startup:', error);
+      // Don't start IPC server if cleanup failed to avoid EADDRINUSE errors
     });
-  });
 
   let isShuttingDown = false;
   const shutdown = (callback?: () => void) => {
     if (isShuttingDown) {
-      if (callback) callback();
+      if (callback) {callback();}
       return;
     }
     isShuttingDown = true;
+
+    // Clear the rate limit interval immediately on shutdown
+    clearInterval(intervalId);
 
     let closedCount = 0;
     const totalToClose = 2;
     const onClosed = () => {
       closedCount++;
       if (closedCount === totalToClose) {
-        clearInterval(intervalId); // Clear the rate limit interval
         cleanupSocket().then(() => {
-          if (callback) callback();
+          if (callback) {callback();}
         });
       }
     };

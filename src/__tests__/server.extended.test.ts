@@ -1,6 +1,6 @@
 import * as http from 'http';
 import request from 'supertest';
-import { startServer, resetRequestCounts } from '../server';
+import { resetRequestCounts, startServer } from '../server';
 import { AgentManager } from '../agent-manager';
 import { SeraphConfig } from '../config';
 import * as chat from '../chat';

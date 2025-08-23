@@ -2,47 +2,58 @@ apiVersion: v1
 entries:
   seraph-agent:
   - apiVersion: v2
+    appVersion: 1.0.18
+    created: "2025-08-23T08:43:33.12577-04:00"
+    description: A Helm chart for the Seraph Agent, an SRE autonomous AI agent.
+    digest: fff217e7558a3f729c5f38748c9101e6eb88758f12132ce7ef78183268ecf09d
+    icon: https://raw.githubusercontent.com/e-solutions-GmbH/seraph/main/docs/logo.png
+    name: seraph-agent
+    type: application
+    urls:
+    - https://github.com/InventiveWork/seraph/releases/download/v1.0.18/seraph-agent-1.0.18.tgz
+    version: 1.0.18
+  - apiVersion: v2
     appVersion: 1.0.17
-    created: "2025-08-23T06:54:38.940665-04:00"
+    created: "2025-08-23T08:43:33.125218-04:00"
     description: A Helm chart for the Seraph Agent, an SRE autonomous AI agent.
     digest: 10d212921a3afbac8de9b554bb2fa396d6126500fdc0e52f04da5a6ee057aae7
     icon: https://raw.githubusercontent.com/e-solutions-GmbH/seraph/main/docs/logo.png
     name: seraph-agent
     type: application
     urls:
-    - https://github.com/InventiveWork/seraph/releases/download/v1.0.17/seraph-agent-1.0.17.tgz
+    - https://github.com/InventiveWork/seraph/releases/download/v1.0.18/seraph-agent-1.0.17.tgz
     version: 1.0.17
   - apiVersion: v2
     appVersion: 1.0.16
-    created: "2025-08-23T06:54:38.940137-04:00"
+    created: "2025-08-23T08:43:33.124753-04:00"
     description: A Helm chart for the Seraph Agent, an SRE autonomous AI agent.
     digest: a384818f3c75346e0feb6ffc5bc25938c868af160ae01fe520a5c7a6a1ac0f9e
     icon: https://raw.githubusercontent.com/e-solutions-GmbH/seraph/main/docs/logo.png
     name: seraph-agent
     type: application
     urls:
-    - https://github.com/InventiveWork/seraph/releases/download/v1.0.17/seraph-agent-1.0.16.tgz
+    - https://github.com/InventiveWork/seraph/releases/download/v1.0.18/seraph-agent-1.0.16.tgz
     version: 1.0.16
   - apiVersion: v2
     appVersion: 1.0.15
-    created: "2025-08-23T06:54:38.939673-04:00"
+    created: "2025-08-23T08:43:33.124315-04:00"
     description: A Helm chart for the Seraph Agent, an SRE autonomous AI agent.
     digest: 6a423c2537cfccbf0fa66b4a06c303d16b71d521c8ceb6aee4062db8d5cce084
     icon: https://raw.githubusercontent.com/e-solutions-GmbH/seraph/main/docs/logo.png
     name: seraph-agent
     type: application
     urls:
-    - https://github.com/InventiveWork/seraph/releases/download/v1.0.17/seraph-agent-1.0.15.tgz
+    - https://github.com/InventiveWork/seraph/releases/download/v1.0.18/seraph-agent-1.0.15.tgz
     version: 1.0.15
   - apiVersion: v2
     appVersion: 1.0.14
-    created: "2025-08-23T06:54:38.939294-04:00"
+    created: "2025-08-23T08:43:33.123912-04:00"
     description: A Helm chart for the Seraph Agent, an SRE autonomous AI agent.
     digest: 1a50d17fe1a19ed218455cd0f5ea75bc772fb7a784f2d438fd251acb09d00ae7
     icon: https://raw.githubusercontent.com/e-solutions-GmbH/seraph/main/docs/logo.png
     name: seraph-agent
     type: application
     urls:
-    - https://github.com/InventiveWork/seraph/releases/download/v1.0.17/seraph-agent-1.0.14.tgz
+    - https://github.com/InventiveWork/seraph/releases/download/v1.0.18/seraph-agent-1.0.14.tgz
     version: 0.1.0
-generated: "2025-08-23T06:54:38.938476-04:00"
+generated: "2025-08-23T08:43:33.123143-04:00"

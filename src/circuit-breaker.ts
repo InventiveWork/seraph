@@ -113,7 +113,7 @@ export class CircuitBreaker {
       lastSuccessTime: this.lastSuccessTime,
       totalRequests: this.totalRequests,
       totalFailures: this.totalFailures,
-      totalSuccesses: this.totalSuccesses
+      totalSuccesses: this.totalSuccesses,
     };
   }
 
@@ -135,12 +135,12 @@ export class RetryManager {
     private maxRetries: number = 3,
     private baseDelay: number = 1000,
     private maxDelay: number = 30000,
-    private jitter: boolean = true
+    private jitter: boolean = true,
   ) {}
 
   async executeWithRetry<T>(
     operation: () => Promise<T>,
-    retryPredicate: (error: Error) => boolean = () => true
+    retryPredicate: (error: Error) => boolean = () => true,
   ): Promise<T> {
     let lastError: Error;
     
@@ -204,5 +204,5 @@ export const RetryPredicates = {
            message.includes('timeout') || 
            message.includes('temporarily unavailable') ||
            message.includes('overloaded');
-  }
+  },
 };

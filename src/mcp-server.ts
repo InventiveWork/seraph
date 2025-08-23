@@ -19,12 +19,12 @@ export interface McpTool {
 function handleGitLog(args: any, config: SeraphConfig): Promise<any> {
   const repoPath = config.builtInMcpServer?.gitRepoPath || args.repoPath;
   if (!repoPath) {
-    throw new Error("gitRepoPath is not configured in seraph.config.json and was not provided in the tool arguments.");
+    throw new Error('gitRepoPath is not configured in seraph.config.json and was not provided in the tool arguments.');
   }
   const maxCount = args.maxCount || 10;
   
   // Using execFile to prevent command injection
-  const gitArgs = ['-C', repoPath, 'log', `--max-count=${maxCount}`, "--pretty=format:%h - %an, %ar : %s"];
+  const gitArgs = ['-C', repoPath, 'log', `--max-count=${maxCount}`, '--pretty=format:%h - %an, %ar : %s'];
   
   return new Promise((resolve, reject) => {
     execFile('git', gitArgs, (error: Error | null, stdout: string, stderr: string) => {
@@ -39,18 +39,18 @@ function handleGitLog(args: any, config: SeraphConfig): Promise<any> {
 // Security function to validate destination paths
 export async function validateDestinationPath(destination: string): Promise<string> {
   if (!destination) {
-    throw new Error("Destination path cannot be empty");
+    throw new Error('Destination path cannot be empty');
   }
 
   // Check for path traversal BEFORE resolving (but allow safe relative paths)
   if (destination.includes('..') || destination.includes('.\\') || 
       destination.includes('%2e%2e') || destination.includes('%2f') || destination.includes('%5c')) {
-    throw new Error("Security violation: Path traversal detected in destination");
+    throw new Error('Security violation: Path traversal detected in destination');
   }
   
   // Reject patterns that could be used for traversal
   if (destination.match(/\/\.\//g) || destination.match(/\\\.\\/) || destination.includes('../')) {
-    throw new Error("Security violation: Path traversal detected in destination");
+    throw new Error('Security violation: Path traversal detected in destination');
   }
 
   // Normalize and resolve to absolute path
@@ -61,7 +61,7 @@ export async function validateDestinationPath(destination: string): Promise<stri
   try {
     allowedBaseDirs = [
       await fs.realpath('/tmp'),
-      await fs.realpath('/var/tmp')
+      await fs.realpath('/var/tmp'),
     ];
   } catch {
     // Fallback if realpath fails
@@ -111,12 +111,12 @@ export async function validateDestinationPath(destination: string): Promise<stri
     '/tmp/.X11-unix', 
     '/var/tmp/systemd',
     '/tmp/.ICE-unix',
-    '/tmp/.Test-unix'
+    '/tmp/.Test-unix',
   ];
   
   for (const protectedPath of protectedPaths) {
     if (canonicalPath.startsWith(protectedPath) || resolvedPath.startsWith(protectedPath)) {
-      throw new Error("Security violation: Cannot access protected system directories");
+      throw new Error('Security violation: Cannot access protected system directories');
     }
   }
   
@@ -143,10 +143,10 @@ export async function validateDestinationPath(destination: string): Promise<stri
   if (canonicalPath !== resolvedPath) {
     // Additional check: ensure symlink target is still within allowed dirs
     const symlinkAllowed = allowedBaseDirs.some(allowedDir => 
-      canonicalPath.startsWith(allowedDir)
+      canonicalPath.startsWith(allowedDir),
     );
     if (!symlinkAllowed) {
-      throw new Error("Security violation: Symlink target outside allowed directories");
+      throw new Error('Security violation: Symlink target outside allowed directories');
     }
   }
 
@@ -156,7 +156,7 @@ export async function validateDestinationPath(destination: string): Promise<stri
 async function handleGitClone(args: any, config: SeraphConfig): Promise<any> {
   const { repoUrl, destination } = args;
   if (!repoUrl) {
-    throw new Error("repoUrl is a required argument.");
+    throw new Error('repoUrl is a required argument.');
   }
 
   // Determine clone destination
@@ -226,12 +226,12 @@ async function handlePrometheusQuery(args: any, config: SeraphConfig): Promise<a
   const { query, time, start, end, step } = args;
   
   if (!query) {
-    throw new Error("query is a required argument for Prometheus queries.");
+    throw new Error('query is a required argument for Prometheus queries.');
   }
 
   try {
     let url: string;
-    let params = new URLSearchParams();
+    const params = new URLSearchParams();
     params.append('query', query);
 
     if (start && end) {
@@ -239,11 +239,11 @@ async function handlePrometheusQuery(args: any, config: SeraphConfig): Promise<a
       url = `${prometheusUrl}/api/v1/query_range`;
       params.append('start', start);
       params.append('end', end);
-      if (step) params.append('step', step);
+      if (step) {params.append('step', step);}
     } else {
       // Instant query
       url = `${prometheusUrl}/api/v1/query`;
-      if (time) params.append('time', time);
+      if (time) {params.append('time', time);}
     }
 
     const response = await fetch(`${url}?${params.toString()}`);
@@ -252,7 +252,7 @@ async function handlePrometheusQuery(args: any, config: SeraphConfig): Promise<a
       throw new Error(`Prometheus API error: ${response.status} ${response.statusText}`);
     }
 
-    const data = await response.json() as any;
+    const data = await response.json();
     
     if (data.status !== 'success') {
       throw new Error(`Prometheus query failed: ${data.error || 'Unknown error'}`);
@@ -263,7 +263,7 @@ async function handlePrometheusQuery(args: any, config: SeraphConfig): Promise<a
       resultType: data.data.resultType,
       result: data.data.result,
       metrics: data.data.result.length || 0,
-      queryTime: data.data.result.length > 0 ? 'success' : 'no_data'
+      queryTime: data.data.result.length > 0 ? 'success' : 'no_data',
     };
   } catch (error: any) {
     throw new Error(`Failed to query Prometheus: ${error.message}`);
@@ -286,7 +286,7 @@ async function handlePrometheusMetrics(args: any, config: SeraphConfig): Promise
       throw new Error(`Prometheus API error: ${response.status} ${response.statusText}`);
     }
 
-    const data = await response.json() as any;
+    const data = await response.json();
     
     if (data.status !== 'success') {
       throw new Error(`Failed to fetch metrics: ${data.error || 'Unknown error'}`);
@@ -295,7 +295,7 @@ async function handlePrometheusMetrics(args: any, config: SeraphConfig): Promise
     return {
       metrics: data.data,
       count: data.data.length,
-      filtered: !!match
+      filtered: !!match,
     };
   } catch (error: any) {
     throw new Error(`Failed to fetch Prometheus metrics: ${error.message}`);
@@ -312,7 +312,7 @@ async function handlePrometheusAlerts(args: any, config: SeraphConfig): Promise<
       throw new Error(`Prometheus API error: ${response.status} ${response.statusText}`);
     }
 
-    const data = await response.json() as any;
+    const data = await response.json();
     
     if (data.status !== 'success') {
       throw new Error(`Failed to fetch alerts: ${data.error || 'Unknown error'}`);
@@ -334,8 +334,8 @@ async function handlePrometheusAlerts(args: any, config: SeraphConfig): Promise<
         description: alert.annotations?.description || '',
         activeAt: alert.activeAt,
         labels: alert.labels,
-        annotations: alert.annotations
-      }))
+        annotations: alert.annotations,
+      })),
     };
   } catch (error: any) {
     throw new Error(`Failed to fetch Prometheus alerts: ${error.message}`);
@@ -352,7 +352,7 @@ async function handlePrometheusTargets(args: any, config: SeraphConfig): Promise
       throw new Error(`Prometheus API error: ${response.status} ${response.statusText}`);
     }
 
-    const data = await response.json() as any;
+    const data = await response.json();
     
     if (data.status !== 'success') {
       throw new Error(`Failed to fetch targets: ${data.error || 'Unknown error'}`);
@@ -373,8 +373,8 @@ async function handlePrometheusTargets(args: any, config: SeraphConfig): Promise
         lastError: target.lastError || '',
         lastScrape: target.lastScrape,
         scrapeUrl: target.scrapeUrl,
-        labels: target.labels
-      }))
+        labels: target.labels,
+      })),
     };
   } catch (error: any) {
     throw new Error(`Failed to fetch Prometheus targets: ${error.message}`);
@@ -391,7 +391,7 @@ async function handlePrometheusRules(args: any, config: SeraphConfig): Promise<a
       throw new Error(`Prometheus API error: ${response.status} ${response.statusText}`);
     }
 
-    const data = await response.json() as any;
+    const data = await response.json();
     
     if (data.status !== 'success') {
       throw new Error(`Failed to fetch rules: ${data.error || 'Unknown error'}`);
@@ -406,7 +406,7 @@ async function handlePrometheusRules(args: any, config: SeraphConfig): Promise<a
       totalRules += rules.length;
       
       const groupFiring = rules.filter((rule: any) => 
-        rule.alerts && rule.alerts.some((alert: any) => alert.state === 'firing')
+        rule.alerts?.some((alert: any) => alert.state === 'firing'),
       ).length;
       
       firingRules += groupFiring;
@@ -418,7 +418,7 @@ async function handlePrometheusRules(args: any, config: SeraphConfig): Promise<a
         rules: rules.length,
         firing: groupFiring,
         evaluationTime: group.evaluationTime,
-        lastEvaluation: group.lastEvaluation
+        lastEvaluation: group.lastEvaluation,
       };
     });
 
@@ -426,7 +426,7 @@ async function handlePrometheusRules(args: any, config: SeraphConfig): Promise<a
       totalGroups: groups.length,
       totalRules,
       firingRules,
-      groups: processedGroups
+      groups: processedGroups,
     };
   } catch (error: any) {
     throw new Error(`Failed to fetch Prometheus rules: ${error.message}`);
@@ -437,19 +437,19 @@ async function handlePrometheusRules(args: any, config: SeraphConfig): Promise<a
 
 // Security: Allowed kubectl commands for read-only investigation
 const ALLOWED_KUBECTL_COMMANDS = [
-  'get', 'describe', 'logs', 'top', 'explain'
+  'get', 'describe', 'logs', 'top', 'explain',
 ];
 
 // Security: Allowed resource types for investigation
 const ALLOWED_K8S_RESOURCES = [
   'pods', 'services', 'deployments', 'replicasets', 'daemonsets', 'statefulsets',
   'nodes', 'events', 'configmaps', 'persistentvolumes', 'persistentvolumeclaims',
-  'ingress', 'networkpolicies', 'jobs', 'cronjobs', 'endpoints', 'namespaces'
+  'ingress', 'networkpolicies', 'jobs', 'cronjobs', 'endpoints', 'namespaces',
 ];
 
 // Security: Blocked resource types that may contain sensitive data
 const BLOCKED_K8S_RESOURCES = [
-  'secrets', 'serviceaccounts'
+  'secrets', 'serviceaccounts',
 ];
 
 function sanitizeKubectlArgs(args: string[]): string[] {
@@ -460,7 +460,7 @@ function sanitizeKubectlArgs(args: string[]): string[] {
     const clean = arg.replace(/[;&|`$(){}[\]<>'"\\]/g, '').trim();
     
     // Skip empty args after sanitization
-    if (clean.length === 0) continue;
+    if (clean.length === 0) {continue;}
     
     // Block dangerous flags and options
     if (clean.startsWith('--kubeconfig') || 
@@ -542,7 +542,7 @@ async function executeKubectl(args: string[], config: SeraphConfig): Promise<str
       // Execute kubectl with sanitized arguments
       const kubectl = spawn('kubectl', kubectlArgs, {
         stdio: ['pipe', 'pipe', 'pipe'],
-        timeout: 30000 // 30 second timeout
+        timeout: 30000, // 30 second timeout
       });
       
       let stdout = '';
@@ -578,7 +578,7 @@ async function handleKubectlGet(args: any, config: SeraphConfig): Promise<any> {
   const { resource, namespace, selector, output = 'json' } = args;
   
   if (!resource) {
-    throw new Error("resource is a required argument for kubectl get");
+    throw new Error('resource is a required argument for kubectl get');
   }
   
   const kubectlArgs = ['get', resource];
@@ -603,7 +603,7 @@ async function handleKubectlGet(args: any, config: SeraphConfig): Promise<any> {
       resource,
       namespace: namespace || config.builtInMcpServer?.kubernetesNamespace || 'default',
       output: output === 'json' ? JSON.parse(result) : result,
-      raw: result
+      raw: result,
     };
   } catch (error: any) {
     throw new Error(`kubectl get failed: ${error.message}`);
@@ -614,7 +614,7 @@ async function handleKubectlDescribe(args: any, config: SeraphConfig): Promise<a
   const { resource, name, namespace } = args;
   
   if (!resource) {
-    throw new Error("resource is a required argument for kubectl describe");
+    throw new Error('resource is a required argument for kubectl describe');
   }
   
   const kubectlArgs = ['describe', resource];
@@ -635,7 +635,7 @@ async function handleKubectlDescribe(args: any, config: SeraphConfig): Promise<a
       resource,
       name: name || 'all',
       namespace: namespace || config.builtInMcpServer?.kubernetesNamespace || 'default',
-      description: result
+      description: result,
     };
   } catch (error: any) {
     throw new Error(`kubectl describe failed: ${error.message}`);
@@ -646,7 +646,7 @@ async function handleKubectlLogs(args: any, config: SeraphConfig): Promise<any> 
   const { pod, namespace, container, previous = false, since, tail } = args;
   
   if (!pod) {
-    throw new Error("pod is a required argument for kubectl logs");
+    throw new Error('pod is a required argument for kubectl logs');
   }
   
   const kubectlArgs = ['logs', pod];
@@ -680,7 +680,7 @@ async function handleKubectlLogs(args: any, config: SeraphConfig): Promise<any> 
       namespace: namespace || config.builtInMcpServer?.kubernetesNamespace || 'default',
       container: container || 'default',
       logs: result,
-      lineCount: result.split('\n').length
+      lineCount: result.split('\n').length,
     };
   } catch (error: any) {
     throw new Error(`kubectl logs failed: ${error.message}`);
@@ -720,7 +720,7 @@ async function handleKubectlEvents(args: any, config: SeraphConfig): Promise<any
       eventCount: events.items?.length || 0,
       events: events.items || [],
       fieldSelector,
-      since
+      since,
     };
   } catch (error: any) {
     throw new Error(`kubectl get events failed: ${error.message}`);
@@ -752,7 +752,7 @@ async function handleKubectlTop(args: any, config: SeraphConfig): Promise<any> {
       resource,
       namespace: namespace || config.builtInMcpServer?.kubernetesNamespace || 'default',
       usage: result,
-      selector
+      selector,
     };
   } catch (error: any) {
     throw new Error(`kubectl top failed: ${error.message}`);
@@ -801,7 +801,7 @@ const BUILT_IN_TOOLS: McpTool[] = [
         repoUrl: { type: 'string', description: 'The URL of the Git repository to clone.' },
         destination: { 
           type: 'string', 
-          description: 'Optional: Secure destination path. Must be within /tmp/ or /var/tmp/ for security. If not provided, uses a secure temporary directory.' 
+          description: 'Optional: Secure destination path. Must be within /tmp/ or /var/tmp/ for security. If not provided, uses a secure temporary directory.', 
         },
       },
       required: ['repoUrl'],
@@ -818,7 +818,7 @@ const BUILT_IN_TOOLS: McpTool[] = [
         start: { type: 'string', description: 'Start timestamp for range queries (RFC3339 or Unix timestamp).' },
         end: { type: 'string', description: 'End timestamp for range queries (RFC3339 or Unix timestamp).' },
         step: { type: 'string', description: 'Query resolution step width for range queries (e.g., "15s", "1m").' },
-        prometheusUrl: { type: 'string', description: 'Override Prometheus URL (optional, uses config default).' }
+        prometheusUrl: { type: 'string', description: 'Override Prometheus URL (optional, uses config default).' },
       },
       required: ['query'],
     },
@@ -830,7 +830,7 @@ const BUILT_IN_TOOLS: McpTool[] = [
       type: 'object',
       properties: {
         match: { type: 'string', description: 'Optional metric matcher pattern to filter results.' },
-        prometheusUrl: { type: 'string', description: 'Override Prometheus URL (optional, uses config default).' }
+        prometheusUrl: { type: 'string', description: 'Override Prometheus URL (optional, uses config default).' },
       },
       required: [],
     },
@@ -841,7 +841,7 @@ const BUILT_IN_TOOLS: McpTool[] = [
     schema: {
       type: 'object',
       properties: {
-        prometheusUrl: { type: 'string', description: 'Override Prometheus URL (optional, uses config default).' }
+        prometheusUrl: { type: 'string', description: 'Override Prometheus URL (optional, uses config default).' },
       },
       required: [],
     },
@@ -852,7 +852,7 @@ const BUILT_IN_TOOLS: McpTool[] = [
     schema: {
       type: 'object',
       properties: {
-        prometheusUrl: { type: 'string', description: 'Override Prometheus URL (optional, uses config default).' }
+        prometheusUrl: { type: 'string', description: 'Override Prometheus URL (optional, uses config default).' },
       },
       required: [],
     },
@@ -863,7 +863,7 @@ const BUILT_IN_TOOLS: McpTool[] = [
     schema: {
       type: 'object',
       properties: {
-        prometheusUrl: { type: 'string', description: 'Override Prometheus URL (optional, uses config default).' }
+        prometheusUrl: { type: 'string', description: 'Override Prometheus URL (optional, uses config default).' },
       },
       required: [],
     },
@@ -877,7 +877,7 @@ const BUILT_IN_TOOLS: McpTool[] = [
         resource: { type: 'string', description: 'Resource type (e.g., pods, services, deployments).' },
         namespace: { type: 'string', description: 'Kubernetes namespace (optional).' },
         selector: { type: 'string', description: 'Label selector (optional, e.g., "app=nginx").' },
-        output: { type: 'string', enum: ['json', 'yaml', 'wide'], description: 'Output format (default: json).' }
+        output: { type: 'string', enum: ['json', 'yaml', 'wide'], description: 'Output format (default: json).' },
       },
       required: ['resource'],
     },
@@ -890,7 +890,7 @@ const BUILT_IN_TOOLS: McpTool[] = [
       properties: {
         resource: { type: 'string', description: 'Resource type (e.g., pod, service, deployment).' },
         name: { type: 'string', description: 'Resource name (optional, describes all if not specified).' },
-        namespace: { type: 'string', description: 'Kubernetes namespace (optional).' }
+        namespace: { type: 'string', description: 'Kubernetes namespace (optional).' },
       },
       required: ['resource'],
     },
@@ -906,7 +906,7 @@ const BUILT_IN_TOOLS: McpTool[] = [
         container: { type: 'string', description: 'Container name within the pod (optional).' },
         previous: { type: 'boolean', description: 'Get logs from previous container instance (default: false).' },
         since: { type: 'string', description: 'Show logs since duration (e.g., "5m", "1h").' },
-        tail: { type: 'number', description: 'Number of lines to show from the end of logs.' }
+        tail: { type: 'number', description: 'Number of lines to show from the end of logs.' },
       },
       required: ['pod'],
     },
@@ -919,7 +919,7 @@ const BUILT_IN_TOOLS: McpTool[] = [
       properties: {
         namespace: { type: 'string', description: 'Kubernetes namespace (optional, all namespaces if not specified).' },
         fieldSelector: { type: 'string', description: 'Field selector for filtering events (optional).' },
-        since: { type: 'string', description: 'Show events since duration (e.g., "5m", "1h").' }
+        since: { type: 'string', description: 'Show events since duration (e.g., "5m", "1h").' },
       },
       required: [],
     },
@@ -932,7 +932,7 @@ const BUILT_IN_TOOLS: McpTool[] = [
       properties: {
         resource: { type: 'string', enum: ['nodes', 'pods'], description: 'Resource type to get usage for.' },
         namespace: { type: 'string', description: 'Kubernetes namespace (for pods only).' },
-        selector: { type: 'string', description: 'Label selector (optional).' }
+        selector: { type: 'string', description: 'Label selector (optional).' },
       },
       required: ['resource'],
     },

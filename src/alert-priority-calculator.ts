@@ -259,9 +259,9 @@ export class AlertPriorityCalculator {
   }
 
   private scoreToPriority(score: number): AlertPriority {
-    if (score >= 0.85) return AlertPriority.CRITICAL;  // Raised threshold 
-    if (score >= 0.65) return AlertPriority.HIGH;      // Raised threshold
-    if (score >= 0.4) return AlertPriority.MEDIUM;
+    if (score >= 0.85) {return AlertPriority.CRITICAL;}  // Raised threshold 
+    if (score >= 0.65) {return AlertPriority.HIGH;}      // Raised threshold
+    if (score >= 0.4) {return AlertPriority.MEDIUM;}
     return AlertPriority.LOW;
   }
 
@@ -280,19 +280,19 @@ export class AlertPriorityCalculator {
     }
     
     if (breakdown.serviceImpactScore > 0.8) {
-      reasoning.push(`High service impact - affects critical business function`);
+      reasoning.push('High service impact - affects critical business function');
     }
     
     if (breakdown.timeContextScore > 0.7) {
-      reasoning.push(`During business hours - higher user impact expected`);
+      reasoning.push('During business hours - higher user impact expected');
     }
     
     if (breakdown.historicalScore > 0.6) {
-      reasoning.push(`Common issue pattern - requires swift resolution`);
+      reasoning.push('Common issue pattern - requires swift resolution');
     }
     
     if (breakdown.keywordScore < 0.4 && breakdown.serviceImpactScore < 0.4) {
-      reasoning.push(`Low impact alert - can be handled with standard priority`);
+      reasoning.push('Low impact alert - can be handled with standard priority');
     }
     
     return reasoning;

@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for src/metrics.ts</title>
+    <title>Code coverage report for src/circuit-breaker.ts</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="../prettify.css" />
     <link rel="stylesheet" href="../base.css" />
@@ -19,34 +19,34 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="../index.html">All files</a> / <a href="index.html">src</a> metrics.ts</h1>
+        <h1><a href="../index.html">All files</a> / <a href="index.html">src</a> circuit-breaker.ts</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">95.6% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>3/3</span>
+                <span class='fraction'>87/91</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">79.31% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/0</span>
+                <span class='fraction'>23/29</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/0</span>
+                <span class='fraction'>22/22</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">95.4% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>3/3</span>
+                <span class='fraction'>83/87</span>
             </div>
         
             
@@ -224,329 +224,467 @@
 <a name='L159'></a><a href='#L159'>159</a>
 <a name='L160'></a><a href='#L160'>160</a>
 <a name='L161'></a><a href='#L161'>161</a>
-<a name='L162'></a><a href='#L162'>162</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">5x</span>
+<a name='L162'></a><a href='#L162'>162</a>
+<a name='L163'></a><a href='#L163'>163</a>
+<a name='L164'></a><a href='#L164'>164</a>
+<a name='L165'></a><a href='#L165'>165</a>
+<a name='L166'></a><a href='#L166'>166</a>
+<a name='L167'></a><a href='#L167'>167</a>
+<a name='L168'></a><a href='#L168'>168</a>
+<a name='L169'></a><a href='#L169'>169</a>
+<a name='L170'></a><a href='#L170'>170</a>
+<a name='L171'></a><a href='#L171'>171</a>
+<a name='L172'></a><a href='#L172'>172</a>
+<a name='L173'></a><a href='#L173'>173</a>
+<a name='L174'></a><a href='#L174'>174</a>
+<a name='L175'></a><a href='#L175'>175</a>
+<a name='L176'></a><a href='#L176'>176</a>
+<a name='L177'></a><a href='#L177'>177</a>
+<a name='L178'></a><a href='#L178'>178</a>
+<a name='L179'></a><a href='#L179'>179</a>
+<a name='L180'></a><a href='#L180'>180</a>
+<a name='L181'></a><a href='#L181'>181</a>
+<a name='L182'></a><a href='#L182'>182</a>
+<a name='L183'></a><a href='#L183'>183</a>
+<a name='L184'></a><a href='#L184'>184</a>
+<a name='L185'></a><a href='#L185'>185</a>
+<a name='L186'></a><a href='#L186'>186</a>
+<a name='L187'></a><a href='#L187'>187</a>
+<a name='L188'></a><a href='#L188'>188</a>
+<a name='L189'></a><a href='#L189'>189</a>
+<a name='L190'></a><a href='#L190'>190</a>
+<a name='L191'></a><a href='#L191'>191</a>
+<a name='L192'></a><a href='#L192'>192</a>
+<a name='L193'></a><a href='#L193'>193</a>
+<a name='L194'></a><a href='#L194'>194</a>
+<a name='L195'></a><a href='#L195'>195</a>
+<a name='L196'></a><a href='#L196'>196</a>
+<a name='L197'></a><a href='#L197'>197</a>
+<a name='L198'></a><a href='#L198'>198</a>
+<a name='L199'></a><a href='#L199'>199</a>
+<a name='L200'></a><a href='#L200'>200</a>
+<a name='L201'></a><a href='#L201'>201</a>
+<a name='L202'></a><a href='#L202'>202</a>
+<a name='L203'></a><a href='#L203'>203</a>
+<a name='L204'></a><a href='#L204'>204</a>
+<a name='L205'></a><a href='#L205'>205</a>
+<a name='L206'></a><a href='#L206'>206</a>
+<a name='L207'></a><a href='#L207'>207</a>
+<a name='L208'></a><a href='#L208'>208</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">21x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">20x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">20x</span>
+<span class="cline-any cline-yes">20x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">22x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">8x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">15x</span>
+<span class="cline-any cline-yes">15x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">11x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { Counter, Gauge, Histogram, Registry } from 'prom-client';
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">export enum CircuitState {
+  CLOSED = 'CLOSED',
+  OPEN = 'OPEN',
+  HALF_OPEN = 'HALF_OPEN'
+}
 &nbsp;
-export const register = new Registry();
+export interface CircuitBreakerOptions {
+  failureThreshold: number; // Number of failures before opening
+  recoveryTimeout: number; // Time in ms before attempting recovery
+  monitoringPeriod: number; // Time window for monitoring failures
+  successThreshold: number; // Number of successes needed to close circuit
+}
 &nbsp;
-export const metrics = {
-  logsProcessed: new Counter({
-    name: 'seraph_logs_processed_total',
-    help: 'Total number of logs processed by the agent.',
-    registers: [register],
-  }),
-  alertsTriggered: new Counter({
-    name: 'seraph_alerts_triggered_total',
-    help: 'Total number of alerts triggered by the agent.',
-    labelNames: ['provider', 'model'],
-    registers: [register],
-  }),
-  activeWorkers: new Gauge({
-    name: 'seraph_active_workers',
-    help: 'Number of active worker threads.',
-    labelNames: ['type'],
-    registers: [register],
-  }),
-  llmAnalysisLatency: new Histogram({
-    name: 'seraph_llm_analysis_latency_seconds',
-    help: 'Latency of LLM analysis requests in seconds.',
-    labelNames: ['provider', 'model'],
-    buckets: [0.1, 0.5, 1, 2, 5, 10], // Buckets in seconds
-    registers: [register],
-  }),
-  analysisErrors: new Counter({
-    name: 'seraph_analysis_errors_total',
-    help: 'Total number of errors during log analysis.',
-    labelNames: ['type'],
-    registers: [register],
-  }),
-  logsSkipped: new Counter({
-    name: 'seraph_logs_skipped_total',
-    help: 'Total number of logs skipped due to pre-filtering.',
-    registers: [register],
-  }),
-  llmCacheHits: new Counter({
-    name: 'seraph_llm_cache_hits_total',
-    help: 'Total number of LLM cache hits.',
-    registers: [register],
-  }),
-  llmCacheMisses: new Counter({
-    name: 'seraph_llm_cache_misses_total',
-    help: 'Total number of LLM cache misses.',
-    registers: [register],
-  }),
-  llmTokensSaved: new Counter({
-    name: 'seraph_llm_tokens_saved_total',
-    help: 'Total number of tokens saved through LLM caching.',
-    registers: [register],
-  }),
-  llmCacheSize: new Gauge({
-    name: 'seraph_llm_cache_size',
-    help: 'Current number of entries in LLM cache.',
-    registers: [register],
-  }),
-  llmCacheRedisConnected: new Gauge({
-    name: 'seraph_llm_cache_redis_connected',
-    help: 'Redis connection status for LLM cache (1=connected, 0=disconnected).',
-    registers: [register],
-  }),
-  llmCacheRedisHits: new Counter({
-    name: 'seraph_llm_cache_redis_hits_total',
-    help: 'Total number of Redis cache hits.',
-    registers: [register],
-  }),
-  llmCacheRedisWrites: new Counter({
-    name: 'seraph_llm_cache_redis_writes_total',
-    help: 'Total number of writes to Redis cache.',
-    registers: [register],
-  }),
-  llmCacheRedisErrors: new Counter({
-    name: 'seraph_llm_cache_redis_errors_total',
-    help: 'Total number of Redis cache errors.',
-    registers: [register],
-  }),
+export interface CircuitBreakerMetrics {
+  state: CircuitState;
+  failures: number;
+  successes: number;
+  lastFailureTime: number | null;
+  lastSuccessTime: number | null;
+  totalRequests: number;
+  totalFailures: number;
+  totalSuccesses: number;
+}
 &nbsp;
-  // Priority Queue Metrics
-  queuedAlerts: new Counter({
-    name: 'seraph_queued_alerts_total',
-    help: 'Total number of alerts queued by priority.',
-    labelNames: ['priority'],
-    registers: [register],
-  }),
-  startedInvestigations: new Counter({
-    name: 'seraph_started_investigations_total',
-    help: 'Total number of investigations started by priority.',
-    labelNames: ['priority'],
-    registers: [register],
-  }),
-  queueSize: new Gauge({
-    name: 'seraph_queue_size',
-    help: 'Current number of alerts in the priority queue.',
-    registers: [register],
-  }),
-  runningInvestigations: new Gauge({
-    name: 'seraph_running_investigations',
-    help: 'Current number of running investigations.',
-    registers: [register],
-  }),
-  avgWaitTime: new Gauge({
-    name: 'seraph_queue_avg_wait_time_seconds',
-    help: 'Average wait time for alerts in the queue.',
-    registers: [register],
-  }),
-  investigationDuration: new Histogram({
-    name: 'seraph_investigation_duration_seconds',
-    help: 'Duration of investigations in seconds.',
-    buckets: [10, 30, 60, 120, 300, 600], // 10s to 10min buckets
-    registers: [register],
-  }),
-  investigationTimeouts: new Counter({
-    name: 'seraph_investigation_timeouts_total',
-    help: 'Total number of investigation timeouts by priority.',
-    labelNames: ['priority'],
-    registers: [register],
-  }),
-  preemptions: new Counter({
-    name: 'seraph_preemptions_total',
-    help: 'Total number of investigation preemptions.',
-    labelNames: ['preempted_priority', 'new_priority'],
-    registers: [register],
-  }),
-  burstModeActive: new Gauge({
-    name: 'seraph_burst_mode_active',
-    help: 'Burst mode status (1=active, 0=inactive).',
-    registers: [register],
-  }),
-  burstModeActivations: new Counter({
-    name: 'seraph_burst_mode_activations_total',
-    help: 'Total number of burst mode activations.',
-    registers: [register],
-  }),
-  burstModeDuration: new Histogram({
-    name: 'seraph_burst_mode_duration_seconds',
-    help: 'Duration of burst mode sessions in seconds.',
-    buckets: [30, 60, 180, 300, 600, 1200], // 30s to 20min buckets
-    registers: [register],
-  }),
-  queuePriorityDistribution: new Gauge({
-    name: 'seraph_queue_priority_distribution',
-    help: 'Number of alerts in queue by priority level.',
-    labelNames: ['priority'],
-    registers: [register],
-  }),
-  priorityScoreDistribution: new Histogram({
-    name: 'seraph_priority_score_distribution',
-    help: 'Distribution of priority scores assigned to alerts.',
-    buckets: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
-    registers: [register],
-  }),
-  priorityAccuracy: new Gauge({
-    name: 'seraph_priority_accuracy_percent',
-    help: 'Accuracy of priority predictions (percentage).',
-    registers: [register],
-  }),
-};
-&nbsp;</pre></td></tr></table></pre>
+export class CircuitBreaker {
+  private state: CircuitState = CircuitState.CLOSED;
+  private failures = 0;
+  private successes = 0;
+  private lastFailureTime: number | null = null;
+  private lastSuccessTime: number | null = null;
+  private totalRequests = 0;
+  private totalFailures = 0;
+  private totalSuccesses = 0;
+  private failureWindow: number[] = [];
+  
+  constructor(private options: CircuitBreakerOptions) {}
+&nbsp;
+  async execute&lt;T&gt;(operation: () =&gt; Promise&lt;T&gt;): Promise&lt;T&gt; {
+    if (this.state === CircuitState.OPEN) {
+      if (this.shouldAttemptReset()) {
+        this.state = CircuitState.HALF_OPEN;
+        this.successes = 0;
+      } else {
+        throw new Error('Circuit breaker is OPEN');
+      }
+    }
+&nbsp;
+    this.totalRequests++;
+&nbsp;
+    try {
+      const result = await operation();
+      this.onSuccess();
+      return result;
+    } catch (error) {
+      this.onFailure();
+      throw error;
+    }
+  }
+&nbsp;
+  private onSuccess(): void {
+    this.successes++;
+    this.totalSuccesses++;
+    this.lastSuccessTime = Date.now();
+    
+    if (this.state === CircuitState.HALF_OPEN) {
+      if (this.successes &gt;= this.options.successThreshold) {
+        this.reset();
+      }
+    } else if (this.state === CircuitState.CLOSED) {
+      // Reset failure count on success
+      this.failures = 0;
+      this.failureWindow = [];
+    }
+  }
+&nbsp;
+  private onFailure(): void {
+    this.failures++;
+    this.totalFailures++;
+    this.lastFailureTime = Date.now();
+    this.failureWindow.push(Date.now());
+    
+    // Clean old failures outside monitoring period
+    const cutoff = Date.now() - this.options.monitoringPeriod;
+    this.failureWindow = this.failureWindow.filter(time =&gt; time &gt; cutoff);
+    
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (this.state === CircuitState.HALF_OPEN) {
+<span class="cstat-no" title="statement not covered" >      this.state = CircuitState.OPEN;</span>
+    } else if (this.state === CircuitState.CLOSED) {
+      if (this.failureWindow.length &gt;= this.options.failureThreshold) {
+        this.state = CircuitState.OPEN;
+      }
+    }
+  }
+&nbsp;
+  private shouldAttemptReset(): boolean {
+    return this.lastFailureTime !== null &amp;&amp; 
+           Date.now() - this.lastFailureTime &gt;= this.options.recoveryTimeout;
+  }
+&nbsp;
+  private reset(): void {
+    this.state = CircuitState.CLOSED;
+    this.failures = 0;
+    this.successes = 0;
+    this.failureWindow = [];
+  }
+&nbsp;
+  getMetrics(): CircuitBreakerMetrics {
+    return {
+      state: this.state,
+      failures: this.failures,
+      successes: this.successes,
+      lastFailureTime: this.lastFailureTime,
+      lastSuccessTime: this.lastSuccessTime,
+      totalRequests: this.totalRequests,
+      totalFailures: this.totalFailures,
+      totalSuccesses: this.totalSuccesses,
+    };
+  }
+&nbsp;
+  getState(): CircuitState {
+    return this.state;
+  }
+&nbsp;
+  forceOpen(): void {
+    this.state = CircuitState.OPEN;
+  }
+&nbsp;
+  forceClose(): void {
+    this.reset();
+  }
+}
+&nbsp;
+export class RetryManager {
+  constructor(
+    private maxRetries: number = <span class="branch-0 cbranch-no" title="branch not covered" >3,</span>
+    private baseDelay: number = <span class="branch-0 cbranch-no" title="branch not covered" >1000,</span>
+    private maxDelay: number = <span class="branch-0 cbranch-no" title="branch not covered" >30000,</span>
+    private jitter: boolean = <span class="branch-0 cbranch-no" title="branch not covered" >true,</span>
+  ) {}
+&nbsp;
+  async executeWithRetry&lt;T&gt;(
+    operation: () =&gt; Promise&lt;T&gt;,
+    retryPredicate: (error: Error) =&gt; boolean = () =&gt; true,
+  ): Promise&lt;T&gt; {
+    let lastError: Error;
+    
+    for (let attempt = 0; attempt &lt;= this.maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error) {
+        lastError = error as Error;
+        
+        if (attempt === this.maxRetries || !retryPredicate(lastError)) {
+          throw lastError;
+        }
+        
+        const delay = this.calculateDelay(attempt);
+        await this.sleep(delay);
+      }
+    }
+    
+<span class="cstat-no" title="statement not covered" >    throw lastError!;</span>
+  }
+&nbsp;
+  private calculateDelay(attempt: number): number {
+    // Exponential backoff with jitter
+    let delay = Math.min(this.baseDelay * Math.pow(2, attempt), this.maxDelay);
+    
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (this.jitter) {
+      // Add random jitter to prevent thundering herd
+<span class="cstat-no" title="statement not covered" >      delay = delay * (0.5 + Math.random() * 0.5);</span>
+    }
+    
+    return Math.floor(delay);
+  }
+&nbsp;
+  private sleep(ms: number): Promise&lt;void&gt; {
+    return new Promise(resolve =&gt; setTimeout(resolve, ms));
+  }
+}
+&nbsp;
+// Predefined retry predicates for common scenarios
+export const RetryPredicates = {
+  networkErrors: (error: Error): boolean =&gt; {
+    const networkErrorCodes = ['ECONNRESET', 'ENOTFOUND', 'ECONNREFUSED', 'ETIMEDOUT'];
+    return networkErrorCodes.some(code =&gt; error.message.includes(code));
+  },
+  
+  httpRetryableErrors: (error: Error): boolean =&gt; {
+    // Retry on 5xx errors and some 4xx errors
+    const retryableStatusCodes = [408, 429, 500, 502, 503, 504];
+    const statusCodeMatch = error.message.match(/status code (\d+)/);
+    if (statusCodeMatch) {
+      const statusCode = parseInt(statusCodeMatch[1], 10);
+      return retryableStatusCodes.includes(statusCode);
+    }
+<span class="cstat-no" title="statement not covered" >    return false;</span>
+  },
+  
+  llmErrors: (error: Error): boolean =&gt; {
+    // Retry on rate limiting and temporary errors, but not on auth errors
+    const message = error.message.toLowerCase();
+    return message.includes('rate limit') || 
+           message.includes('timeout') || 
+           message.includes('temporarily unavailable') ||
+           message.includes('overloaded');
+  },
+};</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
             </div><!-- /wrapper -->

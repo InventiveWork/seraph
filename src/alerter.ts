@@ -44,8 +44,8 @@ export class AlerterClient {
       const alert = {
         labels: {
           alertname: 'SeraphAnomalyTriage',
-          incidentId: incidentId,
-          logHash: logHash,
+          incidentId,
+          logHash,
           status: 'firing',
         },
         annotations: {
@@ -57,8 +57,9 @@ export class AlerterClient {
       try {
         await this.sendToAlertmanager([alert]);
         console.log(`[AlerterClient] Successfully sent initial alert to Alertmanager for incident ${incidentId}.`);
-      } catch (error: any) {
-        console.error(`[AlerterClient] Failed to send initial alert for incident ${incidentId}:`, error.message);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(`[AlerterClient] Failed to send initial alert for incident ${incidentId}:`, errorMessage);
       }
     }
     
@@ -79,8 +80,8 @@ export class AlerterClient {
       if (hasCommand) {
         // Extract and format commands with code blocks
         const formatted = step.replace(
-          /(`[^`]+`|kubectl [^"'\n]+|docker [^"'\n]+|systemctl [^"'\n]+)/g, 
-          '`$1`'
+          /(kubectl [^"'\n]+|docker [^"'\n]+|systemctl [^"'\n]+)/g, 
+          '`$1`',
         );
         return `${index + 1}. ${formatted}`;
       } else {
@@ -100,7 +101,7 @@ export class AlerterClient {
       // Add code formatting for tool names and arguments
       return line.replace(
         /(\d{1,2}:\d{2}:\d{2} [AP]M) ([✓✗]) (\w+) (\([^)]+\)): (.+)/,
-        '`$1` $2 **$3** $4: `$5`'
+        '`$1` $2 **$3** $4: `$5`',
       );
     }).join('\n\n');
   }
@@ -127,7 +128,7 @@ export class AlerterClient {
       return text;
     }
     
-    return text.substring(0, maxLength - 3) + '...';
+    return `${text.substring(0, maxLength - 3)  }...`;
   }
 
   // Phase 2: Send the enriched, detailed analysis as an update
@@ -154,7 +155,9 @@ export class AlerterClient {
           return acc;
         }, {} as Record<string, number>);
         
-        const avgExecutionTime = toolUsage.reduce((acc, usage) => acc + (usage.executionTime || 0), 0) / toolUsage.length;
+        const avgExecutionTime = toolUsage.length > 0 
+          ? toolUsage.reduce((acc, usage) => acc + (usage.executionTime || 0), 0) / toolUsage.length 
+          : 0;
         
         toolUsageSummary = `${successfulTools.length}/${toolUsage.length} tools succeeded`;
         
@@ -164,7 +167,7 @@ export class AlerterClient {
           const status = usage.success ? '✓' : '✗';
           const duration = usage.executionTime ? `(${usage.executionTime}ms)` : '';
           const args = JSON.stringify(usage.args).length > 100 ? 
-            JSON.stringify(usage.args).substring(0, 100) + '...' : 
+            `${JSON.stringify(usage.args).substring(0, 100)  }...` : 
             JSON.stringify(usage.args);
           return `${time} ${status} ${usage.tool} ${duration}: ${args}`;
         }).join('\n');
@@ -180,18 +183,18 @@ export class AlerterClient {
       const alert = {
         labels: {
           alertname: 'SeraphAnomalyInvestigationComplete',
-          incidentId: incidentId,
-          status: 'resolved', // Or could be 'firing' if it's just an update
+          incidentId,
+          status: 'firing', // Keep alert active in AlertManager
           toolsUsed: toolUsage ? toolUsage.length.toString() : '0',
           toolSuccessRate: toolUsage && toolUsage.length > 0 ? 
-            Math.round((toolUsage.filter(t => t.success).length / toolUsage.length) * 100).toString() + '%' : '0%',
+            `${Math.round((toolUsage.filter(t => t.success).length / toolUsage.length) * 100).toString()  }%` : '0%',
         },
         annotations: {
           summary: `Investigation complete for: ${this.truncateText(finalAnalysis.rootCauseAnalysis, 120)}`,
           rootCause: this.formatMultilineText(finalAnalysis.rootCauseAnalysis),
           impact: this.formatMultilineText(finalAnalysis.impactAssessment),
           remediation: this.formatRemediationSteps(finalAnalysis.suggestedRemediation),
-          toolUsageSummary: toolUsageSummary,
+          toolUsageSummary,
           toolDetails: this.formatToolDetails(toolDetails),
           reportId: `Report ID: ${reportId}. Use 'seraph reports view ${reportId}' to see the full investigation trace.`,
           disclaimer: 'This is an AI-generated analysis. Always verify the investigation trace before taking action.',
@@ -201,8 +204,9 @@ export class AlerterClient {
       try {
         await this.sendToAlertmanager([alert]);
         console.log(`[AlerterClient] Successfully sent enriched analysis to Alertmanager for incident ${incidentId}.`);
-      } catch (error: any) {
-        console.error(`[AlerterClient] Failed to send enriched analysis for incident ${incidentId}:`, error.message);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(`[AlerterClient] Failed to send enriched analysis for incident ${incidentId}:`, errorMessage);
       }
     }
 

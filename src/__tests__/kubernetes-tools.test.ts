@@ -1,9 +1,9 @@
-import { jest, describe, it, expect, beforeAll, beforeEach, afterEach } from '@jest/globals';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 // Mock child_process
 const mockSpawn = jest.fn();
 jest.mock('child_process', () => ({
-  spawn: mockSpawn
+  spawn: mockSpawn,
 }));
 
 // Import after mocking
@@ -25,11 +25,11 @@ describe('Kubernetes MCP Tools', () => {
       serverApiKey: null,
       builtInMcpServer: {
         kubernetesContext: 'test-context',
-        kubernetesNamespace: 'test-namespace'
+        kubernetesNamespace: 'test-namespace',
       },
       llm: {
-        provider: 'gemini'
-      }
+        provider: 'gemini',
+      },
     };
   });
 
@@ -55,10 +55,10 @@ describe('Kubernetes MCP Tools', () => {
           method: 'tools/call',
           params: {
             name: 'k8s_get',
-            arguments: { resource: 'secrets' }
+            arguments: { resource: 'secrets' },
           },
-          id: 1
-        })
+          id: 1,
+        }),
       });
 
       expect(response.status).toBe(500);
@@ -76,11 +76,11 @@ describe('Kubernetes MCP Tools', () => {
             name: 'k8s_get',
             arguments: { 
               resource: 'pods; rm -rf /',
-              namespace: 'test'
-            }
+              namespace: 'test',
+            },
           },
-          id: 1
-        })
+          id: 1,
+        }),
       });
 
       expect(response.status).toBe(500);
@@ -97,11 +97,11 @@ describe('Kubernetes MCP Tools', () => {
           params: {
             name: 'k8s_get',
             arguments: { 
-              resource: 'pods --kubeconfig=/evil/path'
-            }
+              resource: 'pods --kubeconfig=/evil/path',
+            },
           },
-          id: 1
-        })
+          id: 1,
+        }),
       });
 
       expect(response.status).toBe(500);
@@ -118,14 +118,14 @@ describe('Kubernetes MCP Tools', () => {
             if (event === 'data') {
               callback(Buffer.from('{"items": [{"metadata": {"name": "test-pod"}}]}'));
             }
-          })
+          }),
         },
         stderr: { on: jest.fn() },
         on: jest.fn((event: string, callback: (code: number) => void) => {
           if (event === 'close') {
             callback(0); // Success exit code
           }
-        })
+        }),
       };
       
       mockSpawn.mockReturnValue(mockKubectl);
@@ -137,16 +137,16 @@ describe('Kubernetes MCP Tools', () => {
           method: 'tools/call',
           params: {
             name: 'k8s_get',
-            arguments: { resource: 'pods' }
+            arguments: { resource: 'pods' },
           },
-          id: 1
-        })
+          id: 1,
+        }),
       });
 
       expect(response.status).toBe(200);
       expect(mockSpawn).toHaveBeenCalledWith('kubectl', 
         expect.arrayContaining(['--context', 'test-context', '-n', 'test-namespace', 'get', 'pods', '-o', 'json']),
-        expect.any(Object)
+        expect.any(Object),
       );
     }, 10000);
 
@@ -157,14 +157,14 @@ describe('Kubernetes MCP Tools', () => {
             if (event === 'data') {
               callback(Buffer.from('2023-01-01 10:00:00 INFO Application started\n2023-01-01 10:00:01 INFO Service ready'));
             }
-          })
+          }),
         },
         stderr: { on: jest.fn() },
         on: jest.fn((event: string, callback: (code: number) => void) => {
           if (event === 'close') {
             callback(0); // Success exit code
           }
-        })
+        }),
       };
       
       mockSpawn.mockReturnValue(mockKubectl);
@@ -179,17 +179,17 @@ describe('Kubernetes MCP Tools', () => {
             arguments: { 
               pod: 'test-pod',
               since: '5m',
-              tail: 100
-            }
+              tail: 100,
+            },
           },
-          id: 1
-        })
+          id: 1,
+        }),
       });
 
       expect(response.status).toBe(200);
       expect(mockSpawn).toHaveBeenCalledWith('kubectl', 
         expect.arrayContaining(['logs', 'test-pod', '--since', '5m', '--tail', '100']),
-        expect.any(Object)
+        expect.any(Object),
       );
     }, 10000);
 
@@ -200,14 +200,14 @@ describe('Kubernetes MCP Tools', () => {
             if (event === 'data') {
               callback(Buffer.from('{"items": [{"type": "Warning", "reason": "FailedMount", "message": "Volume mount failed"}]}'));
             }
-          })
+          }),
         },
         stderr: { on: jest.fn() },
         on: jest.fn((event: string, callback: (code: number) => void) => {
           if (event === 'close') {
             callback(0); // Success exit code
           }
-        })
+        }),
       };
       
       mockSpawn.mockReturnValue(mockKubectl);
@@ -221,11 +221,11 @@ describe('Kubernetes MCP Tools', () => {
             name: 'k8s_events',
             arguments: { 
               namespace: 'test',
-              since: '10m'
-            }
+              since: '10m',
+            },
           },
-          id: 1
-        })
+          id: 1,
+        }),
       });
 
       expect(response.status).toBe(200);
@@ -240,8 +240,8 @@ describe('Kubernetes MCP Tools', () => {
         body: JSON.stringify({
           method: 'tools/list',
           params: {},
-          id: 1
-        })
+          id: 1,
+        }),
       });
 
       expect(response.status).toBe(200);

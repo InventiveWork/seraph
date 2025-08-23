@@ -92,7 +92,7 @@ export class DoctorCommand {
         name: 'Node.js Version',
         status: 'pass',
         message: `Node.js ${nodeVersion} is supported`,
-        duration: Date.now() - nodeStart
+        duration: Date.now() - nodeStart,
       });
     } else {
       checks.push({
@@ -100,7 +100,7 @@ export class DoctorCommand {
         status: 'fail',
         message: `Node.js ${nodeVersion} is too old`,
         suggestion: 'Please upgrade to Node.js 18 or later',
-        duration: Date.now() - nodeStart
+        duration: Date.now() - nodeStart,
       });
     }
 
@@ -116,7 +116,7 @@ export class DoctorCommand {
         name: 'Package Installation',
         status: 'pass',
         message: 'All dependencies are installed',
-        duration: Date.now() - pkgStart
+        duration: Date.now() - pkgStart,
       });
     } catch {
       checks.push({
@@ -124,7 +124,7 @@ export class DoctorCommand {
         status: 'warn',
         message: 'Dependencies may not be fully installed',
         suggestion: 'Run: npm install',
-        duration: Date.now() - pkgStart
+        duration: Date.now() - pkgStart,
       });
     }
 
@@ -136,7 +136,7 @@ export class DoctorCommand {
         name: 'TypeScript Compilation',
         status: 'pass',
         message: 'Project is compiled',
-        duration: Date.now() - tsStart
+        duration: Date.now() - tsStart,
       });
     } catch {
       checks.push({
@@ -144,7 +144,7 @@ export class DoctorCommand {
         status: 'warn',
         message: 'Project needs compilation',
         suggestion: 'Run: npm run build',
-        duration: Date.now() - tsStart
+        duration: Date.now() - tsStart,
       });
     }
 
@@ -156,7 +156,7 @@ export class DoctorCommand {
         name: 'Git Availability',
         status: 'pass',
         message: gitResult.stdout.trim(),
-        duration: Date.now() - gitStart
+        duration: Date.now() - gitStart,
       });
     } else {
       checks.push({
@@ -164,7 +164,7 @@ export class DoctorCommand {
         status: 'warn',
         message: 'Git is not available',
         suggestion: 'Install Git for repository integration features',
-        duration: Date.now() - gitStart
+        duration: Date.now() - gitStart,
       });
     }
 
@@ -182,7 +182,7 @@ export class DoctorCommand {
         name: 'Configuration File',
         status: 'pass',
         message: 'Configuration loaded successfully',
-        duration: Date.now() - configStart
+        duration: Date.now() - configStart,
       });
 
       // LLM provider check
@@ -196,7 +196,7 @@ export class DoctorCommand {
             name: 'LLM API Key',
             status: 'pass',
             message: `${config.llm.provider} API key is configured`,
-            duration: Date.now() - llmStart
+            duration: Date.now() - llmStart,
           });
         } else {
           checks.push({
@@ -204,7 +204,7 @@ export class DoctorCommand {
             status: 'fail',
             message: `${config.llm.provider} API key is missing`,
             suggestion: `Set ${envVarName} environment variable or add to config`,
-            duration: Date.now() - llmStart
+            duration: Date.now() - llmStart,
           });
         }
       } else {
@@ -213,7 +213,7 @@ export class DoctorCommand {
           status: 'warn',
           message: 'No LLM provider configured',
           suggestion: 'Run: seraph setup --guided',
-          duration: Date.now() - llmStart
+          duration: Date.now() - llmStart,
         });
       }
 
@@ -225,7 +225,7 @@ export class DoctorCommand {
           name: 'Port Availability',
           status: 'pass',
           message: `Port ${config.port} is available`,
-          duration: Date.now() - portStart
+          duration: Date.now() - portStart,
         });
       } else {
         checks.push({
@@ -233,7 +233,7 @@ export class DoctorCommand {
           status: 'warn',
           message: `Port ${config.port} is in use`,
           suggestion: 'Change port in configuration or stop the service using this port',
-          duration: Date.now() - portStart
+          duration: Date.now() - portStart,
         });
       }
 
@@ -264,7 +264,7 @@ export class DoctorCommand {
             name: 'MCP Server Configuration',
             status: 'pass',
             message: 'Built-in MCP server is properly configured',
-            duration: Date.now() - mcpStart
+            duration: Date.now() - mcpStart,
           });
         } else {
           checks.push({
@@ -272,7 +272,7 @@ export class DoctorCommand {
             status: 'warn',
             message: 'Built-in MCP server has configuration issues',
             details: issues,
-            duration: Date.now() - mcpStart
+            duration: Date.now() - mcpStart,
           });
         }
       }
@@ -287,7 +287,7 @@ export class DoctorCommand {
             name: 'Redis Cache',
             status: 'pass',
             message: 'Redis server is accessible',
-            duration: Date.now() - redisStart
+            duration: Date.now() - redisStart,
           });
         } else {
           checks.push({
@@ -295,7 +295,7 @@ export class DoctorCommand {
             status: 'warn',
             message: 'Redis server is not accessible',
             suggestion: 'Start Redis server or update configuration',
-            duration: Date.now() - redisStart
+            duration: Date.now() - redisStart,
           });
         }
       }
@@ -306,7 +306,7 @@ export class DoctorCommand {
         status: 'fail',
         message: `Configuration error: ${(error as Error).message}`,
         suggestion: 'Run: seraph setup --guided',
-        duration: Date.now() - configStart
+        duration: Date.now() - configStart,
       });
     }
 
@@ -330,7 +330,7 @@ export class DoctorCommand {
           name: 'Agent Process',
           status: 'pass',
           message: `Agent is running (PID: ${pid})`,
-          duration: Date.now() - pidStart
+          duration: Date.now() - pidStart,
         });
 
         // HTTP server check
@@ -343,7 +343,7 @@ export class DoctorCommand {
             name: 'HTTP Server',
             status: 'pass',
             message: `Server is responsive on port ${config.port}`,
-            duration: Date.now() - httpStart
+            duration: Date.now() - httpStart,
           });
         } else {
           checks.push({
@@ -351,7 +351,7 @@ export class DoctorCommand {
             status: 'warn',
             message: 'Server is not responding',
             suggestion: 'Restart the agent',
-            duration: Date.now() - httpStart
+            duration: Date.now() - httpStart,
           });
         }
 
@@ -361,7 +361,7 @@ export class DoctorCommand {
           status: 'warn',
           message: 'PID file exists but process is not running',
           suggestion: 'Clean start: seraph stop && seraph start',
-          duration: Date.now() - pidStart
+          duration: Date.now() - pidStart,
         });
       }
     } catch {
@@ -370,7 +370,7 @@ export class DoctorCommand {
         status: 'fail',
         message: 'Agent is not running',
         suggestion: 'Start the agent: seraph start',
-        duration: Date.now() - pidStart
+        duration: Date.now() - pidStart,
       });
     }
 
@@ -385,7 +385,7 @@ export class DoctorCommand {
         name: 'Database',
         status: 'pass',
         message: `Database accessible (${reports.length} reports)`,
-        duration: Date.now() - dbStart
+        duration: Date.now() - dbStart,
       });
     } catch (error) {
       checks.push({
@@ -393,7 +393,7 @@ export class DoctorCommand {
         status: 'fail',
         message: `Database error: ${(error as Error).message}`,
         suggestion: 'Check file permissions and disk space',
-        duration: Date.now() - dbStart
+        duration: Date.now() - dbStart,
       });
     }
 
@@ -407,14 +407,14 @@ export class DoctorCommand {
         name: 'Memory Usage',
         status: 'pass',
         message: `Memory usage is normal (${heapUsedMB}MB)`,
-        duration: Date.now() - memStart
+        duration: Date.now() - memStart,
       });
     } else if (heapUsedMB < 200) {
       checks.push({
         name: 'Memory Usage',
         status: 'warn',
         message: `Memory usage is elevated (${heapUsedMB}MB)`,
-        duration: Date.now() - memStart
+        duration: Date.now() - memStart,
       });
     } else {
       checks.push({
@@ -422,7 +422,7 @@ export class DoctorCommand {
         status: 'fail',
         message: `Memory usage is high (${heapUsedMB}MB)`,
         suggestion: 'Restart the agent to free memory',
-        duration: Date.now() - memStart
+        duration: Date.now() - memStart,
       });
     }
 
@@ -458,7 +458,7 @@ export class DoctorCommand {
               name: 'LLM API Connectivity',
               status: 'pass',
               message: `${config.llm.provider} API is reachable`,
-              duration: Date.now() - llmStart
+              duration: Date.now() - llmStart,
             });
           } else {
             checks.push({
@@ -466,7 +466,7 @@ export class DoctorCommand {
               status: 'warn',
               message: `${config.llm.provider} API is not reachable`,
               suggestion: 'Check internet connection and firewall settings',
-              duration: Date.now() - llmStart
+              duration: Date.now() - llmStart,
             });
           }
         }
@@ -476,7 +476,7 @@ export class DoctorCommand {
         name: 'LLM API Connectivity',
         status: 'fail',
         message: `Connectivity test failed: ${(error as Error).message}`,
-        duration: Date.now() - llmStart
+        duration: Date.now() - llmStart,
       });
     }
 
@@ -488,7 +488,7 @@ export class DoctorCommand {
         name: 'DNS Resolution',
         status: 'pass',
         message: 'DNS resolution is working',
-        duration: Date.now() - dnsStart
+        duration: Date.now() - dnsStart,
       });
     } else {
       checks.push({
@@ -496,7 +496,7 @@ export class DoctorCommand {
         status: 'warn',
         message: 'DNS resolution may have issues',
         suggestion: 'Check DNS settings',
-        duration: Date.now() - dnsStart
+        duration: Date.now() - dnsStart,
       });
     }
 
@@ -511,7 +511,7 @@ export class DoctorCommand {
         port: urlObj.port || (urlObj.protocol === 'https:' ? 443 : 80),
         path: '/',
         method: 'HEAD',
-        timeout: 5000
+        timeout: 5000,
       };
 
       const req = http.request(options, (res) => {
@@ -532,7 +532,7 @@ export class DoctorCommand {
     const summary = {
       passed: checks.filter(c => c.status === 'pass').length,
       warnings: checks.filter(c => c.status === 'warn').length,
-      failed: checks.filter(c => c.status === 'fail').length
+      failed: checks.filter(c => c.status === 'fail').length,
     };
 
     return { category, checks, summary };
@@ -551,7 +551,7 @@ export class DoctorCommand {
       this.checkSystemRequirements(),
       this.checkConfiguration(),
       this.checkRuntime(),
-      this.checkConnectivity()
+      this.checkConnectivity(),
     ]);
 
     spinner.stop();
@@ -601,7 +601,7 @@ export class DoctorCommand {
       `${formatter.colorize(totalPassed.toString(), 'green', options)} checks passed`,
       `${formatter.colorize(totalWarnings.toString(), 'yellow', options)} warnings`,
       `${formatter.colorize(totalFailed.toString(), 'red', options)} failures`,
-      `${totalChecks} total checks`
+      `${totalChecks} total checks`,
     ], options));
 
     // Health score

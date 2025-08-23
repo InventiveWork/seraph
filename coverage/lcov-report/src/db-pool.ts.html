@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for src/alerter.ts</title>
+    <title>Code coverage report for src/db-pool.ts</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="../prettify.css" />
     <link rel="stylesheet" href="../base.css" />
@@ -19,34 +19,34 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="../index.html">All files</a> / <a href="index.html">src</a> alerter.ts</h1>
+        <h1><a href="../index.html">All files</a> / <a href="index.html">src</a> db-pool.ts</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">34.4% </span>
+                <span class="strong">72.51% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>32/93</span>
+                <span class='fraction'>95/131</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">21.15% </span>
+                <span class="strong">41.37% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>11/52</span>
+                <span class='fraction'>12/29</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">21.05% </span>
+                <span class="strong">85.71% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>4/19</span>
+                <span class='fraction'>30/35</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">34.78% </span>
+                <span class="strong">74.4% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>32/92</span>
+                <span class='fraction'>93/125</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line medium'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -314,11 +314,50 @@
 <a name='L249'></a><a href='#L249'>249</a>
 <a name='L250'></a><a href='#L250'>250</a>
 <a name='L251'></a><a href='#L251'>251</a>
-<a name='L252'></a><a href='#L252'>252</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L252'></a><a href='#L252'>252</a>
+<a name='L253'></a><a href='#L253'>253</a>
+<a name='L254'></a><a href='#L254'>254</a>
+<a name='L255'></a><a href='#L255'>255</a>
+<a name='L256'></a><a href='#L256'>256</a>
+<a name='L257'></a><a href='#L257'>257</a>
+<a name='L258'></a><a href='#L258'>258</a>
+<a name='L259'></a><a href='#L259'>259</a>
+<a name='L260'></a><a href='#L260'>260</a>
+<a name='L261'></a><a href='#L261'>261</a>
+<a name='L262'></a><a href='#L262'>262</a>
+<a name='L263'></a><a href='#L263'>263</a>
+<a name='L264'></a><a href='#L264'>264</a>
+<a name='L265'></a><a href='#L265'>265</a>
+<a name='L266'></a><a href='#L266'>266</a>
+<a name='L267'></a><a href='#L267'>267</a>
+<a name='L268'></a><a href='#L268'>268</a>
+<a name='L269'></a><a href='#L269'>269</a>
+<a name='L270'></a><a href='#L270'>270</a>
+<a name='L271'></a><a href='#L271'>271</a>
+<a name='L272'></a><a href='#L272'>272</a>
+<a name='L273'></a><a href='#L273'>273</a>
+<a name='L274'></a><a href='#L274'>274</a>
+<a name='L275'></a><a href='#L275'>275</a>
+<a name='L276'></a><a href='#L276'>276</a>
+<a name='L277'></a><a href='#L277'>277</a>
+<a name='L278'></a><a href='#L278'>278</a>
+<a name='L279'></a><a href='#L279'>279</a>
+<a name='L280'></a><a href='#L280'>280</a>
+<a name='L281'></a><a href='#L281'>281</a>
+<a name='L282'></a><a href='#L282'>282</a>
+<a name='L283'></a><a href='#L283'>283</a>
+<a name='L284'></a><a href='#L284'>284</a>
+<a name='L285'></a><a href='#L285'>285</a>
+<a name='L286'></a><a href='#L286'>286</a>
+<a name='L287'></a><a href='#L287'>287</a>
+<a name='L288'></a><a href='#L288'>288</a>
+<a name='L289'></a><a href='#L289'>289</a>
+<a name='L290'></a><a href='#L290'>290</a>
+<a name='L291'></a><a href='#L291'>291</a>
+<a name='L292'></a><a href='#L292'>292</a>
+<a name='L293'></a><a href='#L293'>293</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -326,160 +365,214 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">10x</span>
-<span class="cline-any cline-yes">10x</span>
-<span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">19x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">18x</span>
+<span class="cline-any cline-yes">18x</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">17x</span>
+<span class="cline-any cline-yes">17x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">17x</span>
+<span class="cline-any cline-yes">17x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-yes">11x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-yes">11x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-yes">18x</span>
+<span class="cline-any cline-yes">18x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -489,54 +582,47 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-yes">9x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">12x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">12x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">19x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -544,279 +630,316 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">&nbsp;
-import { SeraphConfig } from './config';
-import fetch from 'node-fetch';
-import { v4 as uuidv4 } from 'uuid';
-import { createHash } from 'crypto';
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import * as sqlite3 from 'sqlite3';
+import { promisify } from 'util';
 &nbsp;
-interface InitialAlert {
-  incidentId: string;
-  // In a real implementation, this would store a message ID from Slack, a PagerDuty incident key, etc.
-  externalId?: string; 
+export interface PooledDatabase {
+  get: (sql: string, params?: any) =&gt; Promise&lt;any&gt;;
+  all: (sql: string, params?: any) =&gt; Promise&lt;any[]&gt;;
+  run: (sql: string, params?: any) =&gt; Promise&lt;{ lastID?: number; changes?: number }&gt;;
+  close: () =&gt; Promise&lt;void&gt;;
 }
 &nbsp;
-export class AlerterClient {
-  private alertManagerUrl: string;
-  private activeIncidents: Map&lt;string, InitialAlert&gt; = new Map();
+export interface ConnectionPoolOptions {
+  maxConnections: number;
+  idleTimeout: number; // in milliseconds
+  acquireTimeout: number; // in milliseconds
+}
 &nbsp;
-  constructor(private config: SeraphConfig) {
-    let baseUrl = this.config.alertManager?.url || '';
-    if (baseUrl) {
-      // Remove trailing slash if present
-      <span class="missing-if-branch" title="if path not taken" >I</span>if (baseUrl.endsWith('/')) {
-<span class="cstat-no" title="statement not covered" >        baseUrl = baseUrl.slice(0, -1);</span>
-      }
-      // Ensure the final URL is correct
-      if (baseUrl.endsWith('/api/v2/alerts')) {
-        this.alertManagerUrl = baseUrl;
-      } else <span class="missing-if-branch" title="else path not taken" >E</span>{
-<span class="cstat-no" title="statement not covered" >        this.alertManagerUrl = `${baseUrl}/api/v2/alerts`;</span>
-      }
-    } else {
-      this.alertManagerUrl = '';
-    }
+interface PooledConnection {
+  db: sqlite3.Database;
+  inUse: boolean;
+  lastUsed: number;
+  get: (sql: string, params?: any) =&gt; Promise&lt;any&gt;;
+  all: (sql: string, params?: any) =&gt; Promise&lt;any[]&gt;;
+  run: (sql: string, params?: any) =&gt; Promise&lt;{ lastID?: number; changes?: number }&gt;;
+}
+&nbsp;
+export class SQLitePool {
+  private connections: PooledConnection[] = [];
+  private waitingQueue: {
+    resolve: (conn: PooledConnection) =&gt; void;
+    reject: (error: Error) =&gt; void;
+    timestamp: number;
+  }[] = [];
+  private cleanupInterval: NodeJS.Timeout | null = null;
+  
+  constructor(
+    private dbPath: string,
+    private options: ConnectionPoolOptions = <span class="branch-0 cbranch-no" title="branch not covered" >{</span>
+      maxConnections: 5,
+      idleTimeout: 30000, // 30 seconds
+      acquireTimeout: 10000, // 10 seconds
+    },
+  ) {
+    this.startCleanupTimer();
   }
 &nbsp;
-  // Phase 1: Send the initial, simple alert
-  public async sendInitialAlert(log: string, reason: string): Promise&lt;InitialAlert&gt; {
-    const incidentId = uuidv4();
-    const newAlert: InitialAlert = { incidentId };
+  private createConnection(): Promise&lt;PooledConnection&gt; {
+    return new Promise((resolve, reject) =&gt; {
+      const db = new sqlite3.Database(this.dbPath, sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE, (err) =&gt; {
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (err) {
+<span class="cstat-no" title="statement not covered" >          reject(err);</span>
+<span class="cstat-no" title="statement not covered" >          return;</span>
+        }
 &nbsp;
-    console.log(`[AlerterClient] FIRING INITIAL ALERT [${incidentId}] - Reason: ${reason}`);
-    
-    if (this.alertManagerUrl) {
-      const logHash = createHash('sha256').update(log).digest('hex').substring(0, 8);
-      const alert = {
-        labels: {
-          alertname: 'SeraphAnomalyTriage',
-          incidentId,
-          logHash,
-          status: 'firing',
-        },
-        annotations: {
-          summary: `New anomaly detected: ${reason}`,
-          description: `Initial analysis of log: "${log.substring(0, 200)}..."`,
-        },
-      };
+        // Configure SQLite for better concurrency and performance
+        const configureDb = async () =&gt; {
+          try {
+            await new Promise&lt;void&gt;((res, rej) =&gt; {
+              db.run('PRAGMA journal_mode=WAL', (walErr) =&gt; {
+                <span class="missing-if-branch" title="if path not taken" >I</span>if (walErr) {<span class="cstat-no" title="statement not covered" >rej(walErr);}</span>
+                else {res();}
+              });
+            });
 &nbsp;
-      try {
-        await this.sendToAlertmanager([alert]);
-        console.log(`[AlerterClient] Successfully sent initial alert to Alertmanager for incident ${incidentId}.`);
-      } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : <span class="branch-1 cbranch-no" title="branch not covered" >String(error);</span>
-        console.error(`[AlerterClient] Failed to send initial alert for incident ${incidentId}:`, errorMessage);
-      }
-    }
-    
-    this.activeIncidents.set(incidentId, newAlert);
-    return newAlert;
-  }
+            await new Promise&lt;void&gt;((res, rej) =&gt; {
+              db.run('PRAGMA synchronous=NORMAL', (syncErr) =&gt; {
+                <span class="missing-if-branch" title="if path not taken" >I</span>if (syncErr) {<span class="cstat-no" title="statement not covered" >rej(syncErr);}</span>
+                else {res();}
+              });
+            });
 &nbsp;
-  private <span class="fstat-no" title="function not covered" >formatRemediationSteps(</span>steps: string[]): string {
-<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (!steps || steps.length === 0) {</span>
-<span class="cstat-no" title="statement not covered" >      return 'No specific remediation steps provided.';</span>
-    }
-    
-    // Format as numbered markdown list with code blocks for commands
-<span class="cstat-no" title="statement not covered" >    return steps.map(<span class="fstat-no" title="function not covered" >(s</span>tep, index) =&gt; {</span>
-      // Detect if step contains commands (kubectl, docker, etc.)
-      const hasCommand = <span class="cstat-no" title="statement not covered" >/\b(kubectl|docker|systemctl|curl|ssh|cat|grep|ps|kill)\s/.test(step);</span>
-      
-<span class="cstat-no" title="statement not covered" >      if (hasCommand) {</span>
-        // Extract and format commands with code blocks
-        const formatted = <span class="cstat-no" title="statement not covered" >step.replace(</span>
-          /(kubectl [^"'\n]+|docker [^"'\n]+|systemctl [^"'\n]+)/g, 
-          '`$1`',
-        );
-<span class="cstat-no" title="statement not covered" >        return `${index + 1}. ${formatted}`;</span>
-      } else {
-<span class="cstat-no" title="statement not covered" >        return `${index + 1}. ${step}`;</span>
-      }
-    }).join('\n\n');
-  }
+            await new Promise&lt;void&gt;((res, rej) =&gt; {
+              db.run('PRAGMA busy_timeout=30000', (timeoutErr) =&gt; {
+                <span class="missing-if-branch" title="if path not taken" >I</span>if (timeoutErr) {<span class="cstat-no" title="statement not covered" >rej(timeoutErr);}</span>
+                else {res();}
+              });
+            });
 &nbsp;
-  private <span class="fstat-no" title="function not covered" >formatToolDetails(</span>toolDetails: string): string {
-<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (!toolDetails) {</span>
-<span class="cstat-no" title="statement not covered" >      return 'No tool execution details available.';</span>
-    }
-    
-    // Format tool details with better markdown structure
-    const lines = <span class="cstat-no" title="statement not covered" >toolDetails.split('\n');</span>
-<span class="cstat-no" title="statement not covered" >    return lines.map(<span class="fstat-no" title="function not covered" >line </span>=&gt; {</span>
-      // Add code formatting for tool names and arguments
-<span class="cstat-no" title="statement not covered" >      return line.replace(</span>
-        /(\d{1,2}:\d{2}:\d{2} [AP]M) ([✓✗]) (\w+) (\([^)]+\)): (.+)/,
-        '`$1` $2 **$3** $4: `$5`',
-      );
-    }).join('\n\n');
-  }
+            await new Promise&lt;void&gt;((res, rej) =&gt; {
+              db.run('PRAGMA temp_store=MEMORY', (tempErr) =&gt; {
+                <span class="missing-if-branch" title="if path not taken" >I</span>if (tempErr) {<span class="cstat-no" title="statement not covered" >rej(tempErr);}</span>
+                else {res();}
+              });
+            });
 &nbsp;
-  private <span class="fstat-no" title="function not covered" >formatMultilineText(</span>text: string): string {
-<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (!text) {</span>
-<span class="cstat-no" title="statement not covered" >      return 'No information available.';</span>
-    }
-    
-    // Preserve line breaks and format for better readability
-<span class="cstat-no" title="statement not covered" >    return text</span>
-      .split('\n')
-      .map(<span class="fstat-no" title="function not covered" >line </span>=&gt; <span class="cstat-no" title="statement not covered" >line.trim())</span>
-      .filter(<span class="fstat-no" title="function not covered" >line </span>=&gt; <span class="cstat-no" title="statement not covered" >line.length &gt; 0)</span>
-      .join('\n\n');
-  }
+            const connection: PooledConnection = {
+              db,
+              inUse: false,
+              lastUsed: Date.now(),
+              get: promisify(db.get.bind(db)),
+              all: promisify(db.all.bind(db)),
+              run: promisify(db.run.bind(db)),
+            };
 &nbsp;
-  private <span class="fstat-no" title="function not covered" >truncateText(</span>text: string, maxLength: number): string {
-<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (!text) {</span>
-<span class="cstat-no" title="statement not covered" >      return 'No information available.';</span>
-    }
-    
-<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (text.length &lt;= maxLength) {</span>
-<span class="cstat-no" title="statement not covered" >      return text;</span>
-    }
-    
-<span class="cstat-no" title="statement not covered" >    return `${text.substring(0, maxLength - 3)  }...`;</span>
-  }
+            resolve(connection);
+          } catch (configErr) {
+<span class="cstat-no" title="statement not covered" >            console.warn('Failed to configure SQLite, using defaults:', configErr);</span>
+            const connection: PooledConnection = <span class="cstat-no" title="statement not covered" >{</span>
+              db,
+              inUse: false,
+              lastUsed: Date.now(),
+              get: promisify(db.get.bind(db)),
+              all: promisify(db.all.bind(db)),
+              run: promisify(db.run.bind(db)),
+            };
+<span class="cstat-no" title="statement not covered" >            resolve(connection);</span>
+          }
+        };
 &nbsp;
-  // Phase 2: Send the enriched, detailed analysis as an update
-  public <span class="fstat-no" title="function not covered" >async </span>sendEnrichedAnalysis(incidentId: string, finalAnalysis: any, reportId: string, toolUsage?: Array&lt;{tool: string, timestamp: string, args: any, success: boolean, executionTime?: number}&gt;) {
-    const incident = <span class="cstat-no" title="statement not covered" >this.activeIncidents.get(incidentId);</span>
-<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (!incident) {</span>
-<span class="cstat-no" title="statement not covered" >      console.error(`[AlerterClient] Cannot send enriched analysis for unknown incident ID: ${incidentId}`);</span>
-<span class="cstat-no" title="statement not covered" >      return;</span>
-    }
-&nbsp;
-<span class="cstat-no" title="statement not covered" >    console.log(`[AlerterClient] SENDING ENRICHED ANALYSIS for [${incidentId}]`);</span>
-<span class="cstat-no" title="statement not covered" >    console.log(JSON.stringify(finalAnalysis, null, 2));</span>
-&nbsp;
-<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (this.alertManagerUrl) {</span>
-      // Generate tool usage summary
-      let toolUsageSummary = <span class="cstat-no" title="statement not covered" >'No tools used';</span>
-      let toolDetails = <span class="cstat-no" title="statement not covered" >'';</span>
-      
-<span class="cstat-no" title="statement not covered" >      <span class="missing-if-branch" title="if path not taken" >I</span>if (toolUsage &amp;&amp; toolUsage.length &gt; 0) {</span>
-        const successfulTools = <span class="cstat-no" title="statement not covered" >toolUsage.filter(<span class="fstat-no" title="function not covered" >t </span>=&gt; <span class="cstat-no" title="statement not covered" >t.success)</span>;</span>
-        
-        const toolCounts = <span class="cstat-no" title="statement not covered" >toolUsage.reduce(<span class="fstat-no" title="function not covered" >(a</span>cc, usage) =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >          acc[usage.tool] = (acc[usage.tool] || 0) + 1;</span>
-<span class="cstat-no" title="statement not covered" >          return acc;</span>
-        }, {} as Record&lt;string, number&gt;);
-        
-        const avgExecutionTime = <span class="cstat-no" title="statement not covered" >toolUsage.length &gt; 0 </span>
-          ? toolUsage.reduce(<span class="fstat-no" title="function not covered" >(a</span>cc, usage) =&gt; <span class="cstat-no" title="statement not covered" >acc + (usage.executionTime || 0),</span> 0) / toolUsage.length 
-          : 0;
-        
-<span class="cstat-no" title="statement not covered" >        toolUsageSummary = `${successfulTools.length}/${toolUsage.length} tools succeeded`;</span>
-        
-        // Create detailed tool timeline
-<span class="cstat-no" title="statement not covered" >        toolDetails = toolUsage.map(<span class="fstat-no" title="function not covered" >usage </span>=&gt; {</span>
-          const time = <span class="cstat-no" title="statement not covered" >new Date(usage.timestamp).toLocaleTimeString();</span>
-          const status = <span class="cstat-no" title="statement not covered" >usage.success ? '✓' : '✗';</span>
-          const duration = <span class="cstat-no" title="statement not covered" >usage.executionTime ? `(${usage.executionTime}ms)` : '';</span>
-          const args = <span class="cstat-no" title="statement not covered" >JSON.stringify(usage.args).length &gt; 100 ? </span>
-            `${JSON.stringify(usage.args).substring(0, 100)  }...` : 
-            JSON.stringify(usage.args);
-<span class="cstat-no" title="statement not covered" >          return `${time} ${status} ${usage.tool} ${duration}: ${args}`;</span>
-        }).join('\n');
-        
-        // Add tool count summary
-        const toolCountSummary = <span class="cstat-no" title="statement not covered" >Object.entries(toolCounts)</span>
-          .map(<span class="fstat-no" title="function not covered" >([</span>tool, count]) =&gt; <span class="cstat-no" title="statement not covered" >`${tool}(${count})`)</span>
-          .join(', ');
-        
-<span class="cstat-no" title="statement not covered" >        toolUsageSummary += ` | Tools: ${toolCountSummary} | Avg: ${Math.round(avgExecutionTime)}ms`;</span>
-      }
-&nbsp;
-      const alert = <span class="cstat-no" title="statement not covered" >{</span>
-        labels: {
-          alertname: 'SeraphAnomalyInvestigationComplete',
-          incidentId,
-          status: 'firing', // Keep alert active in AlertManager
-          toolsUsed: toolUsage ? toolUsage.length.toString() : '0',
-          toolSuccessRate: toolUsage &amp;&amp; toolUsage.length &gt; 0 ? 
-            `${Math.round((toolUsage.filter(<span class="fstat-no" title="function not covered" >t </span>=&gt; <span class="cstat-no" title="statement not covered" >t.success)</span>.length / toolUsage.length) * 100).toString()  }%` : '0%',
-        },
-        annotations: {
-          summary: `Investigation complete for: ${this.truncateText(finalAnalysis.rootCauseAnalysis, 120)}`,
-          rootCause: this.formatMultilineText(finalAnalysis.rootCauseAnalysis),
-          impact: this.formatMultilineText(finalAnalysis.impactAssessment),
-          remediation: this.formatRemediationSteps(finalAnalysis.suggestedRemediation),
-          toolUsageSummary,
-          toolDetails: this.formatToolDetails(toolDetails),
-          reportId: `Report ID: ${reportId}. Use 'seraph reports view ${reportId}' to see the full investigation trace.`,
-          disclaimer: 'This is an AI-generated analysis. Always verify the investigation trace before taking action.',
-        },
-      };
-      
-<span class="cstat-no" title="statement not covered" >      try {</span>
-<span class="cstat-no" title="statement not covered" >        await this.sendToAlertmanager([alert]);</span>
-<span class="cstat-no" title="statement not covered" >        console.log(`[AlerterClient] Successfully sent enriched analysis to Alertmanager for incident ${incidentId}.`);</span>
-      } catch (error: unknown) {
-        const errorMessage = <span class="cstat-no" title="statement not covered" >error instanceof Error ? error.message : String(error);</span>
-<span class="cstat-no" title="statement not covered" >        console.error(`[AlerterClient] Failed to send enriched analysis for incident ${incidentId}:`, errorMessage);</span>
-      }
-    }
-&nbsp;
-    // Clean up the incident from the active map
-<span class="cstat-no" title="statement not covered" >    this.activeIncidents.delete(incidentId);</span>
-  }
-&nbsp;
-  private async sendToAlertmanager(alerts: any[]) {
-    <span class="missing-if-branch" title="if path not taken" >I</span>if (!this.alertManagerUrl) {
-<span class="cstat-no" title="statement not covered" >      throw new Error('Alertmanager URL is not configured.');</span>
-    }
-&nbsp;
-    const response = await fetch(this.alertManagerUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(alerts),
+        configureDb();
+      });
     });
+  }
 &nbsp;
-    if (!response.ok) {
-      throw new Error(`Alertmanager returned an error: ${response.statusText} - ${await response.text()}`);
+  async acquire(): Promise&lt;PooledConnection&gt; {
+    // Check if pool is closed
+    if (this.isClosed()) {
+      throw new Error('Database pool is closed');
+    }
+&nbsp;
+    // Check for available connection
+    const availableConnection = this.connections.find(conn =&gt; !conn.inUse);
+    if (availableConnection) {
+      availableConnection.inUse = true;
+      availableConnection.lastUsed = Date.now();
+      return availableConnection;
+    }
+&nbsp;
+    // Create new connection if under limit
+    if (this.connections.length &lt; this.options.maxConnections) {
+      try {
+        const newConnection = await this.createConnection();
+        newConnection.inUse = true;
+        this.connections.push(newConnection);
+        return newConnection;
+      } catch (error) {
+<span class="cstat-no" title="statement not covered" >        throw new Error(`Failed to create database connection: ${(error as Error).message}`);</span>
+      }
+    }
+&nbsp;
+    // Wait for connection to become available
+    return new Promise((resolve, reject) =&gt; {
+      let timeoutHandle: NodeJS.Timeout | null = null;
+      let queueEntry: typeof this.waitingQueue[0] | null = null;
+&nbsp;
+      timeoutHandle = setTimeout(() =&gt; {
+        // Atomically remove from queue and prevent double resolution
+        if (queueEntry) {
+          const index = this.waitingQueue.indexOf(queueEntry);
+          if (index !== -1) {
+            this.waitingQueue.splice(index, 1);
+          }
+          queueEntry = null;
+        }
+        timeoutHandle = null;
+        reject(new Error('Timeout waiting for database connection'));
+      }, this.options.acquireTimeout);
+&nbsp;
+      queueEntry = {
+        resolve: <span class="fstat-no" title="function not covered" >(c</span>onn) =&gt; {
+<span class="cstat-no" title="statement not covered" >          <span class="missing-if-branch" title="if path not taken" >I</span>if (timeoutHandle) {</span>
+<span class="cstat-no" title="statement not covered" >            clearTimeout(timeoutHandle);</span>
+<span class="cstat-no" title="statement not covered" >            timeoutHandle = null;</span>
+          }
+<span class="cstat-no" title="statement not covered" >          queueEntry = null;</span>
+<span class="cstat-no" title="statement not covered" >          resolve(conn);</span>
+        },
+        reject: <span class="fstat-no" title="function not covered" >(e</span>rror) =&gt; {
+<span class="cstat-no" title="statement not covered" >          <span class="missing-if-branch" title="if path not taken" >I</span>if (timeoutHandle) {</span>
+<span class="cstat-no" title="statement not covered" >            clearTimeout(timeoutHandle);</span>
+<span class="cstat-no" title="statement not covered" >            timeoutHandle = null;</span>
+          }
+<span class="cstat-no" title="statement not covered" >          queueEntry = null;</span>
+<span class="cstat-no" title="statement not covered" >          reject(error);</span>
+        },
+        timestamp: Date.now(),
+      };
+      
+      this.waitingQueue.push(queueEntry);
+    });
+  }
+&nbsp;
+  release(connection: PooledConnection): void {
+    connection.inUse = false;
+    connection.lastUsed = Date.now();
+&nbsp;
+    // Serve waiting queue
+    const waiting = this.waitingQueue.shift();
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (waiting) {
+<span class="cstat-no" title="statement not covered" >      connection.inUse = true;</span>
+<span class="cstat-no" title="statement not covered" >      waiting.resolve(connection);</span>
     }
   }
 &nbsp;
-  // Original sendAlert for other system events (e.g., worker crashes)
-  public async sendSystemAlert(context: Record&lt;string, any&gt;) {
-    console.log('[AlerterClient] Sending system alert:', JSON.stringify(context, null, 2));
-    const alert = {
-      labels: {
-        alertname: 'SeraphSystemEvent',
-        source: context.source || <span class="branch-1 cbranch-no" title="branch not covered" >'unknown',</span>
-        type: context.type || <span class="branch-1 cbranch-no" title="branch not covered" >'unknown',</span>
-      },
-      annotations: {
-        summary: `System event in ${context.source}`,
-        description: context.details || <span class="branch-1 cbranch-no" title="branch not covered" >'No details provided.',</span>
-      },
+  async execute&lt;T&gt;(
+    operation: (conn: PooledConnection) =&gt; Promise&lt;T&gt;,
+  ): Promise&lt;T&gt; {
+    const connection = await this.acquire();
+    try {
+      const result = await operation(connection);
+      return result;
+    } finally {
+      this.release(connection);
+    }
+  }
+&nbsp;
+  private startCleanupTimer(): void {
+    this.cleanupInterval = setInterval(() =&gt; {
+      this.cleanupIdleConnections();
+    }, this.options.idleTimeout / 2);
+  }
+&nbsp;
+  private cleanupIdleConnections(): void {
+    const now = Date.now();
+    const minConnections = 1; // Keep at least one connection
+&nbsp;
+    for (let i = this.connections.length - 1; i &gt;= minConnections; i--) {
+      const conn = this.connections[i];
+      <span class="missing-if-branch" title="if path not taken" >I</span>if (!conn.inUse &amp;&amp; <span class="branch-1 cbranch-no" title="branch not covered" >(now - conn.lastUsed) &gt; this.options.idleTimeout)</span> {
+<span class="cstat-no" title="statement not covered" >        conn.db.close(<span class="fstat-no" title="function not covered" >(e</span>rr) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >          <span class="missing-if-branch" title="if path not taken" >I</span>if (err) {</span>
+<span class="cstat-no" title="statement not covered" >            console.error('Error closing idle database connection:', err);</span>
+          }
+        });
+<span class="cstat-no" title="statement not covered" >        this.connections.splice(i, 1);</span>
+      }
+    }
+  }
+&nbsp;
+  async close(): Promise&lt;void&gt; {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+&nbsp;
+    // Reject all waiting requests
+    while (this.waitingQueue.length &gt; 0) {
+      const waiting = <span class="cstat-no" title="statement not covered" >this.waitingQueue.shift();</span>
+<span class="cstat-no" title="statement not covered" >      <span class="missing-if-branch" title="if path not taken" >I</span>if (waiting) {</span>
+<span class="cstat-no" title="statement not covered" >        waiting.reject(new Error('Database pool is closing'));</span>
+      }
+    }
+&nbsp;
+    // Close all connections
+    const closePromises = this.connections.map(conn =&gt; 
+      new Promise&lt;void&gt;((resolve, reject) =&gt; {
+        conn.db.close((err) =&gt; {
+          <span class="missing-if-branch" title="if path not taken" >I</span>if (err) {
+<span class="cstat-no" title="statement not covered" >            reject(err);</span>
+          } else {
+            resolve();
+          }
+        });
+      }),
+    );
+&nbsp;
+    await Promise.all(closePromises);
+    this.connections = [];
+  }
+&nbsp;
+  isClosed(): boolean {
+    return this.cleanupInterval === null;
+  }
+&nbsp;
+  getStats() {
+    return {
+      totalConnections: this.connections.length,
+      activeConnections: this.connections.filter(c =&gt; c.inUse).length,
+      idleConnections: this.connections.filter(c =&gt; !c.inUse).length,
+      waitingRequests: this.waitingQueue.length,
     };
-    await this.sendToAlertmanager([alert]);
   }
 }
-&nbsp;</pre></td></tr></table></pre>
+&nbsp;
+// Singleton pattern for global pool
+let globalPool: SQLitePool | null = null;
+&nbsp;
+export function <span class="fstat-no" title="function not covered" >getPool(</span>dbPath: string = <span class="branch-0 cbranch-no" title="branch not covered" >'./reports.db')</span>: SQLitePool {
+<span class="cstat-no" title="statement not covered" >  <span class="missing-if-branch" title="if path not taken" >I</span>if (!globalPool) {</span>
+<span class="cstat-no" title="statement not covered" >    globalPool = new SQLitePool(dbPath, {</span>
+      maxConnections: 5,
+      idleTimeout: 30000,
+      acquireTimeout: 10000,
+    });
+  }
+<span class="cstat-no" title="statement not covered" >  return globalPool;</span>
+}
+&nbsp;
+export async function <span class="fstat-no" title="function not covered" >closePool(</span>): Promise&lt;void&gt; {
+<span class="cstat-no" title="statement not covered" >  <span class="missing-if-branch" title="if path not taken" >I</span>if (globalPool) {</span>
+<span class="cstat-no" title="statement not covered" >    await globalPool.close();</span>
+<span class="cstat-no" title="statement not covered" >    globalPool = null;</span>
+  }
+}</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
             </div><!-- /wrapper -->

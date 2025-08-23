@@ -68,7 +68,7 @@ export class CLIFormatter {
     cpu: '💻',
     memory: '🧠',
     network: '🌐',
-    database: '💾'
+    database: '💾',
   };
 
   private supportsTrueColor(): boolean {
@@ -88,7 +88,7 @@ export class CLIFormatter {
   getTerminalSize(): TerminalSize {
     return {
       width: process.stdout.columns || 80,
-      height: process.stdout.rows || 24
+      height: process.stdout.rows || 24,
     };
   }
 
@@ -131,14 +131,14 @@ export class CLIFormatter {
     return [
       this.colorize(line, 'cyan', options),
       this.colorize(`  ${text}  `, 'bright', options),
-      this.colorize(line, 'cyan', options)
+      this.colorize(line, 'cyan', options),
     ].join('\n');
   }
 
   section(title: string, content: string[], options: FormatOptions = {}): string {
     const titleFormatted = this.colorize(`${this.symbols.rocket} ${title}`, 'bright', options);
     const contentFormatted = content.map(line => 
-      `  ${this.symbols.bullet} ${line}`
+      `  ${this.symbols.bullet} ${line}`,
     ).join('\n');
     
     return `${titleFormatted}\n${contentFormatted}`;
@@ -160,7 +160,7 @@ export class CLIFormatter {
 
     // Format header
     const headerRow = headers.map((header, i) => 
-      header.padEnd(colWidths[i]).substring(0, colWidths[i])
+      header.padEnd(colWidths[i]).substring(0, colWidths[i]),
     ).join(' │ ');
     
     const separator = colWidths.map(w => this.symbols.line.repeat(w)).join('─┼─');
@@ -168,8 +168,8 @@ export class CLIFormatter {
     // Format rows
     const dataRows = rows.map(row => 
       headers.map((_, i) => 
-        (row[i] || '').padEnd(colWidths[i]).substring(0, colWidths[i])
-      ).join(' │ ')
+        (row[i] || '').padEnd(colWidths[i]).substring(0, colWidths[i]),
+      ).join(' │ '),
     );
 
     return [
@@ -177,7 +177,7 @@ export class CLIFormatter {
       this.colorize(`│ ${headerRow} │`, 'bright', options),
       this.colorize(`├─${separator}─┤`, 'gray', options),
       ...dataRows.map(row => `│ ${row} │`),
-      this.colorize(`└─${separator}─┘`, 'gray', options)
+      this.colorize(`└─${separator}─┘`, 'gray', options),
     ].join('\n');
   }
 
@@ -206,9 +206,9 @@ export class CLIFormatter {
   }
 
   formatDuration(ms: number): string {
-    if (ms < 1000) return `${ms}ms`;
-    if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
-    if (ms < 3600000) return `${Math.floor(ms / 60000)}m ${Math.floor((ms % 60000) / 1000)}s`;
+    if (ms < 1000) {return `${ms}ms`;}
+    if (ms < 60000) {return `${(ms / 1000).toFixed(1)}s`;}
+    if (ms < 3600000) {return `${Math.floor(ms / 60000)}m ${Math.floor((ms % 60000) / 1000)}s`;}
     
     const hours = Math.floor(ms / 3600000);
     const minutes = Math.floor((ms % 3600000) / 60000);
@@ -216,14 +216,14 @@ export class CLIFormatter {
   }
 
   formatMarkdown(text: string, options: FormatOptions = {}): string {
-    if (!options.markdown) return text;
+    if (!options.markdown) {return text;}
 
     return text
       // Bold
       .replace(/\*\*(.*?)\*\*/g, (_, content) => this.bold(content, options))
       // Code blocks
       .replace(/```(.*?)```/gs, (_, code) => 
-        this.colorize(`\n┌─ Code ──\n│ ${code.split('\n').join('\n│ ')}\n└─────────\n`, 'gray', options)
+        this.colorize(`\n┌─ Code ──\n│ ${code.split('\n').join('\n│ ')}\n└─────────\n`, 'gray', options),
       )
       // Inline code
       .replace(/`([^`]+)`/g, (_, code) => this.colorize(code, 'cyan', options))
@@ -271,20 +271,20 @@ export class CLIFormatter {
     const contentWidth = Math.max(titleLength, subtitleLength) + 4;
     const bannerWidth = Math.min(Math.max(contentWidth, 40), maxWidth);
     
-    const topBorder = '┌' + '─'.repeat(bannerWidth - 2) + '┐';
-    const bottomBorder = '└' + '─'.repeat(bannerWidth - 2) + '┘';
+    const topBorder = `┌${  '─'.repeat(bannerWidth - 2)  }┐`;
+    const bottomBorder = `└${  '─'.repeat(bannerWidth - 2)  }┘`;
     
     const centerText = (text: string) => {
       const padding = Math.max(0, bannerWidth - 2 - text.length);
       const leftPad = Math.floor(padding / 2);
       const rightPad = padding - leftPad;
-      return '│' + ' '.repeat(leftPad) + text + ' '.repeat(rightPad) + '│';
+      return `│${  ' '.repeat(leftPad)  }${text  }${' '.repeat(rightPad)  }│`;
     };
     
     const lines = [
       this.colorize(topBorder, 'cyan', options),
       this.colorize(centerText(''), 'cyan', options),
-      this.colorize(centerText(this.bold(title, options)), 'cyan', options)
+      this.colorize(centerText(this.bold(title, options)), 'cyan', options),
     ];
     
     if (subtitle) {
@@ -293,7 +293,7 @@ export class CLIFormatter {
     
     lines.push(
       this.colorize(centerText(''), 'cyan', options),
-      this.colorize(bottomBorder, 'cyan', options)
+      this.colorize(bottomBorder, 'cyan', options),
     );
     
     return lines.join('\n');
@@ -314,13 +314,13 @@ export class CLIFormatter {
         }, 80);
       },
       stop: (finalText?: string) => {
-        if (interval) clearInterval(interval);
+        if (interval) {clearInterval(interval);}
         process.stdout.write('\r\x1b[K'); // Clear line
         process.stdout.write('\x1b[?25h'); // Show cursor
         if (finalText) {
           console.log(finalText);
         }
-      }
+      },
     };
   }
 }

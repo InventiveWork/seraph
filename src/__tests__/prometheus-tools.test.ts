@@ -1,4 +1,4 @@
-import { jest, describe, it, expect, beforeAll, beforeEach, afterEach } from '@jest/globals';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import fetch from 'node-fetch';
 
 // Mock node-fetch
@@ -23,11 +23,11 @@ describe('Prometheus MCP Tools', () => {
       apiKey: 'test-key',
       serverApiKey: null,
       builtInMcpServer: {
-        prometheusUrl: 'http://localhost:9090'
+        prometheusUrl: 'http://localhost:9090',
       },
       llm: {
-        provider: 'gemini'
-      }
+        provider: 'gemini',
+      },
     };
   });
 
@@ -52,11 +52,11 @@ describe('Prometheus MCP Tools', () => {
           result: [
             {
               metric: { __name__: 'up', job: 'prometheus' },
-              value: [1609459200, '1']
-            }
-          ]
-        }
-      })
+              value: [1609459200, '1'],
+            },
+          ],
+        },
+      }),
     };
     mockedFetch.mockResolvedValue(mockResponse as any);
 
@@ -67,10 +67,10 @@ describe('Prometheus MCP Tools', () => {
         method: 'tools/call',
         params: {
           name: 'prometheus_query',
-          arguments: { query: 'up' }
+          arguments: { query: 'up' },
         },
-        id: 1
-      })
+        id: 1,
+      }),
     });
 
     expect(response.ok).toBe(true);
@@ -81,8 +81,8 @@ describe('Prometheus MCP Tools', () => {
       ok: true,
       json: async () => ({
         status: 'success',
-        data: ['up', 'prometheus_notifications_total', 'prometheus_config_last_reload_seconds']
-      })
+        data: ['up', 'prometheus_notifications_total', 'prometheus_config_last_reload_seconds'],
+      }),
     };
     mockedFetch.mockResolvedValue(mockResponse as any);
 
@@ -93,10 +93,10 @@ describe('Prometheus MCP Tools', () => {
         method: 'tools/call',
         params: {
           name: 'prometheus_metrics',
-          arguments: {}
+          arguments: {},
         },
-        id: 1
-      })
+        id: 1,
+      }),
     });
 
     expect(response.ok).toBe(true);
@@ -113,11 +113,11 @@ describe('Prometheus MCP Tools', () => {
               labels: { alertname: 'HighErrorRate', severity: 'warning' },
               annotations: { summary: 'High error rate detected' },
               state: 'firing',
-              activeAt: '2021-01-01T00:00:00Z'
-            }
-          ]
-        }
-      })
+              activeAt: '2021-01-01T00:00:00Z',
+            },
+          ],
+        },
+      }),
     };
     mockedFetch.mockResolvedValue(mockResponse as any);
 
@@ -128,10 +128,10 @@ describe('Prometheus MCP Tools', () => {
         method: 'tools/call',
         params: {
           name: 'prometheus_alerts',
-          arguments: {}
+          arguments: {},
         },
-        id: 1
-      })
+        id: 1,
+      }),
     });
 
     expect(response.ok).toBe(true);
@@ -148,11 +148,11 @@ describe('Prometheus MCP Tools', () => {
               labels: { job: 'prometheus', instance: 'localhost:9090' },
               health: 'up',
               lastScrape: '2021-01-01T00:00:00Z',
-              scrapeUrl: 'http://localhost:9090/metrics'
-            }
-          ]
-        }
-      })
+              scrapeUrl: 'http://localhost:9090/metrics',
+            },
+          ],
+        },
+      }),
     };
     mockedFetch.mockResolvedValue(mockResponse as any);
 
@@ -163,10 +163,10 @@ describe('Prometheus MCP Tools', () => {
         method: 'tools/call',
         params: {
           name: 'prometheus_targets',
-          arguments: {}
+          arguments: {},
         },
-        id: 1
-      })
+        id: 1,
+      }),
     });
 
     expect(response.ok).toBe(true);
@@ -186,16 +186,16 @@ describe('Prometheus MCP Tools', () => {
                 {
                   name: 'HighErrorRate',
                   query: 'rate(http_requests_total{status=~"5.."}[5m]) > 0.1',
-                  type: 'alerting'
-                }
+                  type: 'alerting',
+                },
               ],
               interval: 30,
               evaluationTime: 0.001,
-              lastEvaluation: '2021-01-01T00:00:00Z'
-            }
-          ]
-        }
-      })
+              lastEvaluation: '2021-01-01T00:00:00Z',
+            },
+          ],
+        },
+      }),
     };
     mockedFetch.mockResolvedValue(mockResponse as any);
 
@@ -206,10 +206,10 @@ describe('Prometheus MCP Tools', () => {
         method: 'tools/call',
         params: {
           name: 'prometheus_rules',
-          arguments: {}
+          arguments: {},
         },
-        id: 1
-      })
+        id: 1,
+      }),
     });
 
     expect(response.ok).toBe(true);
@@ -222,8 +222,8 @@ describe('Prometheus MCP Tools', () => {
       body: JSON.stringify({
         method: 'tools/list',
         params: {},
-        id: 1
-      })
+        id: 1,
+      }),
     });
 
     expect(response.ok).toBe(true);

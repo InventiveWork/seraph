@@ -79,7 +79,7 @@ describe('Agent Worker', () => {
     const log = 'this is an error log';
     const analysis = { decision: 'alert', reason: 'it is an error' };
     mockLlmProvider.generate.mockResolvedValue({
-      toolCalls: [{ name: 'log_triage', arguments: analysis }]
+      toolCalls: [{ name: 'log_triage', arguments: analysis }],
     });
 
     await messageHandler(log);
@@ -89,7 +89,7 @@ describe('Agent Worker', () => {
     expect(mockParentPort.postMessage).toHaveBeenCalledWith({
       type: 'alert',
       data: {
-        log: log,
+        log,
         reason: analysis.reason,
       },
     });
@@ -99,7 +99,7 @@ describe('Agent Worker', () => {
     const log = 'this is a normal log';
     const analysis = { decision: 'ok', reason: 'everything is fine' };
     mockLlmProvider.generate.mockResolvedValue({
-      toolCalls: [{ name: 'log_triage', arguments: analysis }]
+      toolCalls: [{ name: 'log_triage', arguments: analysis }],
     });
 
     await messageHandler(log);

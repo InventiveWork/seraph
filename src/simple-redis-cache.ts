@@ -39,7 +39,7 @@ export class SimpleRedisCache {
       ttlSeconds: 3600, // 1 hour
       embeddingDim: 384, // sentence-transformer dimension
       verbose: false, // Default to false for logging
-      ...config
+      ...config,
     };
     
     // Disable verbose logging during tests to prevent Jest cleanup issues
@@ -69,7 +69,7 @@ export class SimpleRedisCache {
           host: redisConfig.host || 'localhost',
           port: redisConfig.port || 6379,
           hasPassword: !!redisConfig.password,
-          keyPrefix: redisConfig.keyPrefix
+          keyPrefix: redisConfig.keyPrefix,
         });
       }
       
@@ -92,7 +92,7 @@ export class SimpleRedisCache {
               return null;
             }
             return Math.min(times * 100, 2000);
-          }
+          },
         });
       }
 
@@ -159,7 +159,7 @@ export class SimpleRedisCache {
   }
 
   protected cosineSimilarity(a: number[], b: number[]): number {
-    if (a.length !== b.length) return 0;
+    if (a.length !== b.length) {return 0;}
     
     let dotProduct = 0;
     let normA = 0;
@@ -171,7 +171,7 @@ export class SimpleRedisCache {
       normB += b[i] * b[i];
     }
     
-    if (normA === 0 || normB === 0) return 0;
+    if (normA === 0 || normB === 0) {return 0;}
     return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
   }
 
@@ -201,32 +201,43 @@ export class SimpleRedisCache {
         return entry.response;
       }
       
-      // Then try similarity search on recent entries
+      // Then try similarity search on recent entries using SCAN instead of KEYS
+      // SCAN is non-blocking and production-safe
       const pattern = `${this.config.redis?.keyPrefix || 'llm:'}*`;
-      const keys = await this.redis.keys(pattern);
-      
       let bestMatch: { entry: CacheEntry; key: string } | null = null;
       let bestSimilarity = 0;
+      let cursor = '0';
+      let scannedCount = 0;
+      const maxScanCount = 100; // Limit scan results for performance
       
-      // Limit similarity search to recent entries for performance
-      const recentKeys = keys.slice(0, 100);
-      
-      for (const key of recentKeys) {
-        const data = await this.redis.get(key);
-        if (!data) continue;
+      do {
+        const result = await this.redis.scan(cursor, 'MATCH', pattern, 'COUNT', 10);
+        cursor = result[0];
+        const keys = result[1];
         
-        try {
-          const entry: CacheEntry = JSON.parse(data);
-          const similarity = this.cosineSimilarity(embedding, entry.embedding);
+        for (const key of keys) {
+          if (scannedCount >= maxScanCount) break;
           
-          if (similarity >= this.config.similarityThreshold! && similarity > bestSimilarity) {
-            bestSimilarity = similarity;
-            bestMatch = { entry, key };
+          const data = await this.redis.get(key);
+          if (!data) {continue;}
+          
+          try {
+            const entry: CacheEntry = JSON.parse(data);
+            const similarity = this.cosineSimilarity(embedding, entry.embedding);
+            
+            if (similarity >= this.config.similarityThreshold! && similarity > bestSimilarity) {
+              bestSimilarity = similarity;
+              bestMatch = { entry, key };
+            }
+          } catch {
+            // Skip malformed entries
           }
-        } catch {
-          // Skip malformed entries
+          
+          scannedCount++;
         }
-      }
+        
+        if (scannedCount >= maxScanCount) break;
+      } while (cursor !== '0');
       
       if (bestMatch) {
         await this.updateHitCount(bestMatch.key, bestMatch.entry);
@@ -350,7 +361,7 @@ export class SimpleRedisCache {
   }
 
   async cleanup(): Promise<void> {
-    if (!this.redis || !this.isConnected) return;
+    if (!this.redis || !this.isConnected) {return;}
 
     try {
       // Remove expired entries (Redis handles this automatically with TTL)

@@ -47,13 +47,13 @@ async function investigate(log: string, reason: string, tools: AgentTool[], inve
     
     INVESTIGATION STRATEGY:
     ${similarIncidents.length > 0 ? 
-      `- Consider similar recent incidents: ${similarIncidents.map(i => i.reason).join(', ')}` : 
-      '- No similar recent incidents found'
-    }
+    `- Consider similar recent incidents: ${similarIncidents.map(i => i.reason).join(', ')}` : 
+    '- No similar recent incidents found'
+}
     ${relevantPatterns.length > 0 ? 
-      `- Apply known patterns: ${relevantPatterns.map(p => p.signature).join(', ')}` : 
-      '- No established patterns detected'
-    }
+    `- Apply known patterns: ${relevantPatterns.map(p => p.signature).join(', ')}` : 
+    '- No established patterns detected'
+}
     - Use systematic troubleshooting approach
     - Document findings for future reference
     
@@ -64,7 +64,7 @@ async function investigate(log: string, reason: string, tools: AgentTool[], inve
     - MUST use Git tools to check recent commits and correlate with incident timing
     - MUST clone or examine the Seraph repository for code context
     - MUST correlate metrics data, log patterns, and code changes for comprehensive root cause analysis
-    - Incorporate insights from similar incidents and patterns` 
+    - Incorporate insights from similar incidents and patterns`, 
   }];
   
   // Track tool usage for enhanced alerting
@@ -156,7 +156,7 @@ async function investigate(log: string, reason: string, tools: AgentTool[], inve
           tags: { type: 'array', items: { type: 'string' }, description: 'Tags for this incident.' },
         },
         required: ['summary'],
-      }
+      },
     };
     const availableTools = [...tools, finishTool];
     
@@ -249,7 +249,7 @@ async function investigate(log: string, reason: string, tools: AgentTool[], inve
             timestamp,
             args: toolCall.arguments,
             success: true,
-            executionTime
+            executionTime,
           });
 
           scratchpad.push({ observation: `Result from ${toolCall.name}: ${JSON.stringify(toolResult)}` });
@@ -260,7 +260,7 @@ async function investigate(log: string, reason: string, tools: AgentTool[], inve
             timestamp,
             args: toolCall.arguments,
             success: false,
-            executionTime
+            executionTime,
           });
           
           scratchpad.push({ observation: `Error executing ${toolCall.name}: ${e.message}` });
@@ -269,7 +269,7 @@ async function investigate(log: string, reason: string, tools: AgentTool[], inve
         scratchpad.push({ observation: `Error: Tool '${toolCall.name}' not found.` });
       }
     } else {
-      scratchpad.push({ observation: "I have not used a tool. I should either use a tool or use the FINISH tool to complete the investigation." });
+      scratchpad.push({ observation: 'I have not used a tool. I should either use a tool or use the FINISH tool to complete the investigation.' });
     }
   }
 
@@ -322,7 +322,7 @@ async function investigate(log: string, reason: string, tools: AgentTool[], inve
   } else {
     finalReportResponse = await provider.generate(synthesisPrompt);
     
-    if (finalReportResponse && finalReportResponse.text) {
+    if (finalReportResponse?.text) {
       await memoryManager.set(synthesisPrompt, finalReportResponse, synthesisTokens);
     }
     metrics.llmCacheMisses?.inc();
@@ -330,15 +330,15 @@ async function investigate(log: string, reason: string, tools: AgentTool[], inve
   console.log(`[Investigator ${process.pid}] Final report response:`, finalReportResponse.text?.substring(0, 500));
   
   let finalAnalysis = { 
-    rootCauseAnalysis: "Could not determine root cause.", 
-    impactAssessment: "Unknown.", 
-    suggestedRemediation: ["Manual investigation required."],
-    lessonsLearned: ["Investigate similar patterns in the future."],
+    rootCauseAnalysis: 'Could not determine root cause.', 
+    impactAssessment: 'Unknown.', 
+    suggestedRemediation: ['Manual investigation required.'],
+    lessonsLearned: ['Investigate similar patterns in the future.'],
     memoryInsights: {
       similarIncidents: similarIncidents.length,
       appliedPatterns: relevantPatterns.length,
       newPatternDetected: false,
-    }
+    },
   };
   
   if (finalReportResponse.text) {
@@ -357,7 +357,7 @@ async function investigate(log: string, reason: string, tools: AgentTool[], inve
         let braceCount = 0;
         let jsonEnd = -1;
         for (let i = jsonStart; i < cleanedResponse.length; i++) {
-          if (cleanedResponse[i] === '{') braceCount++;
+          if (cleanedResponse[i] === '{') {braceCount++;}
           if (cleanedResponse[i] === '}') {
             braceCount--;
             if (braceCount === 0) {
@@ -372,7 +372,7 @@ async function investigate(log: string, reason: string, tools: AgentTool[], inve
         } else {
           // JSON might be truncated, try to close it
           const partial = cleanedResponse.substring(jsonStart);
-          jsonStr = partial + '}';  // Add missing closing brace
+          jsonStr = `${partial  }}`;  // Add missing closing brace
         }
       }
       
@@ -396,17 +396,17 @@ async function investigate(log: string, reason: string, tools: AgentTool[], inve
         if (rootCauseMatch || impactMatch || remediationMatch) {
           console.log(`[Investigator ${process.pid}] Extracting partial analysis from malformed JSON`);
           finalAnalysis = {
-            rootCauseAnalysis: rootCauseMatch ? rootCauseMatch[1] : "Could not determine root cause.",
-            impactAssessment: impactMatch ? impactMatch[1] : "Unknown.",
+            rootCauseAnalysis: rootCauseMatch ? rootCauseMatch[1] : 'Could not determine root cause.',
+            impactAssessment: impactMatch ? impactMatch[1] : 'Unknown.',
             suggestedRemediation: remediationMatch ? 
               remediationMatch[1].split(',').map(s => s.replace(/"/g, '').trim()).filter(s => s.length > 0) :
-              ["Manual investigation required."],
-            lessonsLearned: ["Investigate similar patterns in the future."],
+              ['Manual investigation required.'],
+            lessonsLearned: ['Investigate similar patterns in the future.'],
             memoryInsights: {
               similarIncidents: 0,
               appliedPatterns: 0,
-              newPatternDetected: false
-            }
+              newPatternDetected: false,
+            },
           };
         }
       } catch (fallbackError) {
@@ -424,7 +424,7 @@ async function investigate(log: string, reason: string, tools: AgentTool[], inve
       similarIncidents,
       appliedPatterns: relevantPatterns,
       memoryStats: await memoryManager.getMemoryStats(),
-    }
+    },
   };
 }
 

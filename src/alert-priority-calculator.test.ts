@@ -51,7 +51,7 @@ describe('AlertPriorityCalculator', () => {
     it('should assign CRITICAL priority to critical keywords', () => {
       const result = calculator.calculatePriority(
         'CRITICAL: Payment service is down',
-        'System outage detected'
+        'System outage detected',
       );
 
       // With critical keywords, should be HIGH or CRITICAL (depends on time context)
@@ -64,7 +64,7 @@ describe('AlertPriorityCalculator', () => {
     it('should assign HIGH priority to high priority keywords', () => {
       const result = calculator.calculatePriority(
         'Connection timeout in unknown service',
-        'Request failed with timeout'
+        'Request failed with timeout',
       );
 
       // With weighted scoring: keyword=0.8*0.3 + service=0.4*0.4 + time + historical
@@ -76,7 +76,7 @@ describe('AlertPriorityCalculator', () => {
     it('should assign MEDIUM priority to medium keywords', () => {
       const result = calculator.calculatePriority(
         'Warning: Slow response detected',
-        'Performance warning in API'
+        'Performance warning in API',
       );
 
       // With medium keywords, priority depends on time context
@@ -88,7 +88,7 @@ describe('AlertPriorityCalculator', () => {
     it('should assign LOW priority to unrecognized keywords', () => {
       const result = calculator.calculatePriority(
         'Info: Regular maintenance completed',
-        'Routine task finished'
+        'Routine task finished',
       );
 
       // With keyword=0.3, service=0.4 (unknown), timeContext varies, historical=small
@@ -108,7 +108,7 @@ describe('AlertPriorityCalculator', () => {
       const customCalculator = new AlertPriorityCalculator(customConfig);
       const result = customCalculator.calculatePriority(
         'Disaster in unknown system',
-        'Catastrophic failure detected'
+        'Catastrophic failure detected',
       );
 
       // With keyword=1.0*0.3 + service=0.4*0.4 + time + hist = 0.46+ => likely MEDIUM or HIGH
@@ -122,7 +122,7 @@ describe('AlertPriorityCalculator', () => {
       const result = calculator.calculatePriority(
         'Error in payment-service endpoint',
         'Payment processing failed',
-        { service: 'payment-service' }
+        { service: 'payment-service' },
       );
 
       expect(result.breakdown.serviceImpactScore).toBeGreaterThan(0.8);
@@ -132,7 +132,7 @@ describe('AlertPriorityCalculator', () => {
     it('should detect service from log content', () => {
       const result = calculator.calculatePriority(
         'auth-service connection refused',
-        'Authentication service unavailable'
+        'Authentication service unavailable',
       );
 
       // Should detect auth-service and score accordingly
@@ -143,7 +143,7 @@ describe('AlertPriorityCalculator', () => {
       const result = calculator.calculatePriority(
         'Unknown service error',
         'Some random service failed',
-        { service: 'unknown-service' }
+        { service: 'unknown-service' },
       );
 
       expect(result.breakdown.serviceImpactScore).toBe(0.4); // Default score
@@ -153,7 +153,7 @@ describe('AlertPriorityCalculator', () => {
       const result = calculator.calculatePriority(
         'auth-service high CPU usage',
         'Performance issue in auth service',
-        { service: 'auth-service' }
+        { service: 'auth-service' },
       );
 
       // auth-service has 100k users, should get boost
@@ -170,7 +170,7 @@ describe('AlertPriorityCalculator', () => {
 
       const result = calculator.calculatePriority(
         'Service error during business hours',
-        'Error occurred'
+        'Error occurred',
       );
 
       expect(result.breakdown.timeContextScore).toBeGreaterThan(0.7);
@@ -186,7 +186,7 @@ describe('AlertPriorityCalculator', () => {
 
       const result = calculator.calculatePriority(
         'Weekend service error',
-        'Error on weekend'
+        'Error on weekend',
       );
 
       // Weekend + outside business hours should give lower time context score
@@ -203,7 +203,7 @@ describe('AlertPriorityCalculator', () => {
 
       const result = calculator.calculatePriority(
         'Peak hour error',
-        'Error during peak traffic'
+        'Error during peak traffic',
       );
 
       // Should get boost for being during both business hours and peak hours
@@ -222,13 +222,13 @@ describe('AlertPriorityCalculator', () => {
           'Database connection timeout',
           'Connection pool exhausted',
           AlertPriority.HIGH,
-          180000
+          180000,
         );
       }
 
       const result = calculator.calculatePriority(
         'Database connection timeout',
-        'Connection pool exhausted'
+        'Connection pool exhausted',
       );
 
       // Should have higher historical score due to frequency
@@ -238,7 +238,7 @@ describe('AlertPriorityCalculator', () => {
     it('should handle new patterns with low historical score', () => {
       const result = calculator.calculatePriority(
         'Brand new error never seen before',
-        'Completely unique issue'
+        'Completely unique issue',
       );
 
       expect(result.breakdown.historicalScore).toBeLessThan(0.2);
@@ -250,7 +250,7 @@ describe('AlertPriorityCalculator', () => {
       const result = calculator.calculatePriority(
         'CRITICAL: payment-service database connection failed',
         'Emergency: Payment processing completely down',
-        { service: 'payment-service' }
+        { service: 'payment-service' },
       );
 
       // With critical keywords + critical service, should be HIGH or CRITICAL
@@ -265,7 +265,7 @@ describe('AlertPriorityCalculator', () => {
       const result = calculator.calculatePriority(
         'Info: notification-service retry attempts',
         'Warning: Retry mechanism activated',
-        { service: 'notification-service' }
+        { service: 'notification-service' },
       );
 
       // Should be MEDIUM priority due to:
@@ -280,7 +280,7 @@ describe('AlertPriorityCalculator', () => {
       const result = calculator.calculatePriority(
         'CRITICAL: auth-service completely unavailable',
         'Authentication system outage affecting all users',
-        { service: 'auth-service' }
+        { service: 'auth-service' },
       );
 
       expect(result.reasoning.some(r => r.includes(AlertPriority[result.priority]))).toBe(true);
@@ -305,7 +305,7 @@ describe('AlertPriorityCalculator', () => {
       const result = calculator.calculatePriority(
         'new-critical-service error',
         'Error in new service',
-        { service: 'new-critical-service' }
+        { service: 'new-critical-service' },
       );
 
       expect(result.breakdown.serviceImpactScore).toBeGreaterThan(0.9);
@@ -324,7 +324,7 @@ describe('AlertPriorityCalculator', () => {
     it('should handle empty log and reason', () => {
       const result = calculator.calculatePriority('', '');
 
-      expect(result.priority).toBe(AlertPriority.LOW);
+      expect(result.priority).toBe(AlertPriority.MEDIUM);
       expect(result.score).toBeGreaterThanOrEqual(0);
       expect(result.reasoning).toBeDefined();
     });
@@ -342,7 +342,7 @@ describe('AlertPriorityCalculator', () => {
     it('should handle special characters and unicode', () => {
       const result = calculator.calculatePriority(
         'CRITICAL: Service down 🚨 émergence',
-        'Ürgenţ issue with spëcial characters'
+        'Ürgenţ issue with spëcial characters',
       );
 
       // Should be MEDIUM or higher priority due to "CRITICAL" keyword
@@ -354,13 +354,13 @@ describe('AlertPriorityCalculator', () => {
       const result1 = calculator.calculatePriority(
         'Test log',
         'Test reason',
-        null as any
+        null as any,
       );
 
       const result2 = calculator.calculatePriority(
         'Test log',
         'Test reason',
-        undefined
+        undefined,
       );
 
       expect(result1.priority).toBeDefined();

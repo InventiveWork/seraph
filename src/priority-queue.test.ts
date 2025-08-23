@@ -1,5 +1,5 @@
 // Priority Queue Tests
-import { PriorityQueue, AlertPriority } from './priority-queue';
+import { AlertPriority, PriorityQueue } from './priority-queue';
 
 describe('PriorityQueue', () => {
   let queue: PriorityQueue;
@@ -102,6 +102,28 @@ describe('PriorityQueue', () => {
       expect(queue.isEmpty()).toBe(true);
       expect(queue.size()).toBe(0);
     });
+
+    it('should handle single element dequeue correctly', () => {
+      // Test the edge case that was causing index corruption
+      const id = queue.enqueue({
+        log: 'Single element test',
+        reason: 'Single test',
+        priority: AlertPriority.HIGH,
+        priorityScore: 0.8,
+        estimatedDuration: 180000,
+        metadata: {},
+      });
+
+      expect(queue.size()).toBe(1);
+      expect(queue.peek()?.reason).toBe('Single test');
+      
+      const result = queue.dequeue();
+      expect(result?.reason).toBe('Single test');
+      expect(result?.id).toBe(id);
+      expect(queue.size()).toBe(0);
+      expect(queue.isEmpty()).toBe(true);
+      expect(queue.peek()).toBeNull();
+    });
   });
 
   describe('Queue Management', () => {
@@ -130,6 +152,24 @@ describe('PriorityQueue', () => {
 
       const remaining = queue.dequeue();
       expect(remaining?.reason).toBe('Reason 2');
+    });
+
+    it('should handle removeById on single element correctly', () => {
+      // Test edge case for removeById with single element
+      const id = queue.enqueue({
+        log: 'Single remove test',
+        reason: 'Single remove',
+        priority: AlertPriority.MEDIUM,
+        priorityScore: 0.5,
+        estimatedDuration: 240000,
+        metadata: {},
+      });
+
+      expect(queue.size()).toBe(1);
+      expect(queue.removeById(id)).toBe(true);
+      expect(queue.size()).toBe(0);
+      expect(queue.isEmpty()).toBe(true);
+      expect(queue.removeById(id)).toBe(false); // Should not find it again
     });
 
     it('should update alert priorities', () => {
@@ -299,7 +339,7 @@ describe('PriorityQueue', () => {
       });
 
       const dbAlerts = queue.findAlerts(alert => 
-        alert.log.includes('Database') || alert.metadata.service === 'database'
+        alert.log.includes('Database') || alert.metadata.service === 'database',
       );
 
       expect(dbAlerts).toHaveLength(1);
