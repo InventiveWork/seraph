@@ -13,7 +13,7 @@ We welcome any type of contribution, not just code. You can help with:
 
 ### Reporting Bugs
 
-If you find a bug, please open an issue on our [GitHub Issues](https://https://github.com/InventiveWork/seraph/issues) page. Please include as much detail as possible, including:
+If you find a bug, please open an issue on our [GitHub Issues](https://github.com/InventiveWork/seraph/issues) page. Please include as much detail as possible, including:
 *   A clear and descriptive title.
 *   A description of the problem.
 *   Steps to reproduce the bug.
@@ -21,7 +21,7 @@ If you find a bug, please open an issue on our [GitHub Issues](https://https://g
 
 ### Suggesting Enhancements
 
-If you have an idea for a new feature or an enhancement to an existing one, please open an issue on our [GitHub Issues](https://https://github.com/InventiveWork/seraph/issues) page. This allows us to discuss the proposal and ensure it aligns with the project's goals.
+If you have an idea for a new feature or an enhancement to an existing one, please open an issue on our [GitHub Issues](https://github.com/InventiveWork/seraph/issues) page. This allows us to discuss the proposal and ensure it aligns with the project's goals.
 
 ### Setting Up Your Development Environment
 
