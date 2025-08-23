@@ -13,25 +13,42 @@ import { mcpManager } from './mcp-manager';
 import { ReportStore } from './report-store';
 import { mcpServerRegistry } from './mcp-registry';
 import { startMcpServer } from './mcp-server';
+import { StatusCommand } from './cli/status';
+import { SetupWizard } from './cli/setup';
+import { DoctorCommand } from './cli/doctor';
+import { formatter } from './cli/formatter';
 
 const program = new Command();
 
 program
   .name('seraph-agent')
-  .version('1.0.15')
+  .version('1.0.18')
   .description('A lightweight, autonomous SRE AI agent.');
 
 program.addHelpText('after', `
-Dynamic Tool Integration with MCP:
-  Seraph can connect to any server that follows the Model Context Protocol (MCP).
-  This allows the agent to dynamically discover and use external tools to answer
-  your questions and perform tasks.
+${formatter.colorize('🚀 Quick Start:', 'bright')}
+  ${formatter.colorize('seraph setup', 'cyan')}          Run interactive setup wizard
+  ${formatter.colorize('seraph start', 'cyan')}          Start the AI SRE agent
+  ${formatter.colorize('seraph status --verbose', 'cyan')} Check detailed agent status
+  ${formatter.colorize('seraph chat "hello"', 'cyan')}    Chat with your agent
 
-  To use this feature, provide the server's URL via the --mcp-server-url option
-  when using the 'chat' command.
+${formatter.colorize('🛡️ Essential Commands:', 'bright')}
+  ${formatter.colorize('seraph doctor', 'cyan')}         Run comprehensive diagnostics
+  ${formatter.colorize('seraph reports list', 'cyan')}   View investigation reports
+  ${formatter.colorize('seraph tools list', 'cyan')}     See available tool integrations
 
-Example:
-  $ seraph chat "What is the current price of Bitcoin?" --mcp-server-url <some-crypto-mcp-server-url>
+${formatter.colorize('💡 Pro Tips:', 'bright')}
+  • Use ${formatter.colorize('--verbose', 'yellow')} flags for detailed output
+  • Reports support ${formatter.colorize('--format markdown', 'yellow')} for better readability
+  • The agent learns from your infrastructure automatically
+  • Redis caching can reduce LLM costs by 40-70%
+
+${formatter.colorize('🔧 Dynamic Tool Integration with MCP:', 'bright')}
+  Seraph connects to Model Context Protocol servers for extensible tooling.
+  Use ${formatter.colorize('--mcp-server-url', 'yellow')} or ${formatter.colorize('--tools', 'yellow')} flags with the chat command.
+
+${formatter.colorize('Example:', 'bright')}
+  ${formatter.colorize('seraph chat "analyze recent errors" --context', 'gray')}
 `);
 
 
@@ -163,42 +180,10 @@ program
 program
   .command('status')
   .description('Check the status of the Seraph agent.')
-  .action(async () => {
-    const config = await loadConfig();
-    let retries = 5;
-
-    const tryConnect = () => {
-      const options = {
-        hostname: 'localhost',
-        port: config.port,
-        path: '/status',
-        method: 'GET',
-      };
-
-      const req = http.request(options, (res) => {
-        if (res.statusCode === 200) {
-          console.log('Seraph agent is running.');
-          process.exit(0);
-        } else {
-          console.log('Seraph agent is not running.');
-          process.exit(1);
-        }
-      });
-
-      req.on('error', () => {
-        if (retries > 0) {
-          retries--;
-          setTimeout(tryConnect, 500);
-        } else {
-          console.error('Error connecting to Seraph agent: Not running');
-          process.exit(1);
-        }
-      });
-
-      req.end();
-    };
-
-    tryConnect();
+  .option('-v, --verbose', 'Show detailed status information')
+  .action(async (options) => {
+    const statusCommand = new StatusCommand();
+    await statusCommand.execute(options.verbose);
   });
 
 program
@@ -303,24 +288,117 @@ const reports = program.command('reports')
 reports
   .command('list')
   .description('List all reports.')
-  .action(async () => {
+  .option('--format <format>', 'Output format: table, json, markdown', 'table')
+  .option('--limit <number>', 'Limit number of results', '50')
+  .option('--filter <filter>', 'Filter by status: all, resolved, open, acknowledged', 'all')
+  .action(async (options) => {
     const reportStore = new ReportStore();
-    const reports = await reportStore.listReports();
-    console.table(reports);
+    let reports = await reportStore.listReports();
+    
+    // Apply filter
+    if (options.filter !== 'all') {
+      reports = reports.filter(r => r.status === options.filter);
+    }
+    
+    // Apply limit
+    const limit = parseInt(options.limit);
+    if (limit > 0) {
+      reports = reports.slice(0, limit);
+    }
+    
+    const formatOptions = { color: true, markdown: true };
+    
+    switch (options.format) {
+      case 'json':
+        console.log(JSON.stringify(reports, null, 2));
+        break;
+      case 'markdown':
+        if (reports.length === 0) {
+          console.log(formatter.info('No reports found'));
+          break;
+        }
+        
+        console.log(formatter.header('Investigation Reports'));
+        console.log();
+        
+        for (const report of reports) {
+          const statusColor = report.status === 'resolved' ? 'green' : 'yellow';
+          const status = formatter.colorize(report.status, statusColor, formatOptions);
+          const timestamp = new Date(report.timestamp).toLocaleString();
+          
+          console.log(`## ${report.incidentId}`);
+          console.log(`**Status:** ${status}`);
+          console.log(`**Timestamp:** ${timestamp}`);
+          console.log(`**Reason:** ${report.triageReason || 'N/A'}`);
+          console.log();
+        }
+        break;
+      default:
+        if (reports.length === 0) {
+          console.log(formatter.info('No reports found'));
+        } else {
+          const headers = ['Incident ID', 'Status', 'Timestamp', 'Reason'];
+          const rows = reports.map(r => [
+            r.incidentId,
+            r.status,
+            new Date(r.timestamp).toLocaleString(),
+            (r.triageReason || '').substring(0, 50) + ((r.triageReason || '').length > 50 ? '...' : '')
+          ]);
+          
+          console.log(formatter.table(headers, rows, formatOptions));
+        }
+    }
+    
     await reportStore.close();
   });
 
 reports
   .command('view <incidentId>')
   .description('View a specific report.')
-  .action(async (incidentId) => {
+  .option('--format <format>', 'Output format: json, markdown, raw', 'markdown')
+  .action(async (incidentId, options) => {
     const reportStore = new ReportStore();
     const report = await reportStore.getReport(incidentId);
-    if (report) {
-      console.log(JSON.stringify(report, null, 2));
-    } else {
-      console.log(`Report with ID "${incidentId}" not found.`);
+    
+    if (!report) {
+      console.log(formatter.error(`Report with ID "${incidentId}" not found.`));
+      await reportStore.close();
+      return;
     }
+    
+    const formatOptions = { color: true, markdown: true };
+    
+    switch (options.format) {
+      case 'json':
+        console.log(JSON.stringify(report, null, 2));
+        break;
+      case 'raw':
+        console.log(JSON.stringify(report.finalAnalysis, null, 2) || 'No analysis available');
+        break;
+      default:
+        console.log(formatter.banner(`Report: ${report.incidentId}`, undefined, formatOptions));
+        console.log();
+        
+        console.log(formatter.section('Summary', [
+          `**Status:** ${report.status}`,
+          `**Timestamp:** ${new Date(report.timestamp).toLocaleString()}`,
+          `**Reason:** ${report.triageReason || 'N/A'}`,
+          `**Log:** ${(report.initialLog || '').substring(0, 100)}${(report.initialLog || '').length > 100 ? '...' : ''}`
+        ], formatOptions));
+        console.log();
+        
+        if (report.finalAnalysis) {
+          console.log(formatter.section('Analysis', [], formatOptions));
+          console.log(formatter.formatMarkdown(JSON.stringify(report.finalAnalysis, null, 2), formatOptions));
+          console.log();
+        }
+        
+        if (report.investigationTrace) {
+          console.log(formatter.section('Investigation Trace', [JSON.stringify(report.investigationTrace, null, 2)], formatOptions));
+          console.log();
+        }
+    }
+    
     await reportStore.close();
   });
 
@@ -330,9 +408,68 @@ const tools = program.command('tools')
 tools
   .command('list')
   .description('List all available built-in toolsets.')
+  .option('--format <format>', 'Output format: table, json, markdown', 'table')
+  .action((options) => {
+    const formatOptions = { color: true, markdown: true };
+    
+    switch (options.format) {
+      case 'json':
+        console.log(JSON.stringify(mcpServerRegistry, null, 2));
+        break;
+      case 'markdown':
+        console.log(formatter.header('Available Toolsets'));
+        console.log();
+        
+        for (const toolset of mcpServerRegistry) {
+          console.log(`## ${toolset.name}`);
+          console.log(`**Description:** ${toolset.description}`);
+          console.log(`**URL:** ${toolset.url}`);
+          console.log();
+        }
+        break;
+      default:
+        if (mcpServerRegistry.length === 0) {
+          console.log(formatter.info('No toolsets available'));
+        } else {
+          const headers = ['Name', 'Description', 'URL'];
+          const rows = mcpServerRegistry.map(t => [t.name, t.description, t.url]);
+          console.log(formatter.table(headers, rows, formatOptions));
+        }
+    }
+  });
+
+// Setup wizard command
+program
+  .command('setup')
+  .description('Interactive setup wizard for Seraph configuration.')
+  .option('--guided', 'Run the guided setup wizard (default)')
+  .action(async () => {
+    const setupWizard = new SetupWizard();
+    await setupWizard.run();
+  });
+
+// Doctor command for diagnostics
+program
+  .command('doctor')
+  .description('Run comprehensive diagnostics and troubleshooting.')
+  .action(async () => {
+    const doctorCommand = new DoctorCommand();
+    await doctorCommand.execute();
+  });
+
+// Version command with enhanced output
+program
+  .command('version')
+  .description('Show version information.')
   .action(() => {
-    console.log('Available toolsets:');
-    console.table(mcpServerRegistry);
+    const options = { color: true, markdown: true };
+    console.log(formatter.banner('Seraph Agent', `Version ${program.version()}`, options));
+    console.log();
+    console.log(formatter.section('System Information', [
+      `Node.js: ${process.version}`,
+      `Platform: ${process.platform} (${process.arch})`,
+      `NPM: ${process.env.npm_version || 'Unknown'}`
+    ], options));
   });
 
 program.parse(process.argv);

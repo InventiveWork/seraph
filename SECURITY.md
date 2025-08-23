@@ -4,7 +4,7 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 1.0.15+ | ✅ Security Fixed  |
+| 1.0.17+ | ✅ Security Fixed  |
 | 1.0.14  | ❌ Path Traversal  |
 | < 1.0.14| ❌ Not Supported   |
 
@@ -17,7 +17,7 @@
 **Severity:** High  
 **CVSS Score:** 7.5  
 **Affected Versions:** ≤ 1.0.14  
-**Fixed in:** 1.0.15
+**Fixed in:** 1.0.15 (continued in 1.0.17)
 
 **Description:**
 The `validateDestinationPath` function in `src/mcp-server.ts` contained insufficient path validation that could allow path traversal attacks. Attackers could potentially access files outside the intended `/tmp` and `/var/tmp` directories through various techniques including:
@@ -33,7 +33,7 @@ The `validateDestinationPath` function in `src/mcp-server.ts` contained insuffic
 - System compromise through arbitrary file access
 
 **Mitigation:**
-Update to version 1.0.15 or later. The fix includes:
+Update to version 1.0.17 or later. The fix includes:
 
 1. **Pre-resolution validation** - Path traversal patterns are checked before path resolution
 2. **Canonical path verification** - Uses `fs.realpath()` to resolve symlinks and verify final paths
@@ -167,6 +167,22 @@ Primary threats mitigated:
 - Credential exposure and privilege escalation
 
 ## Changelog
+
+### v1.0.17 (Latest Release)
+- **DOCUMENTATION**: Comprehensive documentation updates and alignment
+- **MAINTENANCE**: Version consistency across all components
+- **ENHANCEMENT**: All features from v1.0.16 maintained
+
+### v1.0.16 (Previous Release)
+- **ENHANCEMENT**: Superior CLI experience with beautiful terminal UI
+- **ENHANCEMENT**: Interactive setup wizard with auto-detection
+- **ENHANCEMENT**: Comprehensive diagnostics with `seraph doctor`
+- **ENHANCEMENT**: Enhanced status reporting with health checks
+- **ENHANCEMENT**: Multiple output formats (table, JSON, markdown)
+- **ENHANCEMENT**: Redis caching integration for cost optimization
+- **FEATURE**: Priority queue system for intelligent investigation scheduling
+- **FEATURE**: Advanced memory management architecture
+- **SECURITY**: Continued security hardening from v1.0.15
 
 ### v1.0.15 (Security Release)
 - **SECURITY**: Fixed path traversal vulnerability in git clone functionality

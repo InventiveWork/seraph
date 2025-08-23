@@ -70,8 +70,11 @@ const analyzeLog = async (log: string) => {
   try {
     const parsedLog = JSON.parse(log);
     if (parsedLog.log && typeof parsedLog.log === 'string') {
-      // Extract the actual log message from Fluent Bit format
+      // Extract the actual log message from Fluent Bit format (container logs)
       processedLog = parsedLog.log;
+    } else if (parsedLog.MESSAGE && typeof parsedLog.MESSAGE === 'string') {
+      // Extract the actual log message from systemd/Fluent Bit format (system logs)
+      processedLog = parsedLog.MESSAGE;
     } else if (typeof parsedLog === 'object') {
       // If it's an object but not the expected format, stringify it cleanly
       processedLog = JSON.stringify(parsedLog, null, 2);

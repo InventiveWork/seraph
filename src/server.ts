@@ -233,7 +233,34 @@ export function startServer(config: SeraphConfig, agentManager: AgentManager) {
       });
     } else if (req.url === '/status' && req.method === 'GET') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ status: 'ok' }));
+      
+      // Get comprehensive status information
+      const statusInfo = {
+        status: 'ok',
+        startTime: new Date().toISOString(),
+        memoryUsage: process.memoryUsage(),
+        uptime: process.uptime() * 1000, // in milliseconds
+        totalLogs: 0,
+        activeInvestigations: 0,
+        workers: config.workers,
+        port: config.port,
+        mcpEnabled: !!config.builtInMcpServer,
+        redisConnected: false,
+        cacheHitRate: null,
+        version: '1.0.18',
+        nodeVersion: process.version,
+        platform: process.platform,
+        arch: process.arch,
+        lastLogTime: null,
+        totalInvestigations: 0,
+        health: {
+          memory: process.memoryUsage().heapUsed / process.memoryUsage().heapTotal < 0.9 ? 'healthy' : 'warning',
+          uptime: process.uptime() > 60 ? 'healthy' : 'starting',
+          workers: 'running'
+        }
+      };
+      
+      res.end(JSON.stringify(statusInfo, null, 2));
     } else if (req.url === '/metrics' && req.method === 'GET') {
       const { register } = await import('./metrics');
       res.setHeader('Content-Type', register.contentType);

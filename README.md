@@ -215,23 +215,89 @@ You can also specify a model for the selected provider. If no model is specified
 
 ## CLI Usage
 
-The Seraph agent is controlled via the `seraph` command.
+The Seraph agent features a **superior CLI experience** designed to address common pain points found in other AI SRE tools:
 
-### `seraph start`
+### ✨ CLI Excellence
+- **Beautiful, responsive UI** that adapts to any terminal size
+- **Zero-config philosophy** with intelligent auto-detection  
+- **Multiple output formats** (table, JSON, markdown) for every command
+- **Comprehensive diagnostics** with actionable suggestions
+- **Interactive setup wizard** eliminates configuration complexity
+- **Real-time health monitoring** with visual indicators
+- **Graceful error handling** with helpful recovery suggestions
 
+### 🚀 Quick Commands
+
+- `seraph setup` - Interactive setup wizard with auto-detection
+- `seraph start` - Start the AI SRE agent
+- `seraph status --verbose` - Detailed agent status with health checks
+- `seraph doctor` - Comprehensive diagnostics and troubleshooting
+
+### Core Commands
+
+#### `seraph start`
 Starts the agent and the log ingestion server.
 
 **Options:**
-- `--mcp-server-url <url>`: Connect to an MCP server to enable dynamic tool usage.
-- `--tools <names>`: A comma-separated list of built-in toolsets to use (e.g., "fetch,git").
+- `--mcp-server-url <url>`: Connect to an MCP server to enable dynamic tool usage
+- `--tools <names>`: Comma-separated list of built-in toolsets to use
 
-### `seraph status`
+#### `seraph status [--verbose]`
+Check agent status with beautiful, responsive output.
 
-Checks the status of the agent.
+**Features:**
+- Real-time system metrics and health checks
+- Memory usage and performance indicators
+- Feature status (MCP, Redis, integrations)
+- Activity summary (logs processed, investigations)
+- Quick action suggestions
 
-### `seraph stop`
+#### `seraph stop`
+Gracefully stops the agent and all workers.
 
-Stops the agent and all workers.
+#### `seraph doctor`
+Comprehensive diagnostics covering:
+- System requirements and dependencies
+- Configuration validation
+- Runtime health checks  
+- Network connectivity tests
+- Health scoring and actionable suggestions
+
+### Setup and Configuration
+
+#### `seraph setup [--guided]`
+Interactive setup wizard featuring:
+- Auto-detection of existing configurations
+- Intelligent defaults for common scenarios
+- Step-by-step LLM provider configuration
+- Integration setup (Git, Prometheus, Redis)
+- Configuration validation and preview
+
+### Reports Management
+
+#### `seraph reports list [options]`
+List investigation reports with flexible formatting.
+
+**Options:**
+- `--format table|json|markdown` - Output format (default: table)
+- `--limit <number>` - Maximum number of results (default: 50)  
+- `--filter <status>` - Filter by status: all, resolved, open, acknowledged
+
+#### `seraph reports view <incidentId> [options]`
+View detailed investigation reports.
+
+**Options:**
+- `--format json|markdown|raw` - Output format (default: markdown)
+
+**Features:**
+- Beautiful markdown formatting with syntax highlighting
+- Structured analysis and investigation traces
+- Tool usage summaries and execution details
+
+### Tools Management
+
+#### `seraph tools list [--format table|json|markdown]`
+List available built-in toolsets with descriptions and URLs.
 
 ### `seraph chat <message>`
 
