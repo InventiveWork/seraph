@@ -60,13 +60,13 @@ export class StatusCommand {
     };
   }
 
-  private async getAgentStatus(): Promise<AgentStatus> {
+  private async getAgentStatus(reportStore?: ReportStore): Promise<AgentStatus> {
     const config = await loadConfig();
     const pidFilePath = path.join(process.cwd(), '.seraph.pid');
     
     const status: AgentStatus = {
       running: false,
-      version: '1.0.20',
+      version: '1.0.21',
       mcpEnabled: !!config.builtInMcpServer,
       redisConnected: false,
       totalLogs: 0,
@@ -102,22 +102,21 @@ export class StatusCommand {
       // PID file doesn't exist
     }
 
-    // Get report statistics
-    try {
-      const reportStore = new ReportStore();
-      const reports = await reportStore.listReports();
-      status.totalReports = reports.length;
-      
-      if (reports.length > 0) {
-        const lastReport = reports.sort((a, b) => 
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-        )[0];
-        status.lastLogTime = new Date(lastReport.timestamp);
+    // Get report statistics - use shared ReportStore instance if provided
+    if (reportStore) {
+      try {
+        const reports = await reportStore.listReports();
+        status.totalReports = reports.length;
+        
+        if (reports.length > 0) {
+          const lastReport = reports.sort((a, b) => 
+            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+          )[0];
+          status.lastLogTime = new Date(lastReport.timestamp);
+        }
+      } catch (error) {
+        // Database might not be initialized
       }
-      
-      await reportStore.close();
-    } catch (error) {
-      // Database might not be initialized
     }
 
     return status;
@@ -163,7 +162,7 @@ export class StatusCommand {
     });
   }
 
-  private async performHealthChecks(): Promise<HealthCheck> {
+  private async performHealthChecks(reportStore?: ReportStore): Promise<HealthCheck> {
     const checks: HealthCheck['checks'] = [];
     let overallStatus: HealthCheck['status'] = 'healthy';
 
@@ -187,26 +186,26 @@ export class StatusCommand {
       overallStatus = 'unhealthy';
     }
 
-    // Check database connectivity
+    // Check database connectivity - use shared ReportStore instance if provided
     const dbStart = Date.now();
-    try {
-      const reportStore = new ReportStore();
-      await reportStore.listReports();
-      await reportStore.close();
-      checks.push({
-        name: 'Database',
-        status: 'pass',
-        message: 'SQLite database accessible',
-        duration: Date.now() - dbStart,
-      });
-    } catch (error) {
-      checks.push({
-        name: 'Database',
-        status: 'fail',
-        message: `Database error: ${(error as Error).message}`,
-        duration: Date.now() - dbStart,
-      });
-      overallStatus = 'unhealthy';
+    if (reportStore) {
+      try {
+        await reportStore.listReports();
+        checks.push({
+          name: 'Database',
+          status: 'pass',
+          message: 'SQLite database accessible',
+          duration: Date.now() - dbStart,
+        });
+      } catch (error) {
+        checks.push({
+          name: 'Database',
+          status: 'fail',
+          message: `Database error: ${(error as Error).message}`,
+          duration: Date.now() - dbStart,
+        });
+        overallStatus = 'unhealthy';
+      }
     }
 
     // Check disk space
@@ -285,13 +284,23 @@ export class StatusCommand {
     const spinner = formatter.spinner('Gathering system information...');
     spinner.start();
 
-    const [systemInfo, agentStatus, healthCheck] = await Promise.all([
-      this.getSystemInfo(),
-      this.getAgentStatus(),
-      this.performHealthChecks(),
-    ]);
+    // Create a single ReportStore instance to share across all operations
+    let reportStore: ReportStore | undefined;
+    try {
+      reportStore = new ReportStore();
+    } catch (error) {
+      // ReportStore initialization failed, continue without it
+      console.warn('Warning: Unable to initialize report store');
+    }
 
-    spinner.stop();
+    try {
+      const [systemInfo, agentStatus, healthCheck] = await Promise.all([
+        this.getSystemInfo(),
+        this.getAgentStatus(reportStore),
+        this.performHealthChecks(reportStore),
+      ]);
+
+      spinner.stop();
 
     // Agent Status Section
     console.log(formatter.section('Agent Status', [
@@ -391,15 +400,25 @@ export class StatusCommand {
       }
     }
 
-    // Quick Actions Section
-    console.log(formatter.section('Quick Actions', [
-      agentStatus.running ? 'seraph stop - Stop the agent' : 'seraph start - Start the agent',
-      'seraph reports list - View all reports',
-      'seraph chat "status" - Chat with the agent',
-      'seraph doctor - Run full diagnostics',
-    ], options));
+      // Quick Actions Section
+      console.log(formatter.section('Quick Actions', [
+        agentStatus.running ? 'seraph stop - Stop the agent' : 'seraph start - Start the agent',
+        'seraph reports list - View all reports',
+        'seraph chat "status" - Chat with the agent',
+        'seraph doctor - Run full diagnostics',
+      ], options));
 
-    // Exit with appropriate code
-    process.exit(healthCheck.status === 'unhealthy' ? 1 : 0);
+      // Exit with appropriate code
+      process.exit(healthCheck.status === 'unhealthy' ? 1 : 0);
+    } finally {
+      // Always close the ReportStore connection when done
+      if (reportStore) {
+        try {
+          await reportStore.close();
+        } catch (error) {
+          // Ignore close errors
+        }
+      }
+    }
   }
 }

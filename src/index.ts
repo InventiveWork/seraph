@@ -22,7 +22,7 @@ const program = new Command();
 
 program
   .name('seraph-agent')
-  .version('1.0.20')
+  .version('1.0.21')
   .description('A lightweight, autonomous SRE AI agent.');
 
 program.addHelpText('after', `
@@ -266,11 +266,22 @@ program
         client.write('get_logs');
       });
 
-      client.on('data', async (data) => {
-        const logs = JSON.parse(data.toString());
-        const response = await chat(message, config, tools, logs);
-        console.log(response);
-        client.end();
+      let buffer = '';
+      client.on('data', (chunk) => {
+        buffer += chunk.toString();
+      });
+
+      client.on('end', async () => {
+        try {
+          const logs = JSON.parse(buffer);
+          const response = await chat(message, config, tools, logs);
+          console.log(response);
+        } catch (error) {
+          console.error('Error parsing logs from agent. The logs may be too large or malformed.');
+          console.error('Running without context...');
+          const response = await chat(message, config, tools);
+          console.log(response);
+        }
       });
 
       client.on('error', () => {

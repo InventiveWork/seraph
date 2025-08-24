@@ -69,6 +69,83 @@ export class SimpleRedisCache {
     }
   }
 
+  // Wait for Redis to be ready with startup coordination and retries
+  // This should be called at application startup when Redis caching is enabled
+  async waitForRedisReady(options: {
+    enabled: boolean;          // Whether Redis caching is enabled  
+    maxRetries?: number;       // Max retry attempts (default: 30)
+    retryDelayMs?: number;     // Delay between retries (default: 1000ms)
+    timeoutMs?: number;        // Overall timeout (default: 60000ms)
+  }): Promise<boolean> {
+    if (!options.enabled || !this.config.redis) {
+      if (this.config.verbose) {
+        console.log('[SimpleRedisCache] Redis caching not enabled, skipping wait');
+      }
+      return false; // Redis not expected to be available
+    }
+
+    const maxRetries = options.maxRetries ?? 30;
+    const retryDelayMs = options.retryDelayMs ?? 1000;
+    const timeoutMs = options.timeoutMs ?? 60000;
+    const startTime = Date.now();
+
+    if (this.config.verbose) {
+      console.log(`[SimpleRedisCache] Waiting for Redis to be ready (max ${maxRetries} retries, ${timeoutMs}ms timeout)`);
+    }
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      // Check overall timeout
+      if (Date.now() - startTime > timeoutMs) {
+        if (this.config.verbose) {
+          console.error(`[SimpleRedisCache] Timeout waiting for Redis after ${timeoutMs}ms`);
+        }
+        break;
+      }
+
+      try {
+        // Ensure initialization attempt
+        if (this.initPromise) {
+          await this.initPromise;
+        }
+
+        // Test Redis connectivity with a simple ping
+        if (this.redis && this.isConnected) {
+          await this.redis.ping();
+          if (this.config.verbose) {
+            console.log(`[SimpleRedisCache] Redis is ready! (attempt ${attempt}/${maxRetries})`);
+          }
+          return true;
+        } else {
+          // Try to reinitialize Redis connection
+          this.initPromise = this.initRedis();
+          await this.initPromise;
+          
+          if (this.redis && this.isConnected) {
+            await this.redis.ping();
+            if (this.config.verbose) {
+              console.log(`[SimpleRedisCache] Redis is ready! (attempt ${attempt}/${maxRetries})`);
+            }
+            return true;
+          }
+        }
+      } catch (error) {
+        if (this.config.verbose) {
+          console.log(`[SimpleRedisCache] Redis not ready yet (attempt ${attempt}/${maxRetries}): ${error instanceof Error ? error.message : error}`);
+        }
+      }
+
+      // Wait before next retry (but not after the last attempt)
+      if (attempt < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, retryDelayMs));
+      }
+    }
+
+    if (this.config.verbose) {
+      console.error('[SimpleRedisCache] Failed to connect to Redis after all retries. Cache will be disabled.');
+    }
+    return false;
+  }
+
   private async initRedis(): Promise<void> {
     try {
       const redisConfig = this.config.redis!;

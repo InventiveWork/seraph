@@ -131,6 +131,23 @@ export async function loadConfig(): Promise<SeraphConfig> {
     llmCache: userConfig.llmCache,
   };
 
+  // Auto-configure Redis from environment variables if present
+  if (process.env.REDIS_HOST || process.env.REDIS_URL) {
+    if (!config.llmCache) {
+      config.llmCache = {};
+    }
+    if (!config.llmCache.redis) {
+      config.llmCache.redis = {};
+    }
+    
+    // Override with environment variables
+    config.llmCache.redis.url = config.llmCache.redis.url || process.env.REDIS_URL || undefined;
+    config.llmCache.redis.host = config.llmCache.redis.host || process.env.REDIS_HOST || undefined;
+    config.llmCache.redis.port = config.llmCache.redis.port || (process.env.REDIS_PORT ? parseInt(process.env.REDIS_PORT) : undefined);
+    config.llmCache.redis.password = config.llmCache.redis.password || process.env.REDIS_PASSWORD || undefined;
+    config.llmCache.redis.keyPrefix = config.llmCache.redis.keyPrefix || 'seraph:cache:';
+  }
+
   // Set API key from environment variables if not already set
   if (!config.apiKey) {
     switch (config.llm?.provider) {

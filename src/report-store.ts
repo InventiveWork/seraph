@@ -17,10 +17,11 @@ export interface Report {
 export class ReportStore {
   private pool: SQLitePool;
   private isInitialized: boolean = false;
+  private initPromise: Promise<void> | null = null;
 
   constructor(dbPath: string = 'reports.db') {
     this.pool = getPool(dbPath);
-    this.init();
+    this.initPromise = this.init();
   }
 
   private async init(): Promise<void> {
@@ -78,7 +79,9 @@ export class ReportStore {
   }
 
   public async saveReport(report: Omit<Report, 'incidentId' | 'timestamp' | 'status'>): Promise<Report> {
-    await this.init(); // Ensure initialized
+    if (this.initPromise) {
+      await this.initPromise;
+    }
     
     try {
       const newReport: Report = {
@@ -119,7 +122,9 @@ export class ReportStore {
   }
 
   public async listReports(): Promise<Omit<Report, 'investigationTrace' | 'finalAnalysis'>[]> {
-    await this.init(); // Ensure initialized
+    if (this.initPromise) {
+      await this.initPromise;
+    }
     
     try {
       return await this.pool.execute(async (conn) => {
@@ -135,7 +140,9 @@ export class ReportStore {
   }
 
   public async getReport(incidentId: string): Promise<Report | null> {
-    await this.init(); // Ensure initialized
+    if (this.initPromise) {
+      await this.initPromise;
+    }
     
     try {
       return await this.pool.execute(async (conn) => {
@@ -162,7 +169,9 @@ export class ReportStore {
   }
 
   public async pruneOldReports(days: number): Promise<void> {
-    await this.init(); // Ensure initialized
+    if (this.initPromise) {
+      await this.initPromise;
+    }
     
     try {
       const cutoffDate = new Date();

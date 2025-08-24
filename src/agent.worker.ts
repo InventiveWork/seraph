@@ -22,15 +22,34 @@ const llmCache = new SimpleRedisCache({
   verbose: config.verbose ?? false,
 });
 
-// Initialize cache connection on worker startup
+// Initialize cache connection on worker startup with proper Redis coordination
 let cacheInitialized = false;
 (async () => {
   try {
-    await llmCache.ensureInitialized();
+    // Check if Redis caching is enabled in the configuration
+    const redisCachingEnabled = !!(config.llmCache?.redis);
+    
+    if (redisCachingEnabled) {
+      console.log(`[Worker ${process.pid}] Redis cache enabled, waiting for readiness...`);
+      const redisReady = await llmCache.waitForRedisReady({
+        enabled: true,
+        maxRetries: 30,      // 30 retries
+        retryDelayMs: 1000,  // 1 second between retries
+        timeoutMs: 60000,    // 60 second total timeout
+      });
+      
+      if (redisReady) {
+        console.log(`[Worker ${process.pid}] Redis cache initialized successfully`);
+      } else {
+        console.log(`[Worker ${process.pid}] Redis cache failed to initialize, continuing without cache`);
+      }
+    } else {
+      console.log(`[Worker ${process.pid}] Redis caching not enabled`);
+    }
+    
     cacheInitialized = true;
-    console.log(`[Worker ${process.pid}] Redis cache initialized successfully`);
   } catch (error) {
-    console.error(`[Worker ${process.pid}] Failed to initialize Redis cache:`, error);
+    console.error(`[Worker ${process.pid}] Error during cache initialization:`, error);
     cacheInitialized = true; // Mark as initialized even on failure to proceed without cache
   }
 })();
@@ -99,43 +118,47 @@ const analyzeLog = async (log: string) => {
     /AlerterClient/i,        // Alerter client logs
     /Report .* saved/i,      // Report save logs
     /Triage alert received/i, // Triage alert logs
+    /docker0: port \d+\([^)]+\) entered (blocking|forwarding|learning|listening|disabled) state/i, // Docker bridge network state changes
+    /bridge.*port \d+\([^)]+\) entered (blocking|forwarding|learning|listening|disabled) state/i, // Bridge network state changes
+    /entered (blocking|forwarding|learning|listening|disabled) state/i, // General bridge state changes
   ];
 
+  // Debug: Log the exact content being processed for network state logs
+  if (processedLog.includes('entered') && processedLog.includes('state')) {
+    console.log(`[Worker ${process.pid}] DEBUG: Processing network log: "${processedLog}"`);
+  }
+
   if (routinePatterns.some(pattern => pattern.test(processedLog))) {
+    console.log(`[Worker ${process.pid}] DEBUG: Filtered out routine log: "${processedLog.substring(0, 100)}..."`);
     return { decision: 'ok', reason: 'Routine operational log' };
   }
 
   // Truncate log for prompt to avoid token limits
   const truncatedLog = processedLog.length > 1500 ? `${processedLog.substring(0, 1500)  }...[truncated]` : processedLog;
 
-  const prompt = `
-  You are a high-speed SRE triage system. Analyze this log entry and use the available tool to respond.
+  const prompt = `You are an SRE triage system. Analyze this log and respond ONLY using the log_triage tool.
 
-  CRITICAL: You must call the "log_triage" tool function with two parameters:
-  - decision: either "alert" or "ok" 
-  - reason: brief 5-word explanation
+MANDATORY: Use the log_triage tool with:
+- decision: "alert" OR "ok" (exact strings only)
+- reason: brief explanation (max 10 words)
 
-  Decision criteria for "alert":
-  - Kubernetes pod errors: CrashLoopBackOff, ImagePullBackOff, Failed, Error syncing pod
-  - Application crashes: crashed, memory leak, out of memory, segfault, panic
-  - System failures: connection failed, timeout, refused, unavailable, down
-  - Security issues: authentication failed, access denied, unauthorized
-  - Resource issues: disk full, no space, resource exhausted
-  - Error levels: ERROR, FATAL, CRITICAL, SEVERE
-  
-  Decision criteria for "ok":
-  - Successful operations: successful, completed, ready, started
-  - Info messages: INFO, DEBUG level logs
-  - Routine events: metrics requests, health checks, normal status updates
-  - Container lifecycle: created, started (without errors), stopped (planned)
+ALERT patterns (call log_triage with decision="alert"):
+- CrashLoopBackOff, ImagePullBackOff, Failed, Error syncing
+- crashed, panic, segfault, out of memory, memory leak
+- connection refused/failed, timeout, unavailable, down
+- authentication failed, access denied, unauthorized
+- disk full, no space, resource exhausted
+- ERROR, FATAL, CRITICAL, SEVERE levels
 
-  Pay special attention to Kubernetes error patterns even in verbose JSON logs.
+OK patterns (call log_triage with decision="ok"):
+- successful, completed, ready, started (without errors)
+- INFO, DEBUG, routine events, health checks
+- normal container lifecycle events
+- network state changes (blocking/forwarding)
 
-  Log to analyze:
-  ${truncatedLog}
+Log: ${truncatedLog}
 
-  Call the log_triage tool now with your decision and reason.
-  `;
+RESPOND NOW using ONLY the log_triage tool - no text response allowed.`;
 
   try {
     // Check cache first - estimate tokens for triage (usually ~100-200 tokens)
@@ -158,10 +181,34 @@ const analyzeLog = async (log: string) => {
       metrics.llmCacheMisses?.inc();
     }
 
-    if (!response?.toolCalls) {
-      console.error(`[Worker ${process.pid}] Malformed response from LLM:`, response);
-      // Default to 'ok' to avoid excessive noise on malformed responses
-      return { decision: 'ok', reason: 'Malformed LLM response' };
+    if (!response?.toolCalls || response.toolCalls.length === 0) {
+      console.error(`[Worker ${process.pid}] LLM failed to use tool. Response:`, JSON.stringify(response, null, 2));
+      
+      // Try to parse decision from text response as fallback
+      if (response?.text) {
+        const text = response.text.toLowerCase();
+        
+        // Check for explicit patterns that should trigger alerts
+        const alertPatterns = [
+          'crashloopbackoff', 'imagepullbackoff', 'failed', 'error syncing',
+          'crashed', 'panic', 'segfault', 'out of memory', 'memory leak',
+          'connection refused', 'connection failed', 'timeout', 'unavailable', 'down',
+          'authentication failed', 'access denied', 'unauthorized',
+          'disk full', 'no space', 'resource exhausted',
+          'error:', 'fatal:', 'critical:', 'severe:'
+        ];
+        
+        // Check if this looks like an error that should be alerted
+        const shouldAlert = alertPatterns.some(pattern => text.includes(pattern));
+        
+        if (shouldAlert) {
+          console.log(`[Worker ${process.pid}] Fallback: Detected alert pattern in malformed response`);
+          return { decision: 'alert', reason: 'Error detected via fallback parsing' };
+        }
+      }
+      
+      // Default to 'ok' for unknown/malformed responses  
+      return { decision: 'ok', reason: 'Malformed LLM response, defaulting ok' };
     }
     
     const triageCall = response.toolCalls?.find(tc => tc.name === 'log_triage');
@@ -205,10 +252,9 @@ const analyzeLog = async (log: string) => {
 };
 
 parentPort?.on('message', async (log: string) => {
-  // Wait for cache initialization on first message
-  if (!cacheInitialized) {
-    await llmCache.ensureInitialized();
-    cacheInitialized = true;
+  // Wait for startup initialization to complete
+  while (!cacheInitialized) {
+    await new Promise(resolve => setTimeout(resolve, 100));
   }
   
   // Worker only handles log analysis
