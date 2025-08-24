@@ -17,7 +17,7 @@ describe('chat', () => {
       generate: generateMock,
     });
     // Default mock for tests that don't care about the response content
-    generateMock.mockResolvedValue({ text: "Default response" });
+    generateMock.mockResolvedValue({ text: 'Default response' });
   });
 
   it('should call the LLM provider with a conversational prompt', async () => {

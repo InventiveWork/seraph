@@ -35,7 +35,7 @@ export class AnthropicProvider implements LLMProvider {
       failureThreshold: 5,
       recoveryTimeout: 60000, // 1 minute
       monitoringPeriod: 300000, // 5 minutes
-      successThreshold: 3
+      successThreshold: 3,
     });
     
     this.retryManager = new RetryManager(3, 1000, 30000, true);
@@ -71,7 +71,7 @@ export class AnthropicProvider implements LLMProvider {
               toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
             };
           },
-          RetryPredicates.llmErrors
+          RetryPredicates.llmErrors,
         );
       });
     } catch (error) {

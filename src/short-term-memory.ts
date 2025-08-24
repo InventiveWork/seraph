@@ -104,7 +104,7 @@ export class ShortTermMemory extends SimpleRedisCache {
       await this.redis.setex(
         `incident:${id}`,
         this.memoryConfig.incidentTtl! * 3600,
-        JSON.stringify(fullIncident)
+        JSON.stringify(fullIncident),
       );
 
       // Add to timeline for chronological access
@@ -119,7 +119,7 @@ export class ShortTermMemory extends SimpleRedisCache {
         await this.redis.zremrangebyrank(
           `incident:service:${service}`, 
           0, 
-          -(this.memoryConfig.maxIncidents! + 1)
+          -(this.memoryConfig.maxIncidents! + 1),
         );
       }
 
@@ -148,7 +148,7 @@ export class ShortTermMemory extends SimpleRedisCache {
     
     const { limit = 5, timeWindow = 72, severity, services, excludeResolved = false } = options;
     
-    if (!this.redis || !this.isConnected) return [];
+    if (!this.redis || !this.isConnected) {return [];}
 
     try {
       const queryEmbedding = this.createEmbedding(query);
@@ -163,7 +163,7 @@ export class ShortTermMemory extends SimpleRedisCache {
           const serviceIds = await this.redis.zrangebyscore(
             `incident:service:${service}`, 
             cutoff, 
-            '+inf'
+            '+inf',
           );
           candidateIds.push(...serviceIds);
         }
@@ -180,14 +180,14 @@ export class ShortTermMemory extends SimpleRedisCache {
       // Evaluate similarity for each candidate
       for (const id of candidateIds.slice(-200)) { // Limit to recent 200 for performance
         const data = await this.redis.get(`incident:${id}`);
-        if (!data) continue;
+        if (!data) {continue;}
 
         try {
           const incident: Incident = JSON.parse(data);
           
           // Apply filters
-          if (severity && !severity.includes(incident.severity)) continue;
-          if (excludeResolved && incident.status === 'resolved') continue;
+          if (severity && !severity.includes(incident.severity)) {continue;}
+          if (excludeResolved && incident.status === 'resolved') {continue;}
           
           // Calculate similarity
           const similarity = this.cosineSimilarity(queryEmbedding, incident.embedding);
@@ -213,7 +213,7 @@ export class ShortTermMemory extends SimpleRedisCache {
   }
 
   async getIncidentById(id: string): Promise<Incident | null> {
-    if (!this.redis || !this.isConnected) return null;
+    if (!this.redis || !this.isConnected) {return null;}
 
     try {
       const data = await this.redis.get(`incident:${id}`);
@@ -224,18 +224,18 @@ export class ShortTermMemory extends SimpleRedisCache {
   }
 
   async updateIncident(id: string, updates: Partial<Incident>): Promise<boolean> {
-    if (!this.redis || !this.isConnected) return false;
+    if (!this.redis || !this.isConnected) {return false;}
 
     try {
       const existing = await this.getIncidentById(id);
-      if (!existing) return false;
+      if (!existing) {return false;}
 
       const updated = { ...existing, ...updates };
       
       await this.redis.setex(
         `incident:${id}`,
         this.memoryConfig.incidentTtl! * 3600,
-        JSON.stringify(updated)
+        JSON.stringify(updated),
       );
 
       return true;
@@ -264,7 +264,7 @@ export class ShortTermMemory extends SimpleRedisCache {
         await this.redis.setex(
           `session:${sessionId}`,
           this.memoryConfig.sessionTtl! * 3600,
-          JSON.stringify(session)
+          JSON.stringify(session),
         );
       } catch (error) {
         console.warn('[ShortTermMemory] Failed to create session:', error);
@@ -275,7 +275,7 @@ export class ShortTermMemory extends SimpleRedisCache {
   }
 
   async getSession(sessionId: string): Promise<Session | null> {
-    if (!this.redis || !this.isConnected) return null;
+    if (!this.redis || !this.isConnected) {return null;}
 
     try {
       const data = await this.redis.get(`session:${sessionId}`);
@@ -292,7 +292,7 @@ export class ShortTermMemory extends SimpleRedisCache {
     preferences?: any;
   }): Promise<void> {
     
-    if (!this.redis || !this.isConnected) return;
+    if (!this.redis || !this.isConnected) {return;}
 
     try {
       let session = await this.getSession(sessionId);
@@ -325,7 +325,7 @@ export class ShortTermMemory extends SimpleRedisCache {
       await this.redis.setex(
         `session:${sessionId}`,
         this.memoryConfig.sessionTtl! * 3600,
-        JSON.stringify(session)
+        JSON.stringify(session),
       );
 
     } catch (error) {
@@ -336,7 +336,7 @@ export class ShortTermMemory extends SimpleRedisCache {
   // ===== PATTERN DETECTION =====
 
   async detectPatterns(): Promise<Pattern[]> {
-    if (!this.redis || !this.isConnected) return [];
+    if (!this.redis || !this.isConnected) {return [];}
 
     try {
       const cutoff = Date.now() - (this.memoryConfig.patternTtl! * 60 * 60 * 1000);
@@ -347,7 +347,7 @@ export class ShortTermMemory extends SimpleRedisCache {
       // Analyze incidents for patterns
       for (const incidentId of recentIncidents) {
         const data = await this.redis.get(`incident:${incidentId}`);
-        if (!data) continue;
+        if (!data) {continue;}
 
         try {
           const incident: Incident = JSON.parse(data);
@@ -409,7 +409,7 @@ export class ShortTermMemory extends SimpleRedisCache {
         await this.redis.setex(
           `pattern:${pattern.id}`,
           this.memoryConfig.patternTtl! * 3600,
-          JSON.stringify(pattern)
+          JSON.stringify(pattern),
         );
       }
 
@@ -422,7 +422,7 @@ export class ShortTermMemory extends SimpleRedisCache {
   }
 
   async getPattern(id: string): Promise<Pattern | null> {
-    if (!this.redis || !this.isConnected) return null;
+    if (!this.redis || !this.isConnected) {return null;}
 
     try {
       const data = await this.redis.get(`pattern:${id}`);
@@ -495,17 +495,17 @@ export class ShortTermMemory extends SimpleRedisCache {
   // ===== UTILITY METHODS =====
 
   private async findCorrelatedIncidents(embedding: number[], excludeId: string): Promise<string[]> {
-    if (!this.redis || !this.isConnected) return [];
+    if (!this.redis || !this.isConnected) {return [];}
 
     try {
       const recentIds = await this.redis.zrevrange('incident:timeline', 0, 50);
       const correlatedIds: string[] = [];
 
       for (const id of recentIds) {
-        if (id === excludeId) continue;
+        if (id === excludeId) {continue;}
         
         const data = await this.redis.get(`incident:${id}`);
-        if (!data) continue;
+        if (!data) {continue;}
 
         try {
           const incident: Incident = JSON.parse(data);
@@ -541,16 +541,16 @@ export class ShortTermMemory extends SimpleRedisCache {
   private extractService(incident: Incident): string {
     // Try to extract service from tags first
     const serviceTag = incident.tags.find(tag => tag.startsWith('service:'));
-    if (serviceTag) return serviceTag.replace('service:', '');
+    if (serviceTag) {return serviceTag.replace('service:', '');}
     
     // Try to extract from log content
     const serviceMatch = incident.log.match(/service[:\s]+([a-zA-Z0-9-_]+)/i);
-    if (serviceMatch) return serviceMatch[1].toLowerCase();
+    if (serviceMatch) {return serviceMatch[1].toLowerCase();}
     
     // Try to extract from common patterns
     const patterns = ['api', 'database', 'redis', 'postgres', 'nginx', 'frontend', 'backend'];
     for (const pattern of patterns) {
-      if (incident.log.toLowerCase().includes(pattern)) return pattern;
+      if (incident.log.toLowerCase().includes(pattern)) {return pattern;}
     }
     
     return 'unknown';
@@ -609,8 +609,8 @@ export class ShortTermMemory extends SimpleRedisCache {
           incidents: 0, 
           sessions: 0, 
           patterns: 0,
-          correlations: 0 
-        } 
+          correlations: 0, 
+        }, 
       };
     }
 
@@ -635,7 +635,7 @@ export class ShortTermMemory extends SimpleRedisCache {
           topPatterns: patterns.slice(0, 3).map(p => ({
             description: p.description,
             frequency: p.frequency,
-            confidence: (p.confidence * 100).toFixed(0) + '%',
+            confidence: `${(p.confidence * 100).toFixed(0)  }%`,
           })),
         },
       };

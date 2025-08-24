@@ -1,6 +1,6 @@
-import { gzipSync, gunzipSync } from 'zlib';
+import { gunzipSync, gzipSync } from 'zlib';
 import { v4 as uuidv4 } from 'uuid';
-import { getPool, SQLitePool } from './db-pool';
+import { SQLitePool, getPool } from './db-pool';
 import { sanitizeErrorMessage } from './validation';
 
 export interface Report {
@@ -24,7 +24,7 @@ export class ReportStore {
   }
 
   private async init(): Promise<void> {
-    if (this.isInitialized) return;
+    if (this.isInitialized) {return;}
     
     try {
       await this.pool.execute(async (conn) => {
@@ -46,12 +46,13 @@ export class ReportStore {
         
         // Add migration for toolUsage column if it doesn't exist
         try {
-          await conn.run(`ALTER TABLE reports ADD COLUMN toolUsage BLOB;`);
+          await conn.run('ALTER TABLE reports ADD COLUMN toolUsage BLOB;');
           console.log('Added toolUsage column to existing reports table');
-        } catch (error: any) {
+        } catch (error: unknown) {
           // Column already exists or other error, ignore
-          if (!error.message.includes('duplicate column name')) {
-            console.warn('Warning during toolUsage column migration:', error.message);
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          if (!errorMessage.includes('duplicate column name')) {
+            console.warn('Warning during toolUsage column migration:', errorMessage);
           }
         }
         

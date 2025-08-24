@@ -1,5 +1,5 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 
 export interface AgentTool {
   name: string;
@@ -15,6 +15,7 @@ class McpManager {
   private retryCount: number = 0;
   private readonly MAX_RETRIES = 5;
   private readonly RETRY_DELAY_MS = 5000; // 5 seconds
+  private retryTimeoutHandle: NodeJS.Timeout | null = null;
 
   public isInitialized(): boolean {
     return this.client !== null && this.tools !== null;
@@ -22,21 +23,27 @@ class McpManager {
 
   public async initialize(serverUrl: string) {
     if (this.isConnecting) {
-      console.log("Already attempting to connect to MCP server.");
+      console.log('Already attempting to connect to MCP server.');
       return;
     }
 
     if (this.isInitialized()) {
-      console.log("MCP manager already initialized.");
+      console.log('MCP manager already initialized.');
       return;
+    }
+
+    // Cancel any existing retry timeout
+    if (this.retryTimeoutHandle) {
+      clearTimeout(this.retryTimeoutHandle);
+      this.retryTimeoutHandle = null;
     }
 
     this.isConnecting = true;
     try {
       const transport = new StreamableHTTPClientTransport(new URL(serverUrl));
       this.client = new Client({
-        name: "seraph-client",
-        version: "1.0.0",
+        name: 'seraph-client',
+        version: '1.0.0',
       });
 
       await this.client.connect(transport);
@@ -52,7 +59,7 @@ class McpManager {
       }
 
       if (this.tools.length === 0) {
-        console.log("Warning: The MCP server did not return a valid list of tools. Proceeding without external tools.");
+        console.log('Warning: The MCP server did not return a valid list of tools. Proceeding without external tools.');
       }
       console.log(`Discovered ${this.tools.length} tools.`);
     } catch (error: any) {
@@ -62,12 +69,18 @@ class McpManager {
       if (this.retryCount < this.MAX_RETRIES) {
         this.retryCount++;
         console.log(`Retrying connection to MCP server in ${this.RETRY_DELAY_MS / 1000}s (Attempt ${this.retryCount}/${this.MAX_RETRIES})...`);
-        setTimeout(() => this.initialize(serverUrl), this.RETRY_DELAY_MS);
+        this.retryTimeoutHandle = setTimeout(() => {
+          this.retryTimeoutHandle = null;
+          this.initialize(serverUrl);
+        }, this.RETRY_DELAY_MS);
       } else {
-        console.log(`Max retry attempts reached for MCP server connection. Giving up.`);
+        console.log('Max retry attempts reached for MCP server connection. Giving up.');
       }
     } finally {
-      this.isConnecting = false;
+      // Only reset isConnecting if we're not scheduling a retry
+      if (!this.retryTimeoutHandle) {
+        this.isConnecting = false;
+      }
     }
   }
 
@@ -80,11 +93,11 @@ class McpManager {
     for (const tool of this.tools) {
       dynamicTools.push({
         name: tool.name,
-        description: tool.description || "",
+        description: tool.description || '',
         inputSchema: tool.inputSchema,
         execute: async (args: Record<string, any>) => {
           if (!this.client) {
-            throw new Error("MCP client is not initialized.");
+            throw new Error('MCP client is not initialized.');
           }
 
           // --- Start: Input Validation for Tool Arguments (Security Critical) ---

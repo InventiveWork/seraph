@@ -38,7 +38,7 @@ export class OpenAIProvider implements LLMProvider {
       failureThreshold: 5,
       recoveryTimeout: 60000, // 1 minute
       monitoringPeriod: 300000, // 5 minutes
-      successThreshold: 3
+      successThreshold: 3,
     });
     
     this.retryManager = new RetryManager(3, 1000, 30000, true);
@@ -68,10 +68,10 @@ export class OpenAIProvider implements LLMProvider {
 
             return {
               text: message.content || undefined,
-              toolCalls: toolCalls,
+              toolCalls,
             };
           },
-          RetryPredicates.llmErrors
+          RetryPredicates.llmErrors,
         );
       });
     } catch (error) {

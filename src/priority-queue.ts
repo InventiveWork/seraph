@@ -91,18 +91,25 @@ export class PriorityQueue {
    * Remove and return highest priority alert
    */
   dequeue(): QueuedAlert | null {
-    if (this.heap.length === 0) return null;
+    if (this.heap.length === 0) {return null;}
+    
+    // Handle single element case
+    if (this.heap.length === 1) {
+      const result = this.heap.pop()!;
+      this.alertIndex.delete(result.id);
+      return result;
+    }
     
     const result = this.heap[0];
     const lastElement = this.heap.pop()!;
     
+    // Remove the result from index
     this.alertIndex.delete(result.id);
     
-    if (this.heap.length > 0) {
-      this.heap[0] = lastElement;
-      this.alertIndex.set(lastElement.id, 0);
-      this.bubbleDown(0);
-    }
+    // Move last element to root and update its index
+    this.heap[0] = lastElement;
+    this.alertIndex.set(lastElement.id, 0);
+    this.bubbleDown(0);
     
     return result;
   }
@@ -119,19 +126,25 @@ export class PriorityQueue {
    */
   removeById(alertId: string): boolean {
     const index = this.alertIndex.get(alertId);
-    if (index === undefined) return false;
+    if (index === undefined) {return false;}
+
+    // Handle case where we're removing the last element
+    if (index === this.heap.length - 1) {
+      this.heap.pop();
+      this.alertIndex.delete(alertId);
+      return true;
+    }
 
     const lastElement = this.heap.pop()!;
     this.alertIndex.delete(alertId);
 
-    if (index < this.heap.length) {
-      this.heap[index] = lastElement;
-      this.alertIndex.set(lastElement.id, index);
-      
-      // Restore heap property
-      this.bubbleUp(index);
-      this.bubbleDown(index);
-    }
+    // Move last element to the removed element's position
+    this.heap[index] = lastElement;
+    this.alertIndex.set(lastElement.id, index);
+    
+    // Restore heap property
+    this.bubbleUp(index);
+    this.bubbleDown(index);
 
     return true;
   }
@@ -141,7 +154,7 @@ export class PriorityQueue {
    */
   updatePriority(alertId: string, newPriority: AlertPriority, newScore: number): boolean {
     const index = this.alertIndex.get(alertId);
-    if (index === undefined) return false;
+    if (index === undefined) {return false;}
 
     const oldPriority = this.heap[index].priority;
     this.heap[index].priority = newPriority;
@@ -262,7 +275,7 @@ export class PriorityQueue {
         smallest = rightChild;
       }
       
-      if (smallest === index) break;
+      if (smallest === index) {break;}
       
       this.swap(index, smallest);
       index = smallest;
@@ -297,7 +310,7 @@ export class PriorityQueue {
   }
 
   private findLowestPriorityAlert(): QueuedAlert | null {
-    if (this.heap.length === 0) return null;
+    if (this.heap.length === 0) {return null;}
     
     let lowest = this.heap[0];
     for (let i = 1; i < this.heap.length; i++) {
@@ -323,7 +336,9 @@ export class PriorityQueue {
       const ageBoost = waitingMinutes * AGING_RATE;
       
       if (ageBoost > 0.1) { // Only update if significant boost
-        alert.priorityScore += ageBoost;
+        // Cap the priority score to prevent infinite accumulation
+        const MAX_PRIORITY_SCORE = 100.0;
+        alert.priorityScore = Math.min(alert.priorityScore + ageBoost, MAX_PRIORITY_SCORE);
         changed = true;
       }
     }

@@ -41,12 +41,14 @@ export class AgentManager {
   private readonly MAX_CONCURRENT_INVESTIGATIONS = 3;
   private readonly DEDUPLICATION_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
   private readonly INVESTIGATION_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+  private readonly LOG_CLEANUP_INTERVAL_MASK = 15; // Every 16 logs (power of 2 for bitwise optimization)
 
   private reportStore: ReportStore;
   private alerterClient: AlerterClient;
   private config: SeraphConfig;
   private initializationPromise: Promise<void>;
   private builtInMcpUrl: string;
+  private pruningInterval: NodeJS.Timeout | null = null;
   private readonly maxLogsSize: number;
   private readonly workerCount: number;
   private readonly maxLogSizeTenth: number;
@@ -83,9 +85,9 @@ export class AgentManager {
     try {
       console.log(`Initializing with built-in MCP server at ${this.builtInMcpUrl}`);
       await mcpManager.initialize(this.builtInMcpUrl);
-      console.log("Built-in MCP tools initialized successfully.");
+      console.log('Built-in MCP tools initialized successfully.');
     } catch (error) {
-      console.error(`Error initializing built-in MCP server:`, error);
+      console.error('Error initializing built-in MCP server:', error);
     }
   }
 
@@ -140,7 +142,7 @@ export class AgentManager {
     this.investigationScheduler = new InvestigationScheduler(
       schedulerConfig,
       priorityCalculatorConfig,
-      this.investigationWorkers
+      this.investigationWorkers,
     );
 
     console.log('[AgentManager] Priority queue system initialized successfully');
@@ -216,9 +218,14 @@ export class AgentManager {
         if (attempts <= this.MAX_RESTART_ATTEMPTS) {
           console.error(`${type} worker ${index} stopped. Restarting... (attempt ${attempts}/${this.MAX_RESTART_ATTEMPTS})`);
           setTimeout(() => {
-            createFn(index);
-            // Reset restart attempts on successful restart
-            this.restartAttempts.set(index, 0);
+            try {
+              createFn(index);
+              // Only reset restart attempts if worker creation was successful
+              this.restartAttempts.set(index, 0);
+            } catch (error) {
+              console.error(`Failed to restart ${type} worker ${index}:`, error);
+              // Don't reset attempts on failure, let them accumulate
+            }
           }, this.RESTART_DELAY_MS);
         } else {
           console.error(`${type} worker ${index} has reached max restart attempts.`);
@@ -232,7 +239,7 @@ export class AgentManager {
 
   private schedulePruning() {
     if (this.config.reportRetentionDays) {
-      setInterval(() => this.reportStore.pruneOldReports(this.config.reportRetentionDays!), 24 * 60 * 60 * 1000);
+      this.pruningInterval = setInterval(() => this.reportStore.pruneOldReports(this.config.reportRetentionDays!), 24 * 60 * 60 * 1000);
     }
   }
 
@@ -273,18 +280,23 @@ export class AgentManager {
       timestamp: now,
     };
     
-    // Schedule with priority queue
-    this.investigationScheduler!.scheduleAlert(log, reason, metadata)
-      .then(investigationId => {
-        if (investigationId) {
-          console.log(`[AgentManager] Alert scheduled with ID: ${investigationId}`);
-        } else {
-          console.warn(`[AgentManager] Failed to schedule alert: ${reason}`);
-        }
-      })
-      .catch(error => {
-        console.error(`[AgentManager] Error scheduling alert: ${error.message}`);
-      });
+    // Schedule with priority queue (fire-and-forget with proper error handling)
+    // Wrap in try-catch to handle synchronous errors and ensure promise is handled
+    try {
+      this.investigationScheduler!.scheduleAlert(log, reason, metadata)
+        .then(investigationId => {
+          if (investigationId) {
+            console.log(`[AgentManager] Alert scheduled with ID: ${investigationId}`);
+          } else {
+            console.warn(`[AgentManager] Failed to schedule alert: ${reason}`);
+          }
+        })
+        .catch(error => {
+          console.error(`[AgentManager] Error scheduling alert: ${error.message || error}`);
+        });
+    } catch (error) {
+      console.error(`[AgentManager] Synchronous error scheduling alert: ${error instanceof Error ? error.message : error}`);
+    }
     
     return true;
   }
@@ -323,7 +335,7 @@ export class AgentManager {
     const worker = this.investigationWorkers[this.nextInvestigationWorker];
     worker.postMessage({
       type: 'investigate',
-      data: { log, reason, tools: toolSchemas, investigationId }
+      data: { log, reason, tools: toolSchemas, investigationId },
     });
 
     const timeoutHandle = setTimeout(() => {
@@ -434,7 +446,7 @@ export class AgentManager {
     }
 
     if (this.triageWorkers.length === 0) {
-      console.error("No triage workers available to process logs.");
+      console.error('No triage workers available to process logs.');
       return;
     }
     this.triageWorkers[this.nextTriageWorker].postMessage(log);
@@ -458,18 +470,16 @@ export class AgentManager {
     this.recentLogs.push(log);
     this.currentLogsSize += logSize;
     
-    // Proactively clean up when approaching limits - optimized
+    // Proactively clean up when approaching limits - optimized for hot path
     const logs = this.recentLogs;
     while (logs.length > 0 && 
            (this.currentLogsSize > maxSize || logs.length > maxCount)) {
-      const removedLog = logs.shift();
-      if (removedLog) {
-        this.currentLogsSize -= Buffer.byteLength(removedLog, 'utf8');
-      }
+      const removedLog = logs.shift()!; // Safe due to length check
+      this.currentLogsSize -= Buffer.byteLength(removedLog, 'utf8');
     }
     
     // Periodic cleanup to prevent slow memory leaks - optimized with bitwise
-    if ((this.recentLogs.length & 15) === 0) { // Every 16 logs instead of 10 (power of 2)
+    if ((this.recentLogs.length & this.LOG_CLEANUP_INTERVAL_MASK) === 0) {
       this.validateLogsSizeAccuracy();
     }
   }
@@ -494,7 +504,13 @@ export class AgentManager {
   }
 
   public shutdown() {
-    console.log("Shutting down all workers...");
+    console.log('Shutting down all workers...');
+    
+    // Clear pruning interval
+    if (this.pruningInterval) {
+      clearInterval(this.pruningInterval);
+      this.pruningInterval = null;
+    }
     
     // Shutdown priority queue system if enabled
     if (this.investigationScheduler) {

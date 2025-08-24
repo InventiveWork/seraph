@@ -42,7 +42,7 @@ export class SetupWizard {
   constructor() {
     this.rl = readline.createInterface({
       input: process.stdin,
-      output: process.stdout
+      output: process.stdout,
     });
   }
 
@@ -62,7 +62,7 @@ export class SetupWizard {
     const defaultText = defaultValue ? 'Y/n' : 'y/N';
     const answer = await this.question(`${prompt} (${defaultText})`);
     
-    if (!answer) return defaultValue;
+    if (!answer) {return defaultValue;}
     return answer.toLowerCase().startsWith('y');
   }
 
@@ -123,17 +123,17 @@ export class SetupWizard {
           netstat.stdout?.on('data', (data) => output += data.toString());
           netstat.on('close', () => {
             if (!output.includes(`:${port}`)) {
-              if (!detected.server) detected.server = { port: 0, workers: 4 };
+              if (!detected.server) {detected.server = { port: 0, workers: 4 };}
               detected.server.port = port;
             }
             resolve();
           });
         });
         
-        if (detected.server?.port) break;
+        if (detected.server?.port) {break;}
       } catch {
         // Fallback to default port
-        if (!detected.server) detected.server = { port: 8080, workers: 4 };
+        if (!detected.server) {detected.server = { port: 8080, workers: 4 };}
         detected.server.port = 8080;
         break;
       }
@@ -143,16 +143,16 @@ export class SetupWizard {
     const apiKeys = {
       gemini: process.env.GEMINI_API_KEY,
       anthropic: process.env.ANTHROPIC_API_KEY,
-      openai: process.env.OPENAI_API_KEY
+      openai: process.env.OPENAI_API_KEY,
     };
 
     if (apiKeys.gemini || apiKeys.anthropic || apiKeys.openai) {
       console.log(formatter.success('Found API keys in environment variables'));
-      if (!detected.llm) detected.llm = { provider: 'gemini' };
+      if (!detected.llm) {detected.llm = { provider: 'gemini' };}
       
-      if (apiKeys.gemini) detected.llm.provider = 'gemini';
-      else if (apiKeys.anthropic) detected.llm.provider = 'anthropic';
-      else if (apiKeys.openai) detected.llm.provider = 'openai';
+      if (apiKeys.gemini) {detected.llm.provider = 'gemini';}
+      else if (apiKeys.anthropic) {detected.llm.provider = 'anthropic';}
+      else if (apiKeys.openai) {detected.llm.provider = 'openai';}
     }
 
     return detected;
@@ -165,18 +165,18 @@ export class SetupWizard {
       { 
         value: 'gemini', 
         label: 'Google Gemini', 
-        description: 'Fast, cost-effective, great for most use cases' 
+        description: 'Fast, cost-effective, great for most use cases', 
       },
       { 
         value: 'anthropic', 
         label: 'Anthropic Claude', 
-        description: 'Excellent reasoning, good for complex analysis' 
+        description: 'Excellent reasoning, good for complex analysis', 
       },
       { 
         value: 'openai', 
         label: 'OpenAI GPT', 
-        description: 'Well-established, reliable performance' 
-      }
+        description: 'Well-established, reliable performance', 
+      },
     ], 0);
 
     this.config.llm = { provider };
@@ -188,19 +188,19 @@ export class SetupWizard {
       case 'gemini':
         modelOptions = [
           { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash', description: 'Fast and cost-effective' },
-          { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro', description: 'Higher quality, more expensive' }
+          { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro', description: 'Higher quality, more expensive' },
         ];
         break;
       case 'anthropic':
         modelOptions = [
           { value: 'claude-3-5-haiku-20241022', label: 'Claude 3.5 Haiku', description: 'Fast and efficient' },
-          { value: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet', description: 'Balanced performance' }
+          { value: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet', description: 'Balanced performance' },
         ];
         break;
       case 'openai':
         modelOptions = [
           { value: 'gpt-4o-mini', label: 'GPT-4O Mini', description: 'Cost-effective' },
-          { value: 'gpt-4o', label: 'GPT-4O', description: 'Higher performance' }
+          { value: 'gpt-4o', label: 'GPT-4O', description: 'Higher performance' },
         ];
         break;
     }
@@ -248,7 +248,7 @@ export class SetupWizard {
       mcpServer: await this.confirm('Enable built-in MCP server for tool integrations?', true),
       redisCache: await this.confirm('Enable Redis caching to reduce LLM costs?', false),
       gitIntegration: await this.confirm('Enable Git integration for code analysis?', true),
-      prometheusIntegration: await this.confirm('Enable Prometheus integration?', false)
+      prometheusIntegration: await this.confirm('Enable Prometheus integration?', false),
     };
   }
 
@@ -257,7 +257,7 @@ export class SetupWizard {
     
     this.config.integrations = {};
 
-    if (this.config.features && this.config.features.gitIntegration) {
+    if (this.config.features?.gitIntegration) {
       console.log(formatter.info('Git Integration Setup'));
       
       const defaultPath = this.config.integrations?.gitRepoPath || process.cwd();
@@ -275,13 +275,13 @@ export class SetupWizard {
       }
     }
 
-    if (this.config.features && this.config.features.prometheusIntegration) {
+    if (this.config.features?.prometheusIntegration) {
       console.log(formatter.info('Prometheus Integration Setup'));
       const prometheusUrl = await this.question('Prometheus server URL', 'http://localhost:9090');
       this.config.integrations.prometheusUrl = prometheusUrl;
     }
 
-    if (this.config.features && this.config.features.redisCache) {
+    if (this.config.features?.redisCache) {
       console.log(formatter.info('Redis Cache Setup'));
       const host = await this.question('Redis host', 'localhost');
       const portStr = await this.question('Redis port', '6379');
@@ -289,7 +289,7 @@ export class SetupWizard {
       
       this.config.integrations.redis = {
         host,
-        port: parseInt(portStr) || 6379
+        port: parseInt(portStr) || 6379,
       };
       
       if (password) {
@@ -303,10 +303,10 @@ export class SetupWizard {
       llm: {
         provider: this.config.llm?.provider || 'gemini',
         ...(this.config.llm?.model && { model: this.config.llm.model }),
-        ...(this.config.llm?.apiKey && { apiKey: this.config.llm.apiKey })
+        ...(this.config.llm?.apiKey && { apiKey: this.config.llm.apiKey }),
       },
       port: this.config.server?.port || 8080,
-      workers: this.config.server?.workers || 4
+      workers: this.config.server?.workers || 4,
     };
 
     if (this.config.features && this.config.features.mcpServer && this.config.integrations && (this.config.integrations.gitRepoPath || this.config.integrations.prometheusUrl)) {
@@ -325,11 +325,11 @@ export class SetupWizard {
       }
     }
 
-    if (this.config.features && this.config.features.redisCache && this.config.integrations && this.config.integrations.redis) {
+    if (this.config.features && this.config.features.redisCache && this.config.integrations?.redis) {
       finalConfig.llmCache = {
         redis: this.config.integrations.redis,
         similarityThreshold: 0.85,
-        ttlSeconds: 3600
+        ttlSeconds: 3600,
       };
     }
 
@@ -390,7 +390,7 @@ export class SetupWizard {
       console.log(formatter.section('Next Steps', [
         'seraph start - Start the agent with your new configuration',
         'seraph status --verbose - Check detailed agent status',
-        'seraph chat "Hello" - Test the agent chat functionality'
+        'seraph chat "Hello" - Test the agent chat functionality',
       ], options));
 
       // Environment variable reminder

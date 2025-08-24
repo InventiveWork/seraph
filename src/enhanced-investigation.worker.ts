@@ -26,7 +26,7 @@ async function enhancedInvestigation(
   reason: string, 
   tools: AgentTool[], 
   investigationId: string,
-  sessionId?: string
+  sessionId?: string,
 ): Promise<any> {
   
   console.log(`[EnhancedInvestigator ${process.pid}] Starting memory-aware investigation ${investigationId}`);
@@ -54,13 +54,13 @@ async function enhancedInvestigation(
     
     INVESTIGATION STRATEGY:
     ${similarIncidents.length > 0 ? 
-      `- Consider similar recent incidents: ${similarIncidents.map(i => i.reason).join(', ')}` : 
-      '- No similar recent incidents found'
-    }
+    `- Consider similar recent incidents: ${similarIncidents.map(i => i.reason).join(', ')}` : 
+    '- No similar recent incidents found'
+}
     ${relevantPatterns.length > 0 ? 
-      `- Apply known patterns: ${relevantPatterns.map(p => p.signature).join(', ')}` : 
-      '- No established patterns detected'
-    }
+    `- Apply known patterns: ${relevantPatterns.map(p => p.signature).join(', ')}` : 
+    '- No established patterns detected'
+}
     - Use systematic troubleshooting approach
     - Document findings for future reference
     
@@ -69,7 +69,7 @@ async function enhancedInvestigation(
     - Check recent system changes and deployments
     - Correlate with historical incident patterns
     - Use Git tools and Kubernetes diagnostics
-    - Provide actionable resolution steps` 
+    - Provide actionable resolution steps`, 
   }];
   
   const toolUsageLog: Array<{tool: string, timestamp: string, args: any, success: boolean}> = [];
@@ -131,7 +131,7 @@ async function enhancedInvestigation(
             tags: { type: 'array', items: { type: 'string' }, description: 'Tags for this incident.' },
           },
           required: ['summary'],
-        }
+        },
       };
       
       response = await provider.generate(prompt, [...tools, finishTool]);
@@ -181,13 +181,26 @@ async function enhancedInvestigation(
       if (tool) {
         const startTime = Date.now();
         try {
+          let timeout: NodeJS.Timeout | null = null;
+          let onMessage: ((msg: any) => void) | null = null;
+          
           const toolResult = await new Promise((resolve, reject) => {
-            const timeout = setTimeout(() => reject(new Error('Tool execution timed out')), 10000);
+            timeout = setTimeout(() => {
+              if (onMessage && parentPort) {
+                parentPort.removeListener('message', onMessage);
+              }
+              reject(new Error('Tool execution timed out'));
+            }, 10000);
             
-            const onMessage = (msg: any) => {
+            onMessage = (msg: any) => {
               if (msg.type === 'tool_result' && msg.investigationId === investigationId) {
-                clearTimeout(timeout);
-                parentPort?.removeListener('message', onMessage);
+                if (timeout) {
+                  clearTimeout(timeout);
+                  timeout = null;
+                }
+                if (parentPort && onMessage) {
+                  parentPort.removeListener('message', onMessage);
+                }
                 resolve(msg.data);
               }
             };
@@ -195,9 +208,20 @@ async function enhancedInvestigation(
             parentPort?.on('message', onMessage);
             parentPort?.postMessage({ 
               type: 'execute_tool', 
-              data: { name: tool.name, arguments: toolCall.arguments, investigationId } 
+              data: { name: tool.name, arguments: toolCall.arguments, investigationId }, 
             });
-          });
+          })
+            .finally(() => {
+            // Final cleanup - ensure timeout and listener are always cleared
+              if (timeout) {
+                clearTimeout(timeout);
+                timeout = null;
+              }
+              if (onMessage && parentPort) {
+                parentPort.removeListener('message', onMessage);
+                onMessage = null;
+              }
+            });
 
           toolUsageLog.push({
             tool: toolCall.name,
@@ -257,15 +281,15 @@ async function enhancedInvestigation(
   
   // Parse and enhance final analysis
   let finalAnalysis = { 
-    rootCauseAnalysis: "Could not determine root cause.", 
-    impactAssessment: "Unknown.", 
-    suggestedRemediation: ["Manual investigation required."],
-    lessonsLearned: ["Investigate similar patterns in the future."],
+    rootCauseAnalysis: 'Could not determine root cause.', 
+    impactAssessment: 'Unknown.', 
+    suggestedRemediation: ['Manual investigation required.'],
+    lessonsLearned: ['Investigate similar patterns in the future.'],
     memoryInsights: {
       similarIncidents: similarIncidents.length,
       appliedPatterns: relevantPatterns.length,
       newPatternDetected: false,
-    }
+    },
   };
   
   if (finalReportResponse.text) {
@@ -285,7 +309,7 @@ async function enhancedInvestigation(
       similarIncidents,
       appliedPatterns: relevantPatterns,
       memoryStats: await memoryManager.getMemoryStats(),
-    }
+    },
   };
 }
 
@@ -295,7 +319,7 @@ parentPort?.on('message', async (message: any) => {
     const result = await enhancedInvestigation(log, reason, tools, investigationId, sessionId);
     parentPort?.postMessage({ 
       type: 'investigation_complete', 
-      data: { ...result, initialLog: log, triageReason: reason, investigationId } 
+      data: { ...result, initialLog: log, triageReason: reason, investigationId }, 
     });
   }
 });

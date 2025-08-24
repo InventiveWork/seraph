@@ -99,7 +99,7 @@ const defaultConfig: SeraphConfig = {
     provider: 'gemini',
   },
   alertManager: {
-    url: 'http://localhost:9093/api/v2/alerts' // Default for Prometheus Alertmanager
+    url: 'http://localhost:9093/api/v2/alerts', // Default for Prometheus Alertmanager
   },
   preFilters: [],
   rateLimit: {
@@ -174,7 +174,7 @@ export async function loadConfig(): Promise<SeraphConfig> {
   }
 
   if (config.alertManager) {
-    if (userConfig.alertManager?.url !== undefined && typeof userConfig.alertManager.url !== 'string') {
+    if (config.alertManager.url !== undefined && typeof config.alertManager.url !== 'string') {
       throw new Error('Invalid configuration: alertManager.url must be a string.');
     }
   }

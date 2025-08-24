@@ -14,7 +14,7 @@ export interface LogEntry {
 
 const MAX_LOG_SIZE = 1048576; // 1024 * 1024 pre-computed
 const MAX_MESSAGE_LENGTH = 10000;
-const MAX_LOG_SIZE_TENTH = 104857; // MAX_LOG_SIZE * 0.1 pre-computed
+// const MAX_LOG_SIZE_TENTH = 104857; // MAX_LOG_SIZE * 0.1 pre-computed - currently unused
 const ALLOWED_LOG_LEVELS = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'];
 // Create a Set for O(1) lookup instead of O(n) array includes
 const ALLOWED_LOG_LEVELS_SET = new Set(ALLOWED_LOG_LEVELS);
@@ -28,7 +28,7 @@ const SUSPICIOUS_PATTERNS = [
   /javascript:/i,
   /\bon\w+\s*=/i,
   /\$\{.*\}/,
-  /\$\(.*\)/
+  /\$\(.*\)/,
 ];
 
 const SENSITIVE_PATTERNS = [
@@ -37,14 +37,14 @@ const SENSITIVE_PATTERNS = [
   /secret['":\s]*[\w-]+/gi,
   /password['":\s]*[\w-]+/gi,
   /bearer\s+[\w-]+/gi,
-  /authorization['":\s]*[\w-]+/gi
+  /authorization['":\s]*[\w-]+/gi,
 ];
 
 const PATH_PATTERN = /\/[^\s]+/g;
 
 // Reusable objects to reduce garbage collection
 const validationResult = { valid: false, errors: [] as string[] };
-const emptyErrors: string[] = [];
+// const emptyErrors: string[] = []; // Currently unused
 
 export function validateLogEntry(input: string): ValidationResult {
   // Reset reusable array for better memory efficiency
@@ -67,7 +67,7 @@ export function validateLogEntry(input: string): ValidationResult {
 
   // Size validation - use length first as fast check
   if (input.length > MAX_LOG_SIZE || Buffer.byteLength(input, 'utf8') > MAX_LOG_SIZE) {
-    errors.push('Log entry exceeds maximum size of ' + MAX_LOG_SIZE + ' bytes');
+    errors.push(`Log entry exceeds maximum size of ${  MAX_LOG_SIZE  } bytes`);
   }
 
   try {
@@ -79,11 +79,11 @@ export function validateLogEntry(input: string): ValidationResult {
       // Validate parsed JSON structure
       if (typeof parsed === 'object' && parsed !== null) {
         if (parsed.message && typeof parsed.message === 'string' && parsed.message.length > MAX_MESSAGE_LENGTH) {
-          errors.push('Message exceeds maximum length of ' + MAX_MESSAGE_LENGTH + ' characters');
+          errors.push(`Message exceeds maximum length of ${  MAX_MESSAGE_LENGTH  } characters`);
         }
         
         if (parsed.level && !ALLOWED_LOG_LEVELS_SET.has(parsed.level.toLowerCase())) {
-          errors.push('Invalid log level: ' + parsed.level + '. Allowed levels: ' + ALLOWED_LOG_LEVELS.join(', '));
+          errors.push(`Invalid log level: ${  parsed.level  }. Allowed levels: ${  ALLOWED_LOG_LEVELS.join(', ')}`);
         }
         
         // Validate timestamp format if present - optimized
@@ -110,7 +110,7 @@ export function validateLogEntry(input: string): ValidationResult {
     }
   }
 
-    // Check for potential injection patterns using cached patterns - optimized loop
+  // Check for potential injection patterns using cached patterns - optimized loop
   const patterns = SUSPICIOUS_PATTERNS;
   const patternCount = patterns.length;
   for (let i = 0; i < patternCount; i++) {
@@ -146,7 +146,7 @@ export function validateRegexFilter(pattern: string): ValidationResult {
 
   return {
     valid: errors.length === 0,
-    errors
+    errors,
   };
 }
 
@@ -204,7 +204,7 @@ export function validateApiKey(apiKey: string, forceProductionMode = false): Val
 
   return {
     valid: errors.length === 0,
-    errors
+    errors,
   };
 }
 

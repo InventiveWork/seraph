@@ -56,7 +56,7 @@ export class StatusCommand {
       totalMemory: os.totalmem(),
       freeMemory: os.freemem(),
       uptime: os.uptime(),
-      loadAverage: os.loadavg()
+      loadAverage: os.loadavg(),
     };
   }
 
@@ -64,14 +64,14 @@ export class StatusCommand {
     const config = await loadConfig();
     const pidFilePath = path.join(process.cwd(), '.seraph.pid');
     
-    let status: AgentStatus = {
+    const status: AgentStatus = {
       running: false,
       version: '1.0.18',
       mcpEnabled: !!config.builtInMcpServer,
       redisConnected: false,
       totalLogs: 0,
       totalReports: 0,
-      activeInvestigations: 0
+      activeInvestigations: 0,
     };
 
     // Check if PID file exists
@@ -110,7 +110,7 @@ export class StatusCommand {
       
       if (reports.length > 0) {
         const lastReport = reports.sort((a, b) => 
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
         )[0];
         status.lastLogTime = new Date(lastReport.timestamp);
       }
@@ -127,10 +127,10 @@ export class StatusCommand {
     return new Promise((resolve) => {
       const options = {
         hostname: 'localhost',
-        port: port,
+        port,
         path: '/status',
         method: 'GET',
-        timeout: 2000
+        timeout: 2000,
       };
 
       const req = http.request(options, (res) => {
@@ -145,7 +145,7 @@ export class StatusCommand {
               totalLogs: info.totalLogs || 0,
               activeInvestigations: info.activeInvestigations || 0,
               cacheHitRate: info.cacheHitRate,
-              redisConnected: info.redisConnected || false
+              redisConnected: info.redisConnected || false,
             });
           } catch {
             resolve(null);
@@ -175,14 +175,14 @@ export class StatusCommand {
         name: 'Configuration',
         status: 'pass',
         message: 'Configuration file loaded successfully',
-        duration: Date.now() - configStart
+        duration: Date.now() - configStart,
       });
     } catch (error) {
       checks.push({
         name: 'Configuration',
         status: 'fail',
         message: `Configuration error: ${(error as Error).message}`,
-        duration: Date.now() - configStart
+        duration: Date.now() - configStart,
       });
       overallStatus = 'unhealthy';
     }
@@ -197,14 +197,14 @@ export class StatusCommand {
         name: 'Database',
         status: 'pass',
         message: 'SQLite database accessible',
-        duration: Date.now() - dbStart
+        duration: Date.now() - dbStart,
       });
     } catch (error) {
       checks.push({
         name: 'Database',
         status: 'fail',
         message: `Database error: ${(error as Error).message}`,
-        duration: Date.now() - dbStart
+        duration: Date.now() - dbStart,
       });
       overallStatus = 'unhealthy';
     }
@@ -219,15 +219,15 @@ export class StatusCommand {
           name: 'Disk Space',
           status: 'warn',
           message: `Low disk space: ${formatter.formatBytes(freeSpace)} available`,
-          duration: Date.now() - diskStart
+          duration: Date.now() - diskStart,
         });
-        if (overallStatus === 'healthy') overallStatus = 'degraded';
+        if (overallStatus === 'healthy') {overallStatus = 'degraded';}
       } else {
         checks.push({
           name: 'Disk Space',
           status: 'pass',
           message: `Sufficient disk space: ${formatter.formatBytes(freeSpace)} available`,
-          duration: Date.now() - diskStart
+          duration: Date.now() - diskStart,
         });
       }
     } catch (error) {
@@ -235,9 +235,9 @@ export class StatusCommand {
         name: 'Disk Space',
         status: 'warn',
         message: 'Unable to check disk space',
-        duration: Date.now() - diskStart
+        duration: Date.now() - diskStart,
       });
-      if (overallStatus === 'healthy') overallStatus = 'degraded';
+      if (overallStatus === 'healthy') {overallStatus = 'degraded';}
     }
 
     // Check memory usage
@@ -250,15 +250,15 @@ export class StatusCommand {
         name: 'Memory Usage',
         status: 'warn',
         message: `High memory usage: ${memoryUsagePercent.toFixed(1)}%`,
-        duration: Date.now() - memStart
+        duration: Date.now() - memStart,
       });
-      if (overallStatus === 'healthy') overallStatus = 'degraded';
+      if (overallStatus === 'healthy') {overallStatus = 'degraded';}
     } else {
       checks.push({
         name: 'Memory Usage',
         status: 'pass',
         message: `Memory usage: ${memoryUsagePercent.toFixed(1)}%`,
-        duration: Date.now() - memStart
+        duration: Date.now() - memStart,
       });
     }
 
@@ -288,7 +288,7 @@ export class StatusCommand {
     const [systemInfo, agentStatus, healthCheck] = await Promise.all([
       this.getSystemInfo(),
       this.getAgentStatus(),
-      this.performHealthChecks()
+      this.performHealthChecks(),
     ]);
 
     spinner.stop();
@@ -301,7 +301,7 @@ export class StatusCommand {
       `Version: ${agentStatus.version}`,
       agentStatus.port ? `Port: ${agentStatus.port}` : 'Port: Not configured',
       agentStatus.workers ? `Workers: ${agentStatus.workers}` : 'Workers: Not configured',
-      agentStatus.startTime ? `Uptime: ${formatter.formatDuration(Date.now() - agentStatus.startTime.getTime())}` : 'Uptime: N/A'
+      agentStatus.startTime ? `Uptime: ${formatter.formatDuration(Date.now() - agentStatus.startTime.getTime())}` : 'Uptime: N/A',
     ], options));
     console.log();
 
@@ -313,7 +313,7 @@ export class StatusCommand {
       agentStatus.redisConnected
         ? formatter.success('Redis Cache: Connected')
         : formatter.info('Redis Cache: Not connected'),
-      `Cache Hit Rate: ${agentStatus.cacheHitRate ? (agentStatus.cacheHitRate * 100).toFixed(1) + '%' : 'N/A'}`
+      `Cache Hit Rate: ${agentStatus.cacheHitRate ? `${(agentStatus.cacheHitRate * 100).toFixed(1)  }%` : 'N/A'}`,
     ], options));
     console.log();
 
@@ -324,7 +324,7 @@ export class StatusCommand {
       `Total Logs Processed: ${formatter.bold(agentStatus.totalLogs.toString())}`,
       agentStatus.lastLogTime 
         ? `Last Log: ${agentStatus.lastLogTime.toLocaleString()}`
-        : 'Last Log: Never'
+        : 'Last Log: Never',
     ], options));
     console.log();
 
@@ -357,7 +357,7 @@ export class StatusCommand {
         `Total Memory: ${formatter.formatBytes(systemInfo.totalMemory)}`,
         `Free Memory: ${formatter.formatBytes(systemInfo.freeMemory)}`,
         `System Uptime: ${formatter.formatDuration(systemInfo.uptime * 1000)}`,
-        `Load Average: ${systemInfo.loadAverage.map(l => l.toFixed(2)).join(', ')}`
+        `Load Average: ${systemInfo.loadAverage.map(l => l.toFixed(2)).join(', ')}`,
       ], options));
       console.log();
 
@@ -368,7 +368,7 @@ export class StatusCommand {
           `RSS: ${formatter.formatBytes(mem.rss)}`,
           `Heap Used: ${formatter.formatBytes(mem.heapUsed)}`,
           `Heap Total: ${formatter.formatBytes(mem.heapTotal)}`,
-          `External: ${formatter.formatBytes(mem.external)}`
+          `External: ${formatter.formatBytes(mem.external)}`,
         ], options));
         console.log();
       }
@@ -382,7 +382,7 @@ export class StatusCommand {
           `Max Workers: ${config.workers}`,
           `Server Port: ${config.port}`,
           `Built-in MCP: ${config.builtInMcpServer ? 'Enabled' : 'Disabled'}`,
-          `Redis Caching: ${config.llmCache?.redis ? 'Enabled' : 'Disabled'}`
+          `Redis Caching: ${config.llmCache?.redis ? 'Enabled' : 'Disabled'}`,
         ], options));
         console.log();
       } catch (error) {
@@ -396,7 +396,7 @@ export class StatusCommand {
       agentStatus.running ? 'seraph stop - Stop the agent' : 'seraph start - Start the agent',
       'seraph reports list - View all reports',
       'seraph chat "status" - Chat with the agent',
-      'seraph doctor - Run full diagnostics'
+      'seraph doctor - Run full diagnostics',
     ], options));
 
     // Exit with appropriate code

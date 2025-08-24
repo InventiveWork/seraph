@@ -7,7 +7,7 @@ image:
   repository: seraph-agent
   pullPolicy: Never
   # Use our security-fixed image
-  tag: "1.0.15-security"
+  tag: "1.0.18-security"
 
 # Enable RBAC for Kubernetes tools
 rbac:
@@ -82,5 +82,5 @@ secrets:
 
 # Add pod annotations for monitoring
 podAnnotations:
-  seraph.ai/version: "1.0.15-security"
+  seraph.ai/version: "1.0.17-security"
   seraph.ai/security-patch: "path-traversal-fix"

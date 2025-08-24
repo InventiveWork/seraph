@@ -8,7 +8,7 @@ describe('CircuitBreaker', () => {
       failureThreshold: 3,
       recoveryTimeout: 1000,
       monitoringPeriod: 5000,
-      successThreshold: 2
+      successThreshold: 2,
     });
   });
 

@@ -55,18 +55,30 @@ spec:
         {{- end }}
         resources:
           {{- toYaml .Values.redis.resources | nindent 10 }}
+        {{- if .Values.redis.livenessProbe }}
+        livenessProbe:
+          {{- toYaml .Values.redis.livenessProbe | nindent 10 }}
+        {{- else }}
         livenessProbe:
           tcpSocket:
             port: redis
           initialDelaySeconds: 30
           periodSeconds: 10
+        {{- end }}
+        {{- if .Values.redis.readinessProbe }}
+        readinessProbe:
+          {{- toYaml .Values.redis.readinessProbe | nindent 10 }}
+        {{- else }}
         readinessProbe:
           exec:
             command:
             - redis-cli
+            - -a
+            - $(REDIS_PASSWORD)
             - ping
           initialDelaySeconds: 5
           periodSeconds: 5
+        {{- end }}
         {{- if .Values.redis.persistence.enabled }}
         volumeMounts:
         - name: redis-data

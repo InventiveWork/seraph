@@ -37,8 +37,8 @@ export class SQLitePool {
     private options: ConnectionPoolOptions = {
       maxConnections: 5,
       idleTimeout: 30000, // 30 seconds
-      acquireTimeout: 10000 // 10 seconds
-    }
+      acquireTimeout: 10000, // 10 seconds
+    },
   ) {
     this.startCleanupTimer();
   }
@@ -56,29 +56,29 @@ export class SQLitePool {
           try {
             await new Promise<void>((res, rej) => {
               db.run('PRAGMA journal_mode=WAL', (walErr) => {
-                if (walErr) rej(walErr);
-                else res();
+                if (walErr) {rej(walErr);}
+                else {res();}
               });
             });
 
             await new Promise<void>((res, rej) => {
               db.run('PRAGMA synchronous=NORMAL', (syncErr) => {
-                if (syncErr) rej(syncErr);
-                else res();
+                if (syncErr) {rej(syncErr);}
+                else {res();}
               });
             });
 
             await new Promise<void>((res, rej) => {
               db.run('PRAGMA busy_timeout=30000', (timeoutErr) => {
-                if (timeoutErr) rej(timeoutErr);
-                else res();
+                if (timeoutErr) {rej(timeoutErr);}
+                else {res();}
               });
             });
 
             await new Promise<void>((res, rej) => {
               db.run('PRAGMA temp_store=MEMORY', (tempErr) => {
-                if (tempErr) rej(tempErr);
-                else res();
+                if (tempErr) {rej(tempErr);}
+                else {res();}
               });
             });
 
@@ -88,7 +88,7 @@ export class SQLitePool {
               lastUsed: Date.now(),
               get: promisify(db.get.bind(db)),
               all: promisify(db.all.bind(db)),
-              run: promisify(db.run.bind(db))
+              run: promisify(db.run.bind(db)),
             };
 
             resolve(connection);
@@ -100,7 +100,7 @@ export class SQLitePool {
               lastUsed: Date.now(),
               get: promisify(db.get.bind(db)),
               all: promisify(db.all.bind(db)),
-              run: promisify(db.run.bind(db))
+              run: promisify(db.run.bind(db)),
             };
             resolve(connection);
           }
@@ -139,25 +139,43 @@ export class SQLitePool {
 
     // Wait for connection to become available
     return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        const index = this.waitingQueue.findIndex(item => item.resolve === resolve);
-        if (index !== -1) {
-          this.waitingQueue.splice(index, 1);
+      let timeoutHandle: NodeJS.Timeout | null = null;
+      let queueEntry: typeof this.waitingQueue[0] | null = null;
+
+      timeoutHandle = setTimeout(() => {
+        // Atomically remove from queue and prevent double resolution
+        if (queueEntry) {
+          const index = this.waitingQueue.indexOf(queueEntry);
+          if (index !== -1) {
+            this.waitingQueue.splice(index, 1);
+          }
+          queueEntry = null;
         }
+        timeoutHandle = null;
         reject(new Error('Timeout waiting for database connection'));
       }, this.options.acquireTimeout);
 
-      this.waitingQueue.push({
+      queueEntry = {
         resolve: (conn) => {
-          clearTimeout(timeout);
+          if (timeoutHandle) {
+            clearTimeout(timeoutHandle);
+            timeoutHandle = null;
+          }
+          queueEntry = null;
           resolve(conn);
         },
         reject: (error) => {
-          clearTimeout(timeout);
+          if (timeoutHandle) {
+            clearTimeout(timeoutHandle);
+            timeoutHandle = null;
+          }
+          queueEntry = null;
           reject(error);
         },
-        timestamp: Date.now()
-      });
+        timestamp: Date.now(),
+      };
+      
+      this.waitingQueue.push(queueEntry);
     });
   }
 
@@ -174,7 +192,7 @@ export class SQLitePool {
   }
 
   async execute<T>(
-    operation: (conn: PooledConnection) => Promise<T>
+    operation: (conn: PooledConnection) => Promise<T>,
   ): Promise<T> {
     const connection = await this.acquire();
     try {
@@ -232,7 +250,7 @@ export class SQLitePool {
             resolve();
           }
         });
-      })
+      }),
     );
 
     await Promise.all(closePromises);
@@ -248,7 +266,7 @@ export class SQLitePool {
       totalConnections: this.connections.length,
       activeConnections: this.connections.filter(c => c.inUse).length,
       idleConnections: this.connections.filter(c => !c.inUse).length,
-      waitingRequests: this.waitingQueue.length
+      waitingRequests: this.waitingQueue.length,
     };
   }
 }
@@ -261,7 +279,7 @@ export function getPool(dbPath: string = './reports.db'): SQLitePool {
     globalPool = new SQLitePool(dbPath, {
       maxConnections: 5,
       idleTimeout: 30000,
-      acquireTimeout: 10000
+      acquireTimeout: 10000,
     });
   }
   return globalPool;

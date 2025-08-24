@@ -98,7 +98,7 @@ const analyzeLog = async (log: string) => {
     /Starting investigation/i,    // Investigation start logs
     /AlerterClient/i,        // Alerter client logs
     /Report .* saved/i,      // Report save logs
-    /Triage alert received/i // Triage alert logs
+    /Triage alert received/i, // Triage alert logs
   ];
 
   if (routinePatterns.some(pattern => pattern.test(processedLog))) {
@@ -106,7 +106,7 @@ const analyzeLog = async (log: string) => {
   }
 
   // Truncate log for prompt to avoid token limits
-  const truncatedLog = processedLog.length > 1500 ? processedLog.substring(0, 1500) + '...[truncated]' : processedLog;
+  const truncatedLog = processedLog.length > 1500 ? `${processedLog.substring(0, 1500)  }...[truncated]` : processedLog;
 
   const prompt = `
   You are a high-speed SRE triage system. Analyze this log entry and use the available tool to respond.
@@ -158,7 +158,7 @@ const analyzeLog = async (log: string) => {
       metrics.llmCacheMisses?.inc();
     }
 
-    if (!response || !response.toolCalls) {
+    if (!response?.toolCalls) {
       console.error(`[Worker ${process.pid}] Malformed response from LLM:`, response);
       // Default to 'ok' to avoid excessive noise on malformed responses
       return { decision: 'ok', reason: 'Malformed LLM response' };
@@ -183,7 +183,7 @@ const analyzeLog = async (log: string) => {
       if (decisionMatch) {
         return {
           decision: decisionMatch[1] as 'alert' | 'ok',
-          reason: reasonMatch?.[1]?.substring(0, 50) || 'Parsed from malformed response'
+          reason: reasonMatch?.[1]?.substring(0, 50) || 'Parsed from malformed response',
         };
       }
       
@@ -215,6 +215,6 @@ parentPort?.on('message', async (log: string) => {
   const analysis = await analyzeLog(log);
   if (analysis.decision === 'alert') {
     metrics.alertsTriggered.inc({ provider: config.llm?.provider, model: config.llm?.model });
-    parentPort?.postMessage({ type: 'alert', data: { log: log, reason: analysis.reason } });
+    parentPort?.postMessage({ type: 'alert', data: { log, reason: analysis.reason } });
   }
 });

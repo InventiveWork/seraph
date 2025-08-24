@@ -1,4 +1,4 @@
-import { loadConfig, SeraphConfig } from '../config';
+import { SeraphConfig, loadConfig } from '../config';
 import * as fs from 'fs';
 
 jest.mock('fs', () => ({
@@ -25,8 +25,8 @@ describe('loadConfig', () => {
   });
 
   it('should return the default config if no config file is found', async () => {
-    const error = new Error('File not found');
-    (error as any).code = 'ENOENT';
+    const error = new Error('File not found') as Error & { code: string };
+    error.code = 'ENOENT';
     mockedFs.access.mockRejectedValue(error);
     const config = await loadConfig();
     expect(config.port).toBe(8080);
@@ -51,8 +51,8 @@ describe('loadConfig', () => {
 
   it('should use GEMINI_API_KEY for gemini provider', async () => {
     process.env.GEMINI_API_KEY = 'gemini-key';
-    const error = new Error('File not found');
-    (error as any).code = 'ENOENT';
+    const error = new Error('File not found') as Error & { code: string };
+    error.code = 'ENOENT';
     mockedFs.access.mockRejectedValue(error); // No config file
     const config = await loadConfig();
     expect(config.apiKey).toBe('gemini-key');

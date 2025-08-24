@@ -16,7 +16,7 @@ describe('SQLitePool', () => {
     pool = new SQLitePool(TEST_DB_PATH, {
       maxConnections: 3,
       idleTimeout: 1000,
-      acquireTimeout: 5000
+      acquireTimeout: 5000,
     });
   });
 

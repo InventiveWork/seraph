@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI, FunctionDeclarationSchema, Part } from '@google/generative-ai';
+import { FunctionDeclarationSchema, GoogleGenerativeAI, Part } from '@google/generative-ai';
 import { LLMProvider, LLMResponse } from './provider';
 import { SeraphConfig } from '../config';
 import { CircuitBreaker, RetryManager, RetryPredicates } from '../circuit-breaker';
@@ -37,7 +37,7 @@ export class GeminiProvider implements LLMProvider {
       failureThreshold: 5,
       recoveryTimeout: 60000, // 1 minute
       monitoringPeriod: 300000, // 5 minutes
-      successThreshold: 3
+      successThreshold: 3,
     });
     
     this.retryManager = new RetryManager(3, 1000, 30000, true);
@@ -74,7 +74,7 @@ export class GeminiProvider implements LLMProvider {
               toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
             };
           },
-          RetryPredicates.llmErrors
+          RetryPredicates.llmErrors,
         );
       });
     } catch (error) {

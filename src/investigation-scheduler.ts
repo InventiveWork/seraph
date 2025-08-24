@@ -1,7 +1,7 @@
 // Investigation Scheduler - Smart resource allocation and preemption for investigations
 import { Worker } from 'worker_threads';
 import { v4 as uuidv4 } from 'uuid';
-import { PriorityQueue, QueuedAlert, AlertPriority } from './priority-queue';
+import { AlertPriority, PriorityQueue, QueuedAlert } from './priority-queue';
 import { AlertPriorityCalculator, PriorityCalculatorConfig } from './alert-priority-calculator';
 import { metrics } from './metrics';
 
@@ -55,11 +55,12 @@ export class InvestigationScheduler {
   private preemptionCount = 0;
   private burstModeActive = false;
   private burstModeStart = 0;
+  private schedulingInterval: NodeJS.Timeout | null = null;
 
   constructor(
     config: SchedulerConfig,
     priorityCalculatorConfig: PriorityCalculatorConfig,
-    workers: Worker[]
+    workers: Worker[],
   ) {
     this.config = config;
     this.priorityQueue = new PriorityQueue(config.maxQueueSize, true);
@@ -137,7 +138,7 @@ export class InvestigationScheduler {
    */
   async onInvestigationComplete(investigationId: string, success: boolean): Promise<void> {
     const investigation = this.runningInvestigations.get(investigationId);
-    if (!investigation) return;
+    if (!investigation) {return;}
 
     const actualTime = Date.now() - investigation.startTime;
     
@@ -154,7 +155,7 @@ export class InvestigationScheduler {
       investigation.alert.log,
       investigation.alert.reason,
       investigation.alert.priority,
-      actualTime
+      actualTime,
     );
 
     // Cleanup
@@ -180,7 +181,7 @@ export class InvestigationScheduler {
    */
   async onInvestigationTimeout(investigationId: string): Promise<void> {
     const investigation = this.runningInvestigations.get(investigationId);
-    if (!investigation) return;
+    if (!investigation) {return;}
 
     console.error(`[Scheduler] Investigation ${investigationId} timed out after ${this.config.investigationTimeoutMs}ms`);
 
@@ -261,19 +262,45 @@ export class InvestigationScheduler {
    */
   updateConfig(newConfig: Partial<SchedulerConfig>): void {
     this.config = { ...this.config, ...newConfig };
-    console.log(`[Scheduler] Configuration updated`);
+    console.log('[Scheduler] Configuration updated');
   }
 
   /**
    * Shutdown scheduler
    */
   shutdown(): void {
+    // Clear scheduling interval
+    if (this.schedulingInterval) {
+      clearInterval(this.schedulingInterval);
+      this.schedulingInterval = null;
+    }
+    
     this.priorityQueue.shutdown();
     
-    // Clear all running investigations
+    // Clear all running investigations and properly terminate workers
+    const terminationPromises: Promise<void>[] = [];
+    
     for (const investigation of this.runningInvestigations.values()) {
       clearTimeout(investigation.timeoutHandle);
+      
+      // Terminate worker with proper error handling
+      const terminationPromise = new Promise<void>((resolve) => {
+        try {
+          investigation.worker.terminate().then(() => resolve()).catch(() => resolve());
+        } catch {
+          // Synchronous termination fallback
+          resolve();
+        }
+      });
+      terminationPromises.push(terminationPromise);
     }
+    
+    // Wait for all workers to terminate (with timeout)
+    Promise.allSettled(terminationPromises).then(() => {
+      console.log('[Scheduler] All workers terminated during shutdown');
+    }).catch(() => {
+      console.warn('[Scheduler] Some workers failed to terminate cleanly');
+    });
     
     this.runningInvestigations.clear();
   }
@@ -314,7 +341,7 @@ export class InvestigationScheduler {
         sessionId: queuedAlert.sessionId,
         priority: queuedAlert.priority,
         tools: [], // Tools will be added by caller
-      }
+      },
     });
 
     console.log(`[Scheduler] Started investigation ${investigationId} with priority ${AlertPriority[queuedAlert.priority]}`);
@@ -343,7 +370,7 @@ export class InvestigationScheduler {
     let bestScoreDiff = this.config.preemptionThreshold;
 
     for (const investigation of this.runningInvestigations.values()) {
-      if (!investigation.canPreempt) continue;
+      if (!investigation.canPreempt) {continue;}
       
       const scoreDiff = investigation.alert.priorityScore - newScore;
       const priorityDiff = investigation.alert.priority - newPriority;
@@ -359,7 +386,7 @@ export class InvestigationScheduler {
 
   private async preemptInvestigation(
     target: RunningInvestigation, 
-    newAlert: Omit<QueuedAlert, 'id' | 'enqueuedAt'>
+    newAlert: Omit<QueuedAlert, 'id' | 'enqueuedAt'>,
   ): Promise<string> {
     console.log(`[Scheduler] Preempting investigation ${target.id} (${AlertPriority[target.alert.priority]}) for higher priority alert (${AlertPriority[newAlert.priority]})`);
 
@@ -390,7 +417,7 @@ export class InvestigationScheduler {
     this.preemptionCount++;
     metrics.preemptions?.inc({ 
       preempted_priority: AlertPriority[target.alert.priority],
-      new_priority: AlertPriority[newAlert.priority]
+      new_priority: AlertPriority[newAlert.priority],
     });
 
     // Start new investigation
@@ -441,14 +468,14 @@ export class InvestigationScheduler {
 
   private startPeriodicScheduling(): void {
     // Check queue every 5 seconds for scheduling opportunities
-    setInterval(() => {
+    this.schedulingInterval = setInterval(() => {
       this.scheduleNextFromQueue();
       this.updateMetrics();
     }, 5000);
   }
 
   private activateBurstMode(): void {
-    if (this.burstModeActive) return;
+    if (this.burstModeActive) {return;}
     
     this.burstModeActive = true;
     this.burstModeStart = Date.now();
@@ -458,7 +485,7 @@ export class InvestigationScheduler {
   }
 
   private deactivateBurstMode(): void {
-    if (!this.burstModeActive) return;
+    if (!this.burstModeActive) {return;}
     
     const duration = Date.now() - this.burstModeStart;
     this.burstModeActive = false;
@@ -468,7 +495,7 @@ export class InvestigationScheduler {
   }
 
   private shouldDeactivateBurstMode(): boolean {
-    if (!this.burstModeActive) return false;
+    if (!this.burstModeActive) {return false;}
     
     // Deactivate if no critical/high priority alerts in queue
     const queueMetrics = this.priorityQueue.getMetrics();
@@ -482,13 +509,13 @@ export class InvestigationScheduler {
   }
 
   private calculatePriorityAccuracy(completions: typeof this.completedInvestigations): number {
-    if (completions.length === 0) return 0;
+    if (completions.length === 0) {return 0;}
     
     // Simple accuracy metric: percentage of investigations that finished 
     // within 150% of estimated time
     const accurate = completions.filter(c => 
       c.actualTime <= c.estimatedTime * 1.5 && 
-      c.actualTime >= c.estimatedTime * 0.5
+      c.actualTime >= c.estimatedTime * 0.5,
     ).length;
     
     return (accurate / completions.length) * 100;

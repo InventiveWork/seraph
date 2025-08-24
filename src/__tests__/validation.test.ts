@@ -1,9 +1,9 @@
 import { 
-  validateLogEntry, 
-  validateRegexFilter, 
+  generateCorrelationId, 
   sanitizeErrorMessage, 
-  validateApiKey,
-  generateCorrelationId 
+  validateApiKey, 
+  validateLogEntry,
+  validateRegexFilter, 
 } from '../validation';
 
 describe('validateLogEntry', () => {
@@ -17,7 +17,7 @@ describe('validateLogEntry', () => {
     const log = JSON.stringify({
       level: 'error',
       message: 'Test error message',
-      timestamp: '2024-01-01T00:00:00Z'
+      timestamp: '2024-01-01T00:00:00Z',
     });
     const result = validateLogEntry(log);
     expect(result.valid).toBe(true);
@@ -40,7 +40,7 @@ describe('validateLogEntry', () => {
   it('should reject invalid log levels', () => {
     const log = JSON.stringify({
       level: 'invalid_level',
-      message: 'Test message'
+      message: 'Test message',
     });
     const result = validateLogEntry(log);
     expect(result.valid).toBe(false);
@@ -51,7 +51,7 @@ describe('validateLogEntry', () => {
     const log = JSON.stringify({
       level: 'info',
       message: 'Test message',
-      timestamp: 'invalid-timestamp'
+      timestamp: 'invalid-timestamp',
     });
     const result = validateLogEntry(log);
     expect(result.valid).toBe(false);
@@ -62,7 +62,7 @@ describe('validateLogEntry', () => {
     const longMessage = 'x'.repeat(15000);
     const log = JSON.stringify({
       level: 'info',
-      message: longMessage
+      message: longMessage,
     });
     const result = validateLogEntry(log);
     expect(result.valid).toBe(false);
