@@ -106,7 +106,7 @@ export class AlertPriorityCalculator {
    */
   updateHistoricalPattern(log: string, reason: string, actualPriority: AlertPriority, investigationTime: number): void {
     const pattern = this.extractPattern(log, reason);
-    const frequency = this.historicalPatterns.get(pattern) || 0;
+    const frequency = this.historicalPatterns.get(pattern) ?? 0;
     
     // Weight recent patterns more heavily
     const newFrequency = frequency * 0.9 + (actualPriority <= AlertPriority.HIGH ? 1 : 0.5);
@@ -160,9 +160,9 @@ export class AlertPriorityCalculator {
     }
     
     // Check configured keywords
-    const criticalKeywords = this.config.criticalKeywords || [];
-    const highKeywords = this.config.highPriorityKeywords || [];
-    const mediumKeywords = this.config.mediumPriorityKeywords || [];
+    const criticalKeywords = this.config.criticalKeywords ?? [];
+    const highKeywords = this.config.highPriorityKeywords ?? [];
+    const mediumKeywords = this.config.mediumPriorityKeywords ?? [];
     
     for (const keyword of criticalKeywords) {
       if (text.includes(keyword.toLowerCase())) {
@@ -251,7 +251,7 @@ export class AlertPriorityCalculator {
 
   private calculateHistoricalScore(log: string, reason: string): number {
     const pattern = this.extractPattern(log, reason);
-    const frequency = this.historicalPatterns.get(pattern) || 0;
+    const frequency = this.historicalPatterns.get(pattern) ?? 0;
     
     // Convert frequency to score (0-1)
     // Higher frequency = higher priority (common problems need faster resolution)

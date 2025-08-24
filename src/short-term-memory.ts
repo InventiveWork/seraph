@@ -129,7 +129,7 @@ export class ShortTermMemory extends SimpleRedisCache {
       // Update pattern tracking
       await this.updatePatternTracking(fullIncident);
 
-      console.log(`[ShortTermMemory] Remembered incident ${id} with ${fullIncident.correlatedIncidents?.length || 0} correlations`);
+      console.log(`[ShortTermMemory] Remembered incident ${id} with ${fullIncident.correlatedIncidents?.length ?? 0} correlations`);
       return id;
 
     } catch (error) {
@@ -571,7 +571,7 @@ export class ShortTermMemory extends SimpleRedisCache {
     return `${errorType} issues in ${service} service`;
   }
 
-  private extractErrorType(log: string): string {
+  protected extractErrorType(log: string): string {
     const errorPatterns = {
       'connection': ['connection', 'timeout', 'refused', 'unreachable'],
       'memory': ['memory', 'oom', 'heap', 'allocation'],

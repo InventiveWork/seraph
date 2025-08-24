@@ -50,16 +50,18 @@ describe('Agent Worker', () => {
     // Reset the mock before import to capture the new handler
     mockParentPort.on.mockImplementation((event, handler) => {
       if (event === 'message') {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         capturedHandler = handler;
       }
     });
 
     // Import the module to trigger the worker code
     jest.isolateModules(() => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       require('../agent.worker');
     });
     
-    // @ts-ignore
+    // @ts-expect-error - Test setup requires this assignment
     messageHandler = capturedHandler;
   });
 
@@ -84,7 +86,9 @@ describe('Agent Worker', () => {
 
     await messageHandler(log);
 
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mockLlmProvider.generate).toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(metrics.alertsTriggered.inc).toHaveBeenCalled();
     expect(mockParentPort.postMessage).toHaveBeenCalledWith({
       type: 'alert',
@@ -104,7 +108,9 @@ describe('Agent Worker', () => {
 
     await messageHandler(log);
 
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mockLlmProvider.generate).toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(metrics.alertsTriggered.inc).not.toHaveBeenCalled();
     expect(mockParentPort.postMessage).not.toHaveBeenCalled();
   });

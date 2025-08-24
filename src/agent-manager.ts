@@ -55,13 +55,13 @@ export class AgentManager {
 
   constructor(config: SeraphConfig) {
     this.config = config;
-    this.maxLogsSize = (config.recentLogsMaxSizeMb || 10) * 1024 * 1024; // Cache calculation
-    this.workerCount = config.workers || 4; // Cache worker count
+    this.maxLogsSize = (config.recentLogsMaxSizeMb ?? 10) * 1024 * 1024; // Cache calculation
+    this.workerCount = config.workers ?? 4; // Cache worker count
     this.maxLogSizeTenth = this.maxLogsSize * 0.1; // Pre-compute 10% threshold
-    this.priorityQueueEnabled = config.priorityQueue?.enabled || false;
+    this.priorityQueueEnabled = config.priorityQueue?.enabled ?? false;
     this.reportStore = new ReportStore();
     this.alerterClient = new AlerterClient(config);
-    this.builtInMcpUrl = `http://localhost:${(this.config.port || 8080) + 1}/mcp`;
+    this.builtInMcpUrl = `http://localhost:${(this.config.port ?? 8080) + 1}/mcp`;
     this.schedulePruning();
     this.initializationPromise = this.initialize();
   }
@@ -111,32 +111,32 @@ export class AgentManager {
     console.log('[AgentManager] Initializing priority queue system...');
     
     const schedulerConfig: SchedulerConfig = {
-      maxConcurrentInvestigations: this.config.priorityQueue?.maxConcurrentInvestigations || 5,
-      maxQueueSize: this.config.priorityQueue?.maxQueueSize || 100,
-      investigationTimeoutMs: this.config.priorityQueue?.investigationTimeoutMs || 300000, // 5 min
-      preemptionEnabled: this.config.priorityQueue?.preemptionEnabled || true,
-      preemptionThreshold: this.config.priorityQueue?.preemptionThreshold || 0.3,
-      burstModeEnabled: this.config.priorityQueue?.burstModeEnabled || true,
-      burstModeConcurrency: this.config.priorityQueue?.burstModeConcurrency || 8,
-      burstModeThreshold: this.config.priorityQueue?.burstModeThreshold || 2, // HIGH priority
+      maxConcurrentInvestigations: this.config.priorityQueue?.maxConcurrentInvestigations ?? 5,
+      maxQueueSize: this.config.priorityQueue?.maxQueueSize ?? 100,
+      investigationTimeoutMs: this.config.priorityQueue?.investigationTimeoutMs ?? 300000, // 5 min
+      preemptionEnabled: this.config.priorityQueue?.preemptionEnabled ?? true,
+      preemptionThreshold: this.config.priorityQueue?.preemptionThreshold ?? 0.3,
+      burstModeEnabled: this.config.priorityQueue?.burstModeEnabled ?? true,
+      burstModeConcurrency: this.config.priorityQueue?.burstModeConcurrency ?? 8,
+      burstModeThreshold: this.config.priorityQueue?.burstModeThreshold ?? 2, // HIGH priority
     };
 
     const priorityCalculatorConfig: PriorityCalculatorConfig = {
-      weights: this.config.priorityQueue?.priorityWeights || {
+      weights: this.config.priorityQueue?.priorityWeights ?? {
         keywords: 0.3,
         serviceImpact: 0.4,
         timeContext: 0.2,
         historical: 0.1,
       },
-      services: this.config.priorityQueue?.services || [],
-      businessHours: this.config.priorityQueue?.businessHours || {
+      services: this.config.priorityQueue?.services ?? [],
+      businessHours: this.config.priorityQueue?.businessHours ?? {
         start: 9,
         end: 17,
         timezone: 'UTC',
       },
-      criticalKeywords: this.config.priorityQueue?.criticalKeywords || [],
-      highPriorityKeywords: this.config.priorityQueue?.highPriorityKeywords || [],
-      mediumPriorityKeywords: this.config.priorityQueue?.mediumPriorityKeywords || [],
+      criticalKeywords: this.config.priorityQueue?.criticalKeywords ?? [],
+      highPriorityKeywords: this.config.priorityQueue?.highPriorityKeywords ?? [],
+      mediumPriorityKeywords: this.config.priorityQueue?.mediumPriorityKeywords ?? [],
     };
 
     this.investigationScheduler = new InvestigationScheduler(
@@ -213,7 +213,7 @@ export class AgentManager {
     worker.on('error', (err) => console.error(`Worker ${type} ${index} error:`, err));
     worker.on('exit', (code) => {
       if (code !== 0) {
-        const attempts = (this.restartAttempts.get(index) || 0) + 1;
+        const attempts = (this.restartAttempts.get(index) ?? 0) + 1;
         this.restartAttempts.set(index, attempts);
         if (attempts <= this.MAX_RESTART_ATTEMPTS) {
           console.error(`${type} worker ${index} stopped. Restarting... (attempt ${attempts}/${this.MAX_RESTART_ATTEMPTS})`);
@@ -292,7 +292,7 @@ export class AgentManager {
           }
         })
         .catch(error => {
-          console.error(`[AgentManager] Error scheduling alert: ${error.message || error}`);
+          console.error(`[AgentManager] Error scheduling alert: ${error.message ?? error}`);
         });
     } catch (error) {
       console.error(`[AgentManager] Synchronous error scheduling alert: ${error instanceof Error ? error.message : error}`);

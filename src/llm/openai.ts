@@ -32,7 +32,7 @@ export class OpenAIProvider implements LLMProvider {
     }
 
     this.openai = new OpenAI({ apiKey: config.apiKey });
-    this.model = config.llm?.model || 'gpt-4-turbo';
+    this.model = config.llm?.model ?? 'gpt-4-turbo';
     
     this.circuitBreaker = new CircuitBreaker({
       failureThreshold: 5,

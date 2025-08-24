@@ -34,8 +34,8 @@ export function resetRequestCounts() {
 }
 
 export function startServer(config: SeraphConfig, agentManager: AgentManager) {
-  const RATE_LIMIT_WINDOW = config.rateLimit?.window || 60000;
-  const RATE_LIMIT_MAX_REQUESTS = config.rateLimit?.maxRequests || 100;
+  const RATE_LIMIT_WINDOW = config.rateLimit?.window ?? 60000;
+  const RATE_LIMIT_MAX_REQUESTS = config.rateLimit?.maxRequests ?? 100;
 
   const intervalId = setInterval(() => requestCounts.clear(), RATE_LIMIT_WINDOW);
 
@@ -89,7 +89,7 @@ export function startServer(config: SeraphConfig, agentManager: AgentManager) {
 
     if (req.url === '/logs' && req.method === 'POST') {
       if (clientIp) {
-        const requestCount = (requestCounts.get(clientIp) || 0) + 1;
+        const requestCount = (requestCounts.get(clientIp) ?? 0) + 1;
         requestCounts.set(clientIp, requestCount);
         if (requestCount > RATE_LIMIT_MAX_REQUESTS) {
           res.writeHead(429, { 'Content-Type': 'application/json' });
@@ -248,7 +248,7 @@ export function startServer(config: SeraphConfig, agentManager: AgentManager) {
         mcpEnabled: !!config.builtInMcpServer,
         redisConnected: false,
         cacheHitRate: null,
-        version: '1.0.18',
+        version: '1.0.20',
         nodeVersion: process.version,
         platform: process.platform,
         arch: process.arch,

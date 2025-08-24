@@ -53,7 +53,7 @@ export class SetupWizard {
     
     return new Promise((resolve) => {
       this.rl.question(displayPrompt, (answer) => {
-        resolve(answer.trim() || defaultValue || '');
+        resolve(answer.trim() || (defaultValue ?? ''));
       });
     });
   }
@@ -104,7 +104,7 @@ export class SetupWizard {
     // Detect Git repository
     try {
       await fs.promises.access(path.join(process.cwd(), '.git'));
-      detected.integrations = detected.integrations || {};
+      detected.integrations = detected.integrations ?? {};
       detected.integrations.gitRepoPath = process.cwd();
       console.log(formatter.success('Git repository detected in current directory'));
     } catch {
@@ -231,12 +231,12 @@ export class SetupWizard {
   private async setupServer(): Promise<void> {
     console.log(formatter.header('Server Configuration'));
     
-    const defaultPort = this.config.server?.port || 8080;
+    const defaultPort = this.config.server?.port ?? 8080;
     const portStr = await this.question('Server port', defaultPort.toString());
     const port = parseInt(portStr) || defaultPort;
     
     const workersStr = await this.question('Number of analysis workers', '4');
-    const workers = parseInt(workersStr) || 4;
+    const workers = parseInt(workersStr) ?? 4;
     
     this.config.server = { port, workers };
   }
@@ -289,7 +289,7 @@ export class SetupWizard {
       
       this.config.integrations.redis = {
         host,
-        port: parseInt(portStr) || 6379,
+        port: parseInt(portStr) ?? 6379,
       };
       
       if (password) {
@@ -301,12 +301,12 @@ export class SetupWizard {
   private async generateConfig(): Promise<string> {
     const finalConfig: any = {
       llm: {
-        provider: this.config.llm?.provider || 'gemini',
+        provider: this.config.llm?.provider ?? 'gemini',
         ...(this.config.llm?.model && { model: this.config.llm.model }),
         ...(this.config.llm?.apiKey && { apiKey: this.config.llm.apiKey }),
       },
-      port: this.config.server?.port || 8080,
-      workers: this.config.server?.workers || 4,
+      port: this.config.server?.port ?? 8080,
+      workers: this.config.server?.workers ?? 4,
     };
 
     if (this.config.features && this.config.features.mcpServer && this.config.integrations && (this.config.integrations.gitRepoPath || this.config.integrations.prometheusUrl)) {

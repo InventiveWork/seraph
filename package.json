@@ -1,6 +1,6 @@
 {
   "name": "seraph-agent",
-  "version": "1.0.19-1",
+  "version": "1.0.20",
   "description": "An extremely lightweight, SRE autonomous AI agent for seamless integration with common observability tasks.",
   "main": "dist/index.js",
   "bin": {
@@ -11,6 +11,7 @@
     "build": "tsc",
     "dev": "ts-node src/index.ts",
     "lint": "eslint . --ext .ts",
+    "lint:source": "eslint . --ext .ts --ignore-pattern 'src/__tests__/**'",
     "test": "npm run build && jest --runInBand --detectOpenHandles"
   },
   "keywords": [

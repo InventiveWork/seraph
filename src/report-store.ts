@@ -174,7 +174,7 @@ export class ReportStore {
         return await conn.run(sql, [cutoffIsoString]);
       });
 
-      console.log(`Successfully pruned ${result.changes || 0} reports older than ${days} days.`);
+      console.log(`Successfully pruned ${result.changes ?? 0} reports older than ${days} days.`);
     } catch (error) {
       const sanitizedError = sanitizeErrorMessage(error as Error);
       console.error('Error pruning old reports:', sanitizedError);

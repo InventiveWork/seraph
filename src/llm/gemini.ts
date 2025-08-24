@@ -31,7 +31,7 @@ export class GeminiProvider implements LLMProvider {
     }
 
     this.genAI = new GoogleGenerativeAI(config.apiKey);
-    this.model = config.llm?.model || 'gemini-2.5-flash-lite';
+    this.model = config.llm?.model ?? 'gemini-2.5-flash-lite';
     
     this.circuitBreaker = new CircuitBreaker({
       failureThreshold: 5,
