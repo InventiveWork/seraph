@@ -1,6 +1,6 @@
 // Alert Priority Calculator Tests
 import { AlertPriorityCalculator, PriorityCalculatorConfig } from './alert-priority-calculator';
-import { AlertPriority } from './priority-queue';
+import { AlertPriority } from './scheduler';
 
 describe('AlertPriorityCalculator', () => {
   let calculator: AlertPriorityCalculator;

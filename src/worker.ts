@@ -1,16 +1,16 @@
-// src/investigation.worker.ts
+// src/worker.ts - Unified Worker for all investigation types
 
 import { parentPort, workerData } from 'worker_threads';
 import { createLLMProvider } from './llm';
 import { LLMProvider } from './llm/provider';
-import { AgentTool } from './mcp-manager';
-import { MemoryManager } from './memory-manager';
+import { AgentTool } from './mcp-server';
+import { MemoryManager, SimpleRedisCache } from './memory';
 import { metrics } from './metrics';
 
 const { config } = workerData;
 const provider: LLMProvider = createLLMProvider(config);
 
-// Initialize memory manager with investigation focus
+// Initialize memory manager for enhanced investigations
 const memoryManager = new MemoryManager({
   redis: config.llmCache?.redis ? {
     url: config.llmCache.redis.url ?? process.env.REDIS_URL,
@@ -23,7 +23,229 @@ const memoryManager = new MemoryManager({
   maxIncidents: 1000,     // Track last 1000 incidents
 });
 
-async function investigate(log: string, reason: string, tools: AgentTool[], investigationId: string, sessionId?: string): Promise<any> {
+// Initialize simple Redis cache for basic caching
+const llmCache = new SimpleRedisCache({
+  redis: config.llmCache?.redis ? {
+    url: config.llmCache.redis.url ?? process.env.REDIS_URL,
+    host: config.llmCache.redis.host ?? process.env.REDIS_HOST ?? 'localhost',
+    port: config.llmCache.redis.port ?? parseInt(process.env.REDIS_PORT ?? '6379'),
+    password: config.llmCache.redis.password ?? process.env.REDIS_PASSWORD,
+    keyPrefix: config.llmCache.redis.keyPrefix ?? 'agent:',
+  } : undefined,
+  similarityThreshold: config.llmCache?.similarityThreshold ?? 0.85,
+  ttlSeconds: config.llmCache?.ttlSeconds ?? 3600, // 1 hour
+  verbose: config.verbose ?? false,
+});
+
+// Initialize cache connection on worker startup with proper Redis coordination
+let cacheInitialized = false;
+(async () => {
+  try {
+    // Check if Redis caching is enabled in the configuration
+    const redisCachingEnabled = !!(config.llmCache?.redis);
+    
+    if (redisCachingEnabled) {
+      console.log(`[Worker ${process.pid}] Redis cache enabled, waiting for readiness...`);
+      const redisReady = await llmCache.waitForRedisReady({
+        enabled: true,
+        maxRetries: 30,      // 30 retries
+        retryDelayMs: 1000,  // 1 second between retries
+        timeoutMs: 60000,    // 60 second total timeout
+      });
+      
+      if (redisReady) {
+        console.log(`[Worker ${process.pid}] Redis cache initialized successfully`);
+      } else {
+        console.log(`[Worker ${process.pid}] Redis cache failed to initialize, continuing without cache`);
+      }
+    } else {
+      console.log(`[Worker ${process.pid}] Redis caching not enabled`);
+    }
+    
+    cacheInitialized = true;
+  } catch (error) {
+    console.error(`[Worker ${process.pid}] Cache initialization error:`, error);
+    cacheInitialized = true; // Continue without cache
+  }
+})();
+
+// ===== BASIC AGENT FUNCTIONALITY =====
+
+async function basicInvestigate(log: string, reason: string, tools?: AgentTool[]): Promise<any> {
+  console.log(`[Agent ${process.pid}] Starting basic investigation`);
+  
+  const availableTools = tools || [];
+  const toolSchemas = availableTools.map(tool => ({ 
+    name: tool.name, 
+    description: tool.description, 
+    inputSchema: tool.inputSchema 
+  }));
+
+  // Wait for cache to be initialized before processing
+  while (!cacheInitialized) {
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+
+  // Filter for network state logs - these are routine and don't need LLM analysis
+  const networkStatePattern = /bridge|state (UP|DOWN)|NOARP|BROADCAST|MULTICAST|interface/i;
+  if (networkStatePattern.test(log) && log.length < 200) {
+    console.log(`[Agent ${process.pid}] Skipping network state log: ${log.substring(0, 100)}`);
+    return {
+      finalAnalysis: {
+        rootCauseAnalysis: 'Network interface state change - routine operation',
+        impactAssessment: 'Minimal impact - normal network stack operation',
+        suggestedRemediation: ['No action required - routine network state transition'],
+        lessonsLearned: ['Network state changes are normal system operations'],
+      },
+      investigationTrace: [
+        { observation: `Filtered network state log: ${log}` },
+        { thought: 'This is a routine network operation that does not require investigation' }
+      ],
+      toolUsage: [],
+    };
+  }
+
+  console.log(`[Agent ${process.pid}] Analyzing: ${log.substring(0, 100)}... with tools: [${toolSchemas.map(t => t.name).join(', ')}]`);
+
+  let cacheKey = `${log}-${reason}`;
+  if (availableTools.length > 0) {
+    cacheKey += `-${toolSchemas.map(t => t.name).sort().join(',')}`;
+  }
+
+  // Check cache first
+  const cachedResult = await llmCache.get(cacheKey);
+  if (cachedResult) {
+    console.log(`[Agent ${process.pid}] Cache hit for log analysis`);
+    metrics.llmCacheHits?.inc();
+    return cachedResult;
+  }
+
+  // Cache miss - generate new analysis
+  console.log(`[Agent ${process.pid}] Cache miss - generating new analysis`);
+  metrics.llmCacheMisses?.inc();
+
+  const systemPrompt = `You are Seraph, an AI SRE agent. Analyze logs to detect anomalies and provide actionable insights.
+
+When you receive a log entry with an anomaly, you should:
+1. Analyze the log for patterns, errors, and potential issues
+2. If tools are available, use them to gather more context
+3. Provide specific, actionable remediation steps
+4. Always use the FINISH tool to conclude your analysis
+
+Available tools: ${JSON.stringify(toolSchemas, null, 2)}`;
+
+  const userPrompt = `
+Log: ${log}
+Reason: ${reason}
+
+Please analyze this log entry and provide insights. Use available tools if helpful, then use FINISH tool to conclude.`;
+
+  const conversation = [
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: userPrompt }
+  ];
+
+  const finishTool = {
+    name: 'FINISH',
+    description: 'Complete the analysis with final conclusions',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        rootCauseAnalysis: { type: 'string', description: 'Analysis of the root cause' },
+        impactAssessment: { type: 'string', description: 'Assessment of impact' },
+        suggestedRemediation: { 
+          type: 'array', 
+          items: { type: 'string' }, 
+          description: 'Specific actionable steps to fix the issue' 
+        },
+        lessonsLearned: { 
+          type: 'array', 
+          items: { type: 'string' }, 
+          description: 'Lessons learned for future reference' 
+        }
+      },
+      required: ['rootCauseAnalysis', 'impactAssessment', 'suggestedRemediation']
+    }
+  };
+
+  const allTools = [...availableTools, finishTool];
+  const scratchpad: any[] = [];
+  const MAX_TURNS = 5;
+
+  for (let turn = 0; turn < MAX_TURNS; turn++) {
+    const currentPrompt = conversation.map(m => `${m.role}: ${m.content}`).join('\n\n');
+    
+    try {
+      const response = await provider.generate(currentPrompt, allTools);
+      
+      if (response.text) {
+        conversation.push({ role: 'assistant', content: response.text });
+        scratchpad.push({ thought: response.text });
+      }
+
+      if (response.toolCalls && response.toolCalls.length > 0) {
+        const toolCall = response.toolCalls[0];
+        
+        if (toolCall.name === 'FINISH') {
+          const analysis = {
+            rootCauseAnalysis: toolCall.arguments.rootCauseAnalysis || 'Unable to determine root cause',
+            impactAssessment: toolCall.arguments.impactAssessment || 'Impact assessment unavailable',
+            suggestedRemediation: toolCall.arguments.suggestedRemediation || ['Manual investigation required'],
+            lessonsLearned: toolCall.arguments.lessonsLearned || ['Continue monitoring for similar issues'],
+          };
+
+          const result = {
+            finalAnalysis: analysis,
+            investigationTrace: scratchpad,
+            toolUsage: [],
+          };
+
+          // Cache the result (convert to LLMResponse format)
+          const cacheableResult = {
+            text: JSON.stringify(result),
+            toolCalls: [],
+          };
+          await llmCache.set(cacheKey, cacheableResult);
+          return result;
+        }
+
+        // Execute other tools via main thread
+        const toolResult = await executeToolViaMainThread(toolCall, availableTools);
+        const resultText = typeof toolResult === 'string' ? toolResult : JSON.stringify(toolResult);
+        
+        conversation.push({ role: 'user', content: `Tool result from ${toolCall.name}: ${resultText}` });
+        scratchpad.push({ observation: `Tool ${toolCall.name} result: ${resultText}` });
+      }
+    } catch (error) {
+      console.error(`[Agent ${process.pid}] Error in turn ${turn}:`, error);
+      break;
+    }
+  }
+
+  // Fallback if no FINISH tool was called
+  const fallbackResult = {
+    finalAnalysis: {
+      rootCauseAnalysis: 'Analysis incomplete - reached maximum turns',
+      impactAssessment: 'Unable to complete impact assessment',
+      suggestedRemediation: ['Manual investigation required'],
+      lessonsLearned: ['Improve tool usage patterns'],
+    },
+    investigationTrace: scratchpad,
+    toolUsage: [],
+  };
+
+  // Cache the result (convert to LLMResponse format)
+  const cacheableResult = {
+    text: JSON.stringify(fallbackResult),
+    toolCalls: [],
+  };
+  await llmCache.set(cacheKey, cacheableResult);
+  return fallbackResult;
+}
+
+// ===== MEMORY-ENHANCED INVESTIGATION =====
+
+async function memoryEnhancedInvestigate(log: string, reason: string, tools: AgentTool[], investigationId: string, sessionId?: string): Promise<any> {
   console.log(`[Investigator ${process.pid}] Starting memory-enhanced investigation ${investigationId}`);
   
   // ===== MEMORY RECALL PHASE =====
@@ -220,28 +442,8 @@ async function investigate(log: string, reason: string, tools: AgentTool[], inve
         const timestamp = new Date().toISOString();
         
         try {
-          // In the worker, we can't execute the tool directly as mcpManager is on the main thread.
-          // We need to ask the main thread to do it.
-          
-          // Set up message listener before sending request to avoid race condition
-          const toolResult = await new Promise((resolve, reject) => {
-            const timeout = setTimeout(() => {
-              parentPort?.removeListener('message', onMessage);
-              reject(new Error('Tool execution timed out'));
-            }, 10000);
-            
-            const onMessage = (msg: any) => {
-              if (msg.type === 'tool_result' && msg.investigationId === investigationId) {
-                clearTimeout(timeout);
-                parentPort?.removeListener('message', onMessage);
-                resolve(msg.data);
-              }
-            };
-            
-            // Attach listener first, then send message to prevent race condition
-            parentPort?.on('message', onMessage);
-            parentPort?.postMessage({ type: 'execute_tool', data: { name: tool.name, arguments: toolCall.arguments, investigationId } });
-          });
+          // Execute tool via main thread
+          const toolResult = await executeToolViaMainThread(toolCall, tools, investigationId);
 
           const executionTime = Date.now() - startTime;
           toolUsageLog.push({
@@ -310,6 +512,7 @@ async function investigate(log: string, reason: string, tools: AgentTool[], inve
     ✗ "Check system resources"
     ✗ "Restart services if needed"
   `;
+  
   // Check cache for final synthesis as well
   const synthesisTokens = Math.min(1000, synthesisPrompt.length / 3);
   const cachedSynthesis = await memoryManager.get(synthesisPrompt, synthesisTokens);
@@ -372,7 +575,7 @@ async function investigate(log: string, reason: string, tools: AgentTool[], inve
         } else {
           // JSON might be truncated, try to close it
           const partial = cleanedResponse.substring(jsonStart);
-          jsonStr = `${partial  }}`;  // Add missing closing brace
+          jsonStr = `${partial}}`;  // Add missing closing brace
         }
       }
       
@@ -416,6 +619,7 @@ async function investigate(log: string, reason: string, tools: AgentTool[], inve
   } else {
     console.error(`[Investigator ${process.pid}] No response text received`);
   }
+  
   return { 
     finalAnalysis, 
     investigationTrace: scratchpad, 
@@ -428,12 +632,146 @@ async function investigate(log: string, reason: string, tools: AgentTool[], inve
   };
 }
 
+// ===== HELPER FUNCTIONS =====
+
+async function executeToolViaMainThread(toolCall: any, availableTools: AgentTool[], investigationId?: string): Promise<any> {
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      parentPort?.removeListener('message', onMessage);
+      reject(new Error('Tool execution timed out'));
+    }, 10000);
+    
+    const onMessage = (msg: any) => {
+      if (msg.type === 'tool_result' && (!investigationId || msg.investigationId === investigationId)) {
+        clearTimeout(timeout);
+        parentPort?.removeListener('message', onMessage);
+        resolve(msg.data);
+      }
+    };
+    
+    // Attach listener first, then send message to prevent race condition
+    parentPort?.on('message', onMessage);
+    parentPort?.postMessage({ 
+      type: 'execute_tool', 
+      data: { 
+        name: toolCall.name, 
+        arguments: toolCall.arguments, 
+        investigationId 
+      } 
+    });
+  });
+}
+
+// ===== LEGACY COMPATIBILITY =====
+
+async function handleLegacyLogMessage(log: string): Promise<void> {
+  try {
+    const llmProvider = createLLMProvider(config);
+    const prompt = `Analyze the following log entry and determine if it indicates a significant error, warning, or other issue that requires attention:
+
+Log: ${log}
+
+Respond with a JSON object containing:
+- decision: either "ok" or "alert"
+- reason: brief explanation of your decision
+
+Example responses:
+{"decision": "alert", "reason": "database connection error detected"}
+{"decision": "ok", "reason": "normal informational log"}`;
+
+    const response = await llmProvider.generate(prompt, [
+      {
+        name: 'log_triage',
+        description: 'Triage a log entry for potential issues',
+        parameters: {
+          type: 'object',
+          properties: {
+            decision: { type: 'string', enum: ['ok', 'alert'] },
+            reason: { type: 'string' }
+          },
+          required: ['decision', 'reason']
+        }
+      }
+    ]);
+
+    // Handle unexpected response format
+    if (!response || typeof response !== 'object' || !response.toolCalls) {
+      throw new Error('Invalid response format from LLM provider');
+    }
+
+    if (response.toolCalls && response.toolCalls.length > 0) {
+      const analysis = response.toolCalls[0].arguments;
+      metrics.logsProcessed.inc();
+
+      if (analysis.decision === 'alert') {
+        metrics.alertsTriggered.inc({ provider: config.llmProvider, model: config.llmModel });
+        parentPort?.postMessage({
+          type: 'alert',
+          data: {
+            log,
+            reason: analysis.reason,
+          },
+        });
+      }
+    }
+  } catch (error) {
+    metrics.analysisErrors.inc({ type: 'legacy' });
+    console.error(`[Worker ${process.pid}] Error in legacy log analysis:`, String(error));
+  }
+}
+
+// ===== MESSAGE HANDLERS =====
 
 parentPort?.on('message', async (message: any) => {
-  if (message.type === 'investigate') {
-    const { log, reason, tools, investigationId, sessionId } = message.data;
-    // Don't initialize MCP in worker - main thread handles all MCP connections
-    const result = await investigate(log, reason, tools, investigationId, sessionId);
-    parentPort?.postMessage({ type: 'investigation_complete', data: { ...result, initialLog: log, triageReason: reason, investigationId } });
+  try {
+    // Handle legacy string messages for backward compatibility
+    if (typeof message === 'string') {
+      await handleLegacyLogMessage(message);
+      return;
+    }
+    
+    switch (message.type) {
+      case 'investigate':
+        const { log, reason, tools, investigationId, sessionId } = message.data;
+        const result = await memoryEnhancedInvestigate(log, reason, tools, investigationId, sessionId);
+        parentPort?.postMessage({ 
+          type: 'investigation_complete', 
+          data: { ...result, initialLog: log, triageReason: reason, investigationId } 
+        });
+        break;
+
+      case 'enhanced_investigate':
+        const enhancedData = message.data;
+        const enhancedResult = await memoryEnhancedInvestigate(
+          enhancedData.log, 
+          enhancedData.reason, 
+          enhancedData.tools, 
+          enhancedData.investigationId,
+          enhancedData.sessionId
+        );
+        parentPort?.postMessage({ 
+          type: 'enhanced_investigation_complete', 
+          data: { ...enhancedResult, initialLog: enhancedData.log, triageReason: enhancedData.reason, investigationId: enhancedData.investigationId } 
+        });
+        break;
+
+      case 'analyze':
+        const { log: basicLog, reason: basicReason, tools: basicTools } = message.data;
+        const basicResult = await basicInvestigate(basicLog, basicReason, basicTools);
+        parentPort?.postMessage({ 
+          type: 'analysis_complete', 
+          data: { ...basicResult, initialLog: basicLog, triageReason: basicReason } 
+        });
+        break;
+
+      default:
+        console.warn(`[Worker ${process.pid}] Unknown message type:`, message.type);
+    }
+  } catch (error) {
+    console.error(`[Worker ${process.pid}] Error handling message:`, error);
+    parentPort?.postMessage({ 
+      type: 'error', 
+      data: { error: error instanceof Error ? error.message : String(error) } 
+    });
   }
 });

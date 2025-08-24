@@ -158,4 +158,23 @@ export const metrics = {
     help: 'Accuracy of priority predictions (percentage).',
     registers: [register],
   }),
+  
+  // Additional metrics for scheduler compatibility
+  investigationsCompleted: new Counter({
+    name: 'seraph_investigations_completed_total',
+    help: 'Total number of completed investigations.',
+    labelNames: ['priority', 'reason'],
+    registers: [register],
+  }),
+  investigationsFailed: new Counter({
+    name: 'seraph_investigations_failed_total',
+    help: 'Total number of failed investigations.',
+    labelNames: ['priority', 'reason'],
+    registers: [register],
+  }),
+  burstModeDeactivations: new Counter({
+    name: 'seraph_burst_mode_deactivations_total',
+    help: 'Total number of burst mode deactivations.',
+    registers: [register],
+  }),
 };

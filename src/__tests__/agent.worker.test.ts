@@ -33,6 +33,9 @@ jest.mock('../metrics', () => ({
     analysisErrors: {
       inc: jest.fn(),
     },
+    logsProcessed: {
+      inc: jest.fn(),
+    },
   },
 }));
 
@@ -58,7 +61,7 @@ describe('Agent Worker', () => {
     // Import the module to trigger the worker code
     jest.isolateModules(() => {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      require('../agent.worker');
+      require('../worker');
     });
     
     // @ts-expect-error - Test setup requires this assignment

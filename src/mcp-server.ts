@@ -1,4 +1,4 @@
-// src/mcp-server.ts
+// src/mcp-server.ts - MCP Server with integrated manager and registry
 
 import * as http from 'http';
 import { execFile, spawn } from 'child_process';
@@ -7,6 +7,179 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
 import fetch from 'node-fetch';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+
+// ===== MCP MANAGER AND REGISTRY =====
+
+export interface AgentTool {
+  name: string;
+  description: string;
+  inputSchema: any;
+  execute: (args: Record<string, any>) => Promise<any>;
+}
+
+export interface McpServerInfo {
+  name: string;
+  description: string;
+  url: string;
+}
+
+export const mcpServerRegistry: McpServerInfo[] = [
+  {
+    name: 'fetch',
+    description: 'Tools for fetching and processing web content.',
+    url: 'https://mcp-fetch-k5344e.a.run.app',
+  },
+  {
+    name: 'filesystem',
+    description: 'Tools for secure, sandboxed file system operations.',
+    url: 'https://mcp-filesystem-k5344e.a.run.app',
+  },
+  {
+    name: 'git',
+    description: 'Tools for reading and searching public Git repositories.',
+    url: 'https://gitmcp.io/docs',
+  },
+  {
+    name: 'time',
+    description: 'Tools for time and timezone conversions.',
+    url: 'https://mcp-time-k5344e.a.run.app',
+  },
+];
+
+class McpManager {
+  private client: Client | null = null;
+  private tools: any = null;
+  private isConnecting: boolean = false;
+  private retryCount: number = 0;
+  private readonly MAX_RETRIES = 5;
+  private readonly RETRY_DELAY_MS = 5000; // 5 seconds
+  private retryTimeoutHandle: NodeJS.Timeout | null = null;
+
+  public isInitialized(): boolean {
+    return this.client !== null && this.tools !== null;
+  }
+
+  public async initialize(serverUrl: string) {
+    if (this.isConnecting) {
+      console.log('Already attempting to connect to MCP server.');
+      return;
+    }
+
+    if (this.isInitialized()) {
+      console.log('MCP manager already initialized.');
+      return;
+    }
+
+    // Cancel any existing retry timeout
+    if (this.retryTimeoutHandle) {
+      clearTimeout(this.retryTimeoutHandle);
+      this.retryTimeoutHandle = null;
+    }
+
+    this.isConnecting = true;
+    try {
+      const transport = new StreamableHTTPClientTransport(new URL(serverUrl));
+      this.client = new Client({
+        name: 'seraph-client',
+        version: '1.0.0',
+      });
+
+      await this.client.connect(transport);
+      console.log(`Successfully connected to MCP server at ${serverUrl}`);
+      this.retryCount = 0; // Reset retry count on successful connection
+
+      const toolResponse = await this.client.listTools();
+      // The response is an object with a 'tools' property which is an array
+      if (toolResponse && Array.isArray(toolResponse.tools)) {
+        this.tools = toolResponse.tools;
+      } else {
+        this.tools = [];
+      }
+
+      if (this.tools.length === 0) {
+        console.log('Warning: The MCP server did not return a valid list of tools. Proceeding without external tools.');
+      }
+      console.log(`Discovered ${this.tools.length} tools.`);
+    } catch (error: any) {
+      this.client = null; // Ensure client is null if connection fails
+      console.log(`Failed to connect to MCP server at ${serverUrl}: ${error.message}`);
+      
+      if (this.retryCount < this.MAX_RETRIES) {
+        this.retryCount++;
+        console.log(`Retrying connection to MCP server in ${this.RETRY_DELAY_MS / 1000}s (Attempt ${this.retryCount}/${this.MAX_RETRIES})...`);
+        this.retryTimeoutHandle = setTimeout(() => {
+          this.retryTimeoutHandle = null;
+          this.initialize(serverUrl);
+        }, this.RETRY_DELAY_MS);
+      } else {
+        console.log('Max retry attempts reached for MCP server connection. Giving up.');
+      }
+    } finally {
+      // Only reset isConnecting if we're not scheduling a retry
+      if (!this.retryTimeoutHandle) {
+        this.isConnecting = false;
+      }
+    }
+  }
+
+  public getDynamicTools(): AgentTool[] {
+    if (!this.client || !this.tools) {
+      return [];
+    }
+
+    const dynamicTools: AgentTool[] = [];
+    for (const tool of this.tools) {
+      dynamicTools.push({
+        name: tool.name,
+        description: tool.description || '',
+        inputSchema: tool.inputSchema,
+        execute: async (args: Record<string, any>) => {
+          if (!this.client) {
+            throw new Error('MCP client is not initialized.');
+          }
+
+          try {
+            const result = await this.client.callTool({
+              name: tool.name,
+              arguments: args,
+            });
+            return result;
+          } catch (error: any) {
+            throw new Error(`Error calling tool ${tool.name}: ${error.message}`);
+          }
+        },
+      });
+    }
+
+    return dynamicTools;
+  }
+
+  public async disconnect(): Promise<void> {
+    if (this.retryTimeoutHandle) {
+      clearTimeout(this.retryTimeoutHandle);
+      this.retryTimeoutHandle = null;
+    }
+
+    if (this.client) {
+      try {
+        await this.client.close();
+      } catch (error) {
+        console.log('Error disconnecting MCP client:', error);
+      }
+      this.client = null;
+    }
+    this.tools = null;
+    this.isConnecting = false;
+    this.retryCount = 0;
+  }
+}
+
+// Create a global MCP manager instance
+export const mcpManager = new McpManager();
+
+// ===== BUILT-IN MCP SERVER =====
 
 export interface McpTool {
   name: string;

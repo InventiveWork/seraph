@@ -1,5 +1,5 @@
 // Test Simple Redis LLM cache functionality
-import { SimpleRedisCache } from '../simple-redis-cache';
+import { SimpleRedisCache } from '../memory';
 
 describe('SimpleRedisCache', () => {
   let cache: SimpleRedisCache;

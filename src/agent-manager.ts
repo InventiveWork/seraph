@@ -5,8 +5,8 @@ import { SeraphConfig } from './config';
 import { AlerterClient } from './alerter';
 import { metrics } from './metrics';
 import { ReportStore } from './report-store';
-import { mcpManager } from './mcp-manager';
-import { InvestigationScheduler, SchedulerConfig } from './investigation-scheduler';
+import { mcpManager } from './mcp-server';
+import { InvestigationScheduler, SchedulerConfig } from './scheduler';
 import { PriorityCalculatorConfig } from './alert-priority-calculator';
 import { join } from 'path';
 import { existsSync } from 'fs';
@@ -167,7 +167,7 @@ export class AgentManager {
 
   private createTriageWorker(index: number) {
     // Always use compiled JS files for workers, even in test environment
-    const workerPath = this.getWorkerPath('agent.worker.js');
+    const workerPath = this.getWorkerPath('worker.js');
     const worker = new Worker(workerPath, { workerData: { config: this.config } });
     this.triageWorkers[index] = worker;
 
@@ -181,7 +181,7 @@ export class AgentManager {
 
   private createInvestigationWorker(index: number) {
     // Always use compiled JS files for workers, even in test environment
-    const workerPath = this.getWorkerPath('investigation.worker.js');
+    const workerPath = this.getWorkerPath('worker.js');
     const worker = new Worker(workerPath, { workerData: { config: this.config } });
     this.investigationWorkers[index] = worker;
 
@@ -415,7 +415,7 @@ export class AgentManager {
     
     // Handle completion in priority queue system
     if (this.priorityQueueEnabled && this.investigationScheduler) {
-      await this.investigationScheduler.onInvestigationComplete(investigationId, true);
+      this.investigationScheduler.onInvestigationComplete(() => {});
     } else {
       // Legacy handling
       const investigation = this.activeInvestigations.get(investigationId);
