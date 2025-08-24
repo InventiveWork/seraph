@@ -8,7 +8,16 @@ export async function chat(
   tools: AgentTool[],
   logs?: string[],
 ): Promise<string> {
-  const provider = createLLMProvider(config);
+  let provider;
+  try {
+    provider = createLLMProvider(config);
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    if (errorMsg.includes('API key not found') || errorMsg.includes('Invalid API key')) {
+      return `❌ Error: ${errorMsg}\n\n💡 To fix this:\n1. Set your API key as an environment variable:\n   export GEMINI_API_KEY="your-api-key-here"\n2. Or add it to your seraph.config.json file:\n   {\n     "apiKey": "your-api-key-here",\n     ...\n   }\n\n🔑 Get your API key from: https://makersuite.google.com/app/apikey`;
+    }
+    throw error;
+  }
 
   const systemPrompt = `You are Seraph, a lightweight, autonomous SRE agent. Your primary goal is to analyze logs, detect anomalies, and provide insightful, actionable responses. You have access to a set of external tools to help you accomplish this.
 
@@ -34,7 +43,30 @@ When you receive a request, you may reason and use the available tools to gather
 
   for (let i = 0; i < 5; i++) {
     const currentPrompt = conversation.map(m => `${m.role}: ${m.content}`).join('\n\n');
-    const response = await provider.generate(currentPrompt, tools);
+    
+    let response;
+    try {
+      // Add a timeout to prevent hanging
+      let timeoutId: NodeJS.Timeout;
+      const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error('LLM request timed out after 30 seconds')), 30000);
+      });
+      
+      try {
+        response = await Promise.race([
+          provider.generate(currentPrompt, tools),
+          timeoutPromise
+        ]) as any;
+      } finally {
+        // Always clear the timeout to prevent open handles
+        if (timeoutId!) {
+          clearTimeout(timeoutId);
+        }
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      return `❌ Error generating response: ${errorMsg}\n\n💡 This might be due to:\n- Network connectivity issues\n- API rate limits\n- Invalid API key\n- Service unavailability\n\nPlease try again or check your configuration.`;
+    }
 
     if (response.text) {
       conversation.push({ role: 'assistant', content: response.text });

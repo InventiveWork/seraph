@@ -11,6 +11,7 @@ describe('AlerterClient', () => {
   const mockFetch = fetch as unknown as jest.Mock;
   let consoleLogSpy: jest.SpyInstance;
   let consoleErrorSpy: jest.SpyInstance;
+  const alerterInstances: AlerterClient[] = [];
 
   beforeEach(() => {
     consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
@@ -18,6 +19,16 @@ describe('AlerterClient', () => {
   });
 
   afterEach(() => {
+    // Clean up all alerter instances to prevent open handles
+    alerterInstances.forEach(alerter => {
+      try {
+        alerter.stop();
+      } catch (e) {
+        // Ignore cleanup errors
+      }
+    });
+    alerterInstances.length = 0;
+    
     jest.clearAllMocks();
     consoleLogSpy.mockRestore();
     consoleErrorSpy.mockRestore();
@@ -35,6 +46,7 @@ describe('AlerterClient', () => {
 
   it('should send an initial alert', async () => {
     const alerter = new AlerterClient(baseConfig);
+    alerterInstances.push(alerter);
     mockFetch.mockResolvedValue(new Response('OK', { status: 200 }));
 
     await alerter.sendInitialAlert('test log', 'test reason');
@@ -47,6 +59,7 @@ describe('AlerterClient', () => {
 
   it('should send a system alert to the configured Alertmanager URL', async () => {
     const alerter = new AlerterClient(baseConfig);
+    alerterInstances.push(alerter);
     const context = {
       source: 'test-source',
       type: 'test-type',
@@ -81,6 +94,7 @@ describe('AlerterClient', () => {
   it('should not send an alert if the Alertmanager URL is not configured', async () => {
     const configWithoutUrl: SeraphConfig = { ...baseConfig, alertManager: { url: '' } };
     const alerter = new AlerterClient(configWithoutUrl);
+    alerterInstances.push(alerter);
     
     // We expect this to log an error, but not throw, so we can't await a rejection.
     // Instead we check that fetch was not called.
@@ -93,6 +107,7 @@ describe('AlerterClient', () => {
 
   it('should handle network errors when sending an alert', async () => {
     const alerter = new AlerterClient(baseConfig);
+    alerterInstances.push(alerter);
     mockFetch.mockRejectedValue(new Error('Network error'));
 
     await alerter.sendInitialAlert('test log', 'test reason');
@@ -103,6 +118,7 @@ describe('AlerterClient', () => {
 
   it('should handle non-ok responses from Alertmanager', async () => {
     const alerter = new AlerterClient(baseConfig);
+    alerterInstances.push(alerter);
     mockFetch.mockResolvedValue(new Response('Internal Server Error', { status: 500 }));
 
     await alerter.sendInitialAlert('test log', 'test reason');

@@ -3,6 +3,7 @@ import { SeraphConfig } from './config';
 import fetch from 'node-fetch';
 import { v4 as uuidv4 } from 'uuid';
 import { createHash } from 'crypto';
+import { AlertHeartbeatManager } from './alert-heartbeat';
 
 interface InitialAlert {
   incidentId: string;
@@ -13,6 +14,7 @@ interface InitialAlert {
 export class AlerterClient {
   private alertManagerUrl: string;
   private activeIncidents: Map<string, InitialAlert> = new Map();
+  private heartbeatManager?: AlertHeartbeatManager;
 
   constructor(private config: SeraphConfig) {
     let baseUrl = this.config.alertManager?.url || '';
@@ -30,6 +32,12 @@ export class AlerterClient {
     } else {
       this.alertManagerUrl = '';
     }
+    
+    // Initialize heartbeat manager if Alertmanager is configured
+    if (this.alertManagerUrl) {
+      this.heartbeatManager = new AlertHeartbeatManager(this.alertManagerUrl, 30000); // 30 second heartbeat
+      this.heartbeatManager.start();
+    }
   }
 
   // Phase 1: Send the initial, simple alert
@@ -41,6 +49,9 @@ export class AlerterClient {
     
     if (this.alertManagerUrl) {
       const logHash = createHash('sha256').update(log).digest('hex').substring(0, 8);
+      const now = new Date();
+      const endsAt = new Date(now.getTime() + 5 * 60 * 1000); // 5 minutes from now
+      
       const alert = {
         labels: {
           alertname: 'SeraphAnomalyTriage',
@@ -52,11 +63,23 @@ export class AlerterClient {
           summary: `New anomaly detected: ${reason}`,
           description: `Initial analysis of log: "${log.substring(0, 200)}..."`,
         },
+        startsAt: now.toISOString(),
+        endsAt: endsAt.toISOString(),
       };
 
       try {
         await this.sendToAlertmanager([alert]);
         console.log(`[AlerterClient] Successfully sent initial alert to Alertmanager for incident ${incidentId}.`);
+        
+        // Register with heartbeat manager to keep alert active
+        if (this.heartbeatManager) {
+          this.heartbeatManager.registerAlert(
+            incidentId,
+            'SeraphAnomalyTriage',
+            alert.labels,
+            alert.annotations
+          );
+        }
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         console.error(`[AlerterClient] Failed to send initial alert for incident ${incidentId}:`, errorMessage);
@@ -180,6 +203,9 @@ export class AlerterClient {
         toolUsageSummary += ` | Tools: ${toolCountSummary} | Avg: ${Math.round(avgExecutionTime)}ms`;
       }
 
+      const now = new Date();
+      const endsAt = new Date(now.getTime() + 5 * 60 * 1000); // 5 minutes from now
+      
       const alert = {
         labels: {
           alertname: 'SeraphAnomalyInvestigationComplete',
@@ -199,11 +225,23 @@ export class AlerterClient {
           reportId: `Report ID: ${reportId}. Use 'seraph reports view ${reportId}' to see the full investigation trace.`,
           disclaimer: 'This is an AI-generated analysis. Always verify the investigation trace before taking action.',
         },
+        startsAt: now.toISOString(),
+        endsAt: endsAt.toISOString(),
       };
       
       try {
         await this.sendToAlertmanager([alert]);
         console.log(`[AlerterClient] Successfully sent enriched analysis to Alertmanager for incident ${incidentId}.`);
+        
+        // Update heartbeat manager with investigation complete alert
+        if (this.heartbeatManager) {
+          this.heartbeatManager.registerAlert(
+            incidentId,
+            'SeraphAnomalyInvestigationComplete',
+            alert.labels,
+            alert.annotations
+          );
+        }
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         console.error(`[AlerterClient] Failed to send enriched analysis for incident ${incidentId}:`, errorMessage);
@@ -229,6 +267,36 @@ export class AlerterClient {
 
     if (!response.ok) {
       throw new Error(`Alertmanager returned an error: ${response.statusText} - ${await response.text()}`);
+    }
+  }
+
+  /**
+   * Manually resolve an alert when the issue is fixed
+   */
+  public async resolveAlert(incidentId: string): Promise<void> {
+    console.log(`[AlerterClient] Resolving alert for incident ${incidentId}`);
+    
+    if (this.heartbeatManager) {
+      this.heartbeatManager.resolveAlert(incidentId);
+    }
+    
+    // Also remove from our internal tracking
+    this.activeIncidents.delete(incidentId);
+  }
+
+  /**
+   * Get list of currently active incidents
+   */
+  public getActiveIncidents(): string[] {
+    return Array.from(this.activeIncidents.keys());
+  }
+
+  /**
+   * Stop the alerter client and cleanup resources
+   */
+  public stop(): void {
+    if (this.heartbeatManager) {
+      this.heartbeatManager.stop();
     }
   }
 

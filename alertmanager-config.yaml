@@ -1,0 +1,79 @@
+# Alertmanager configuration for Seraph alerts
+global:
+  # How long to wait before marking an alert as resolved if no updates received
+  resolve_timeout: 5m
+
+# Alert routing configuration
+route:
+  # Group alerts by incident ID to keep related alerts together
+  group_by: ['incidentId', 'alertname']
+  
+  # Wait before sending initial notification
+  group_wait: 10s
+  
+  # Wait before sending notification about new alerts in a group
+  group_interval: 30s
+  
+  # Minimum time between re-sending notifications
+  repeat_interval: 30m
+  
+  # Default receiver
+  receiver: 'seraph-alerts'
+  
+  # Special routing for Seraph alerts
+  routes:
+    - match:
+        alertname: 'SeraphAnomalyTriage'
+      receiver: 'seraph-initial'
+      group_wait: 5s
+      group_interval: 10s
+      repeat_interval: 15m
+      continue: true
+      
+    - match:
+        alertname: 'SeraphAnomalyInvestigationComplete'
+      receiver: 'seraph-investigation'
+      group_wait: 5s
+      group_interval: 10s
+      repeat_interval: 30m
+      continue: true
+
+# Inhibition rules to prevent duplicate alerts
+inhibit_rules:
+  # When investigation is complete, inhibit the initial triage alert
+  - source_match:
+      alertname: 'SeraphAnomalyInvestigationComplete'
+    target_match:
+      alertname: 'SeraphAnomalyTriage'
+    equal: ['incidentId']
+
+# Receivers configuration
+receivers:
+  - name: 'seraph-alerts'
+    # Configure your notification channels here
+    # webhook_configs:
+    #   - url: 'http://your-webhook-endpoint'
+    #     send_resolved: true
+    
+  - name: 'seraph-initial'
+    # Initial triage alerts - might want faster notification
+    # slack_configs:
+    #   - api_url: 'YOUR_SLACK_WEBHOOK'
+    #     channel: '#incidents'
+    #     title: 'New Anomaly Detected'
+    #     text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+    
+  - name: 'seraph-investigation'
+    # Investigation complete alerts - detailed notifications
+    # slack_configs:
+    #   - api_url: 'YOUR_SLACK_WEBHOOK'
+    #     channel: '#incidents'
+    #     title: 'Investigation Complete'
+    #     text: |
+    #       {{ range .Alerts }}
+    #       **Root Cause:** {{ .Annotations.rootCause }}
+    #       **Impact:** {{ .Annotations.impact }}
+    #       **Remediation:** {{ .Annotations.remediation }}
+    #       **Report:** {{ .Annotations.reportId }}
+    #       {{ end }}
+    #     send_resolved: true
