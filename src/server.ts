@@ -248,7 +248,7 @@ export function startServer(config: SeraphConfig, agentManager: AgentManager) {
         mcpEnabled: !!config.builtInMcpServer,
         redisConnected: false,
         cacheHitRate: null,
-        version: '1.0.21',
+        version: '1.0.22',
         nodeVersion: process.version,
         platform: process.platform,
         arch: process.arch,

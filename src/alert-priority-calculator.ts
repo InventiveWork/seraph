@@ -1,5 +1,5 @@
 // Alert Priority Calculator - Intelligent scoring for alert prioritization
-import { AlertPriority, QueuedAlert } from './priority-queue';
+import { AlertPriority, QueuedAlert } from './scheduler';
 
 export interface PriorityWeights {
   keywords: number;        // Weight for keyword-based scoring

@@ -1,5 +1,5 @@
 // Priority Queue Tests
-import { AlertPriority, PriorityQueue } from './priority-queue';
+import { AlertPriority, PriorityQueue } from './scheduler';
 
 describe('PriorityQueue', () => {
   let queue: PriorityQueue;

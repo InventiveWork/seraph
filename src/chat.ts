@@ -1,6 +1,6 @@
 import { SeraphConfig } from './config';
 import { createLLMProvider } from './llm';
-import { AgentTool } from './mcp-manager';
+import { AgentTool } from './mcp-server';
 
 export async function chat(
   prompt: string,

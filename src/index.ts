@@ -9,20 +9,15 @@ import { startServer } from './server';
 import { AgentManager } from './agent-manager';
 import { loadConfig } from './config';
 import { chat } from './chat';
-import { mcpManager } from './mcp-manager';
+import { mcpManager, mcpServerRegistry, startMcpServer } from './mcp-server';
 import { ReportStore } from './report-store';
-import { mcpServerRegistry } from './mcp-registry';
-import { startMcpServer } from './mcp-server';
-import { StatusCommand } from './cli/status';
-import { SetupWizard } from './cli/setup';
-import { DoctorCommand } from './cli/doctor';
-import { formatter } from './cli/formatter';
+import { getAgentStatus, formatAgentStatus, runGuidedSetup, runDiagnostics, formatDiagnosticResults, formatter } from './cli';
 
 const program = new Command();
 
 program
   .name('seraph-agent')
-  .version('1.0.21')
+  .version('1.0.22')
   .description('A lightweight, autonomous SRE AI agent.');
 
 program.addHelpText('after', `
@@ -182,8 +177,9 @@ program
   .description('Check the status of the Seraph agent.')
   .option('-v, --verbose', 'Show detailed status information')
   .action(async (options) => {
-    const statusCommand = new StatusCommand();
-    await statusCommand.execute(options.verbose);
+    const status = await getAgentStatus(options.verbose);
+    const output = formatAgentStatus(status, options.verbose);
+    console.log(output);
   });
 
 program
@@ -334,7 +330,7 @@ reports
         
         for (const report of reports) {
           const statusColor = report.status === 'resolved' ? 'green' : 'yellow';
-          const status = formatter.colorize(report.status, statusColor, formatOptions);
+          const status = formatter.colorize(report.status, statusColor);
           const timestamp = new Date(report.timestamp).toLocaleString();
           
           console.log(`## ${report.incidentId}`);
@@ -348,15 +344,19 @@ reports
         if (reports.length === 0) {
           console.log(formatter.info('No reports found'));
         } else {
-          const headers = ['Incident ID', 'Status', 'Timestamp', 'Reason'];
-          const rows = reports.map(r => [
-            r.incidentId,
-            r.status,
-            new Date(r.timestamp).toLocaleString(),
-            (r.triageReason || '').substring(0, 50) + ((r.triageReason || '').length > 50 ? '...' : ''),
-          ]);
+          const tableData = reports.map(r => ({
+            'Incident ID': r.incidentId,
+            'Status': r.status,
+            'Timestamp': new Date(r.timestamp).toLocaleString(),
+            'Reason': (r.triageReason || '').substring(0, 50) + ((r.triageReason || '').length > 50 ? '...' : ''),
+          }));
           
-          console.log(formatter.table(headers, rows, formatOptions));
+          console.log(formatter.table(tableData, {
+            'Incident ID': (item) => item['Incident ID'],
+            'Status': (item) => item['Status'],
+            'Timestamp': (item) => item['Timestamp'],
+            'Reason': (item) => item['Reason'],
+          }));
         }
     }
     
@@ -387,25 +387,25 @@ reports
         console.log(JSON.stringify(report.finalAnalysis, null, 2) || 'No analysis available');
         break;
       default:
-        console.log(formatter.banner(`Report: ${report.incidentId}`, undefined, formatOptions));
+        console.log(formatter.banner(`Report: ${report.incidentId}`));
         console.log();
         
-        console.log(formatter.section('Summary', [
-          `**Status:** ${report.status}`,
-          `**Timestamp:** ${new Date(report.timestamp).toLocaleString()}`,
-          `**Reason:** ${report.triageReason || 'N/A'}`,
-          `**Log:** ${(report.initialLog || '').substring(0, 100)}${(report.initialLog || '').length > 100 ? '...' : ''}`,
-        ], formatOptions));
+        console.log(formatter.section('Summary'));
+        console.log(`**Status:** ${report.status}`);
+        console.log(`**Timestamp:** ${new Date(report.timestamp).toLocaleString()}`);
+        console.log(`**Reason:** ${report.triageReason || 'N/A'}`);
+        console.log(`**Log:** ${(report.initialLog || '').substring(0, 100)}${(report.initialLog || '').length > 100 ? '...' : ''}`);
         console.log();
         
         if (report.finalAnalysis) {
-          console.log(formatter.section('Analysis', [], formatOptions));
-          console.log(formatter.formatMarkdown(JSON.stringify(report.finalAnalysis, null, 2), formatOptions));
+          console.log(formatter.section('Analysis'));
+          console.log(formatter.formatMarkdown(JSON.stringify(report.finalAnalysis, null, 2)));
           console.log();
         }
         
         if (report.investigationTrace) {
-          console.log(formatter.section('Investigation Trace', [JSON.stringify(report.investigationTrace, null, 2)], formatOptions));
+          console.log(formatter.section('Investigation Trace'));
+          console.log(JSON.stringify(report.investigationTrace, null, 2));
           console.log();
         }
     }
@@ -442,9 +442,17 @@ tools
         if (mcpServerRegistry.length === 0) {
           console.log(formatter.info('No toolsets available'));
         } else {
-          const headers = ['Name', 'Description', 'URL'];
-          const rows = mcpServerRegistry.map(t => [t.name, t.description, t.url]);
-          console.log(formatter.table(headers, rows, formatOptions));
+          const tableData = mcpServerRegistry.map(t => ({
+            Name: t.name,
+            Description: t.description,
+            URL: t.url,
+          }));
+          
+          console.log(formatter.table(tableData, {
+            Name: (item) => item.Name,
+            Description: (item) => item.Description,
+            URL: (item) => item.URL,
+          }));
         }
     }
   });
@@ -455,8 +463,7 @@ program
   .description('Interactive setup wizard for Seraph configuration.')
   .option('--guided', 'Run the guided setup wizard (default)')
   .action(async () => {
-    const setupWizard = new SetupWizard();
-    await setupWizard.run();
+    runGuidedSetup();
   });
 
 // Doctor command for diagnostics
@@ -464,8 +471,9 @@ program
   .command('doctor')
   .description('Run comprehensive diagnostics and troubleshooting.')
   .action(async () => {
-    const doctorCommand = new DoctorCommand();
-    await doctorCommand.execute();
+    const results = await runDiagnostics();
+    const output = formatDiagnosticResults(results);
+    console.log(output);
   });
 
 // Version command with enhanced output
@@ -474,13 +482,12 @@ program
   .description('Show version information.')
   .action(() => {
     const options = { color: true, markdown: true };
-    console.log(formatter.banner('Seraph Agent', `Version ${program.version()}`, options));
+    console.log(formatter.banner('Seraph Agent', `Version ${program.version()}`));
     console.log();
-    console.log(formatter.section('System Information', [
-      `Node.js: ${process.version}`,
-      `Platform: ${process.platform} (${process.arch})`,
-      `NPM: ${process.env.npm_version || 'Unknown'}`,
-    ], options));
+    console.log(formatter.section('System Information'));
+    console.log(`Node.js: ${process.version}`);
+    console.log(`Platform: ${process.platform} (${process.arch})`);
+    console.log(`NPM: ${process.env.npm_version || 'Unknown'}`);
   });
 
 program.parse(process.argv);

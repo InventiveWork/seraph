@@ -1,7 +1,7 @@
 import { chat } from '../chat';
 import { createLLMProvider } from '../llm';
 import { SeraphConfig } from '../config';
-import { AgentTool } from '../mcp-manager';
+import { AgentTool } from '../mcp-server';
 
 jest.mock('../llm');
 

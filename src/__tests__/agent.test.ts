@@ -4,7 +4,7 @@ import { metrics } from '../metrics';
 
 // Mock dependencies
 jest.mock('../report-store');
-jest.mock('../mcp-manager', () => ({
+jest.mock('../mcp-server', () => ({
   mcpManager: {
     initialize: jest.fn().mockResolvedValue(undefined),
     getDynamicTools: jest.fn().mockReturnValue([]),
