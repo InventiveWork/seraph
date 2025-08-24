@@ -151,12 +151,12 @@ export class AlerterClient {
         const successfulTools = toolUsage.filter(t => t.success);
         
         const toolCounts = toolUsage.reduce((acc, usage) => {
-          acc[usage.tool] = (acc[usage.tool] || 0) + 1;
+          acc[usage.tool] = (acc[usage.tool] ?? 0) + 1;
           return acc;
         }, {} as Record<string, number>);
         
         const avgExecutionTime = toolUsage.length > 0 
-          ? toolUsage.reduce((acc, usage) => acc + (usage.executionTime || 0), 0) / toolUsage.length 
+          ? toolUsage.reduce((acc, usage) => acc + (usage.executionTime ?? 0), 0) / toolUsage.length 
           : 0;
         
         toolUsageSummary = `${successfulTools.length}/${toolUsage.length} tools succeeded`;

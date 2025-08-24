@@ -99,7 +99,7 @@ export class InvestigationScheduler {
         priorityScore: priorityResult.score,
         estimatedDuration,
         sessionId,
-        metadata: metadata || {},
+        metadata: metadata ?? {},
       };
 
       // Check for preemption opportunity

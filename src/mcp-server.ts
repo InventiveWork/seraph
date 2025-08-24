@@ -17,11 +17,11 @@ export interface McpTool {
 // --- Tool Implementations ---
 
 function handleGitLog(args: any, config: SeraphConfig): Promise<any> {
-  const repoPath = config.builtInMcpServer?.gitRepoPath || args.repoPath;
+  const repoPath = config.builtInMcpServer?.gitRepoPath ?? args.repoPath;
   if (!repoPath) {
     throw new Error('gitRepoPath is not configured in seraph.config.json and was not provided in the tool arguments.');
   }
-  const maxCount = args.maxCount || 10;
+  const maxCount = args.maxCount ?? 10;
   
   // Using execFile to prevent command injection
   const gitArgs = ['-C', repoPath, 'log', `--max-count=${maxCount}`, '--pretty=format:%h - %an, %ar : %s'];
@@ -49,7 +49,7 @@ export async function validateDestinationPath(destination: string): Promise<stri
   }
   
   // Reject patterns that could be used for traversal
-  if (destination.match(/\/\.\//g) || destination.match(/\\\.\\/) || destination.includes('../')) {
+  if (destination.match(/\/\.\//g) || destination.match(/\\\.\\.\//) || destination.includes('../')) {
     throw new Error('Security violation: Path traversal detected in destination');
   }
 
@@ -72,7 +72,7 @@ export async function validateDestinationPath(destination: string): Promise<stri
   try {
     // Try to resolve the full path including any symlinks
     canonicalPath = await fs.realpath(resolvedPath);
-  } catch (error) {
+  } catch {
     // If the full path doesn't exist, try to resolve the parent directory
     try {
       const parentDir = path.dirname(resolvedPath);
@@ -153,7 +153,7 @@ export async function validateDestinationPath(destination: string): Promise<stri
   return canonicalPath;
 }
 
-async function handleGitClone(args: any, config: SeraphConfig): Promise<any> {
+async function handleGitClone(args: any, _config: SeraphConfig): Promise<any> {
   const { repoUrl, destination } = args;
   if (!repoUrl) {
     throw new Error('repoUrl is a required argument.');
@@ -184,7 +184,7 @@ async function handleGitClone(args: any, config: SeraphConfig): Promise<any> {
       url.username = 'x-access-token';
       url.password = githubToken.trim();
       authenticatedUrl = url.toString();
-    } catch (e) {
+    } catch {
       // Ignore URL parsing errors for non-standard git URLs
     }
   }
@@ -195,7 +195,7 @@ async function handleGitClone(args: any, config: SeraphConfig): Promise<any> {
   return new Promise((resolve) => {
     execFile('git', gitArgs, { timeout: 60000 }, (error, _stdout, stderr) => { // Added 60s timeout
       if (error) {
-        let sanitizedError = stderr || error.message;
+        let sanitizedError = stderr ?? error.message;
         if (githubToken) {
           sanitizedError = sanitizedError.replace(new RegExp(githubToken, 'g'), 'REDACTED_TOKEN');
         }
@@ -222,7 +222,7 @@ async function handleGitClone(args: any, config: SeraphConfig): Promise<any> {
 // --- Prometheus Tool Implementations ---
 
 async function handlePrometheusQuery(args: any, config: SeraphConfig): Promise<any> {
-  const prometheusUrl = config.builtInMcpServer?.prometheusUrl || args.prometheusUrl || 'http://localhost:9090';
+  const prometheusUrl = config.builtInMcpServer?.prometheusUrl ?? args.prometheusUrl ?? 'http://localhost:9090';
   const { query, time, start, end, step } = args;
   
   if (!query) {
@@ -255,23 +255,24 @@ async function handlePrometheusQuery(args: any, config: SeraphConfig): Promise<a
     const data = await response.json();
     
     if (data.status !== 'success') {
-      throw new Error(`Prometheus query failed: ${data.error || 'Unknown error'}`);
+      throw new Error(`Prometheus query failed: ${data.error ?? 'Unknown error'}`);
     }
 
     return {
       query,
       resultType: data.data.resultType,
       result: data.data.result,
-      metrics: data.data.result.length || 0,
+      metrics: data.data.result.length ?? 0,
       queryTime: data.data.result.length > 0 ? 'success' : 'no_data',
     };
-  } catch (error: any) {
-    throw new Error(`Failed to query Prometheus: ${error.message}`);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Failed to query Prometheus: ${errorMessage}`);
   }
 }
 
 async function handlePrometheusMetrics(args: any, config: SeraphConfig): Promise<any> {
-  const prometheusUrl = config.builtInMcpServer?.prometheusUrl || args.prometheusUrl || 'http://localhost:9090';
+  const prometheusUrl = config.builtInMcpServer?.prometheusUrl ?? args.prometheusUrl ?? 'http://localhost:9090';
   const { match } = args;
 
   try {
@@ -289,7 +290,7 @@ async function handlePrometheusMetrics(args: any, config: SeraphConfig): Promise
     const data = await response.json();
     
     if (data.status !== 'success') {
-      throw new Error(`Failed to fetch metrics: ${data.error || 'Unknown error'}`);
+      throw new Error(`Failed to fetch metrics: ${data.error ?? 'Unknown error'}`);
     }
 
     return {
@@ -297,13 +298,14 @@ async function handlePrometheusMetrics(args: any, config: SeraphConfig): Promise
       count: data.data.length,
       filtered: !!match,
     };
-  } catch (error: any) {
-    throw new Error(`Failed to fetch Prometheus metrics: ${error.message}`);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Failed to fetch Prometheus metrics: ${errorMessage}`);
   }
 }
 
 async function handlePrometheusAlerts(args: any, config: SeraphConfig): Promise<any> {
-  const prometheusUrl = config.builtInMcpServer?.prometheusUrl || args.prometheusUrl || 'http://localhost:9090';
+  const prometheusUrl = config.builtInMcpServer?.prometheusUrl ?? args.prometheusUrl ?? 'http://localhost:9090';
 
   try {
     const response = await fetch(`${prometheusUrl}/api/v1/alerts`);
@@ -315,10 +317,10 @@ async function handlePrometheusAlerts(args: any, config: SeraphConfig): Promise<
     const data = await response.json();
     
     if (data.status !== 'success') {
-      throw new Error(`Failed to fetch alerts: ${data.error || 'Unknown error'}`);
+      throw new Error(`Failed to fetch alerts: ${data.error ?? 'Unknown error'}`);
     }
 
-    const alerts = data.data.alerts || [];
+    const alerts = data.data.alerts ?? [];
     const activeAlerts = alerts.filter((alert: any) => alert.state === 'firing');
     const pendingAlerts = alerts.filter((alert: any) => alert.state === 'pending');
 
@@ -327,23 +329,24 @@ async function handlePrometheusAlerts(args: any, config: SeraphConfig): Promise<
       active: activeAlerts.length,
       pending: pendingAlerts.length,
       alerts: alerts.map((alert: any) => ({
-        name: alert.labels?.alertname || 'Unknown',
+        name: alert.labels?.alertname ?? 'Unknown',
         state: alert.state,
-        severity: alert.labels?.severity || 'unknown',
-        summary: alert.annotations?.summary || '',
-        description: alert.annotations?.description || '',
+        severity: alert.labels?.severity ?? 'unknown',
+        summary: alert.annotations?.summary ?? '',
+        description: alert.annotations?.description ?? '',
         activeAt: alert.activeAt,
         labels: alert.labels,
         annotations: alert.annotations,
       })),
     };
-  } catch (error: any) {
-    throw new Error(`Failed to fetch Prometheus alerts: ${error.message}`);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Failed to fetch Prometheus alerts: ${errorMessage}`);
   }
 }
 
 async function handlePrometheusTargets(args: any, config: SeraphConfig): Promise<any> {
-  const prometheusUrl = config.builtInMcpServer?.prometheusUrl || args.prometheusUrl || 'http://localhost:9090';
+  const prometheusUrl = config.builtInMcpServer?.prometheusUrl ?? args.prometheusUrl ?? 'http://localhost:9090';
 
   try {
     const response = await fetch(`${prometheusUrl}/api/v1/targets`);
@@ -355,10 +358,10 @@ async function handlePrometheusTargets(args: any, config: SeraphConfig): Promise
     const data = await response.json();
     
     if (data.status !== 'success') {
-      throw new Error(`Failed to fetch targets: ${data.error || 'Unknown error'}`);
+      throw new Error(`Failed to fetch targets: ${data.error ?? 'Unknown error'}`);
     }
 
-    const targets = data.data.activeTargets || [];
+    const targets = data.data.activeTargets ?? [];
     const healthyTargets = targets.filter((target: any) => target.health === 'up');
     const unhealthyTargets = targets.filter((target: any) => target.health === 'down');
 
@@ -367,22 +370,23 @@ async function handlePrometheusTargets(args: any, config: SeraphConfig): Promise
       healthy: healthyTargets.length,
       unhealthy: unhealthyTargets.length,
       targets: targets.map((target: any) => ({
-        job: target.labels?.job || 'unknown',
-        instance: target.labels?.instance || 'unknown',
+        job: target.labels?.job ?? 'unknown',
+        instance: target.labels?.instance ?? 'unknown',
         health: target.health,
-        lastError: target.lastError || '',
+        lastError: target.lastError ?? '',
         lastScrape: target.lastScrape,
         scrapeUrl: target.scrapeUrl,
         labels: target.labels,
       })),
     };
-  } catch (error: any) {
-    throw new Error(`Failed to fetch Prometheus targets: ${error.message}`);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Failed to fetch Prometheus targets: ${errorMessage}`);
   }
 }
 
 async function handlePrometheusRules(args: any, config: SeraphConfig): Promise<any> {
-  const prometheusUrl = config.builtInMcpServer?.prometheusUrl || args.prometheusUrl || 'http://localhost:9090';
+  const prometheusUrl = config.builtInMcpServer?.prometheusUrl ?? args.prometheusUrl ?? 'http://localhost:9090';
 
   try {
     const response = await fetch(`${prometheusUrl}/api/v1/rules`);
@@ -394,15 +398,15 @@ async function handlePrometheusRules(args: any, config: SeraphConfig): Promise<a
     const data = await response.json();
     
     if (data.status !== 'success') {
-      throw new Error(`Failed to fetch rules: ${data.error || 'Unknown error'}`);
+      throw new Error(`Failed to fetch rules: ${data.error ?? 'Unknown error'}`);
     }
 
-    const groups = data.data.groups || [];
+    const groups = data.data.groups ?? [];
     let totalRules = 0;
     let firingRules = 0;
 
     const processedGroups = groups.map((group: any) => {
-      const rules = group.rules || [];
+      const rules = group.rules ?? [];
       totalRules += rules.length;
       
       const groupFiring = rules.filter((rule: any) => 
@@ -428,8 +432,9 @@ async function handlePrometheusRules(args: any, config: SeraphConfig): Promise<a
       firingRules,
       groups: processedGroups,
     };
-  } catch (error: any) {
-    throw new Error(`Failed to fetch Prometheus rules: ${error.message}`);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Failed to fetch Prometheus rules: ${errorMessage}`);
   }
 }
 
@@ -560,16 +565,18 @@ async function executeKubectl(args: string[], config: SeraphConfig): Promise<str
         if (code === 0) {
           resolve(stdout);
         } else {
-          reject(new Error(`kubectl command failed: ${stderr || 'Unknown error'}`));
+          reject(new Error(`kubectl command failed: ${stderr ?? 'Unknown error'}`));
         }
       });
       
       kubectl.on('error', (error) => {
-        reject(new Error(`Failed to execute kubectl: ${error.message}`));
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        reject(new Error(`Failed to execute kubectl: ${errorMessage}`));
       });
       
-    } catch (error: any) {
-      reject(new Error(`kubectl validation failed: ${error.message}`));
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      reject(new Error(`kubectl validation failed: ${errorMessage}`));
     }
   });
 }
@@ -601,12 +608,13 @@ async function handleKubectlGet(args: any, config: SeraphConfig): Promise<any> {
     return {
       command: `kubectl ${kubectlArgs.join(' ')}`,
       resource,
-      namespace: namespace || config.builtInMcpServer?.kubernetesNamespace || 'default',
+      namespace: namespace ?? config.builtInMcpServer?.kubernetesNamespace ?? 'default',
       output: output === 'json' ? JSON.parse(result) : result,
       raw: result,
     };
-  } catch (error: any) {
-    throw new Error(`kubectl get failed: ${error.message}`);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`kubectl get failed: ${errorMessage}`);
   }
 }
 
@@ -633,12 +641,13 @@ async function handleKubectlDescribe(args: any, config: SeraphConfig): Promise<a
     return {
       command: `kubectl ${kubectlArgs.join(' ')}`,
       resource,
-      name: name || 'all',
-      namespace: namespace || config.builtInMcpServer?.kubernetesNamespace || 'default',
+      name: name ?? 'all',
+      namespace: namespace ?? config.builtInMcpServer?.kubernetesNamespace ?? 'default',
       description: result,
     };
-  } catch (error: any) {
-    throw new Error(`kubectl describe failed: ${error.message}`);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`kubectl describe failed: ${errorMessage}`);
   }
 }
 
@@ -677,13 +686,14 @@ async function handleKubectlLogs(args: any, config: SeraphConfig): Promise<any> 
     return {
       command: `kubectl ${kubectlArgs.join(' ')}`,
       pod,
-      namespace: namespace || config.builtInMcpServer?.kubernetesNamespace || 'default',
-      container: container || 'default',
+      namespace: namespace ?? config.builtInMcpServer?.kubernetesNamespace ?? 'default',
+      container: container ?? 'default',
       logs: result,
       lineCount: result.split('\n').length,
     };
-  } catch (error: any) {
-    throw new Error(`kubectl logs failed: ${error.message}`);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`kubectl logs failed: ${errorMessage}`);
   }
 }
 
@@ -716,14 +726,15 @@ async function handleKubectlEvents(args: any, config: SeraphConfig): Promise<any
     
     return {
       command: `kubectl ${kubectlArgs.join(' ')}`,
-      namespace: namespace || config.builtInMcpServer?.kubernetesNamespace || 'default',
-      eventCount: events.items?.length || 0,
-      events: events.items || [],
+      namespace: namespace ?? config.builtInMcpServer?.kubernetesNamespace ?? 'default',
+      eventCount: events.items?.length ?? 0,
+      events: events.items ?? [],
       fieldSelector,
       since,
     };
-  } catch (error: any) {
-    throw new Error(`kubectl get events failed: ${error.message}`);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`kubectl get events failed: ${errorMessage}`);
   }
 }
 
@@ -750,12 +761,13 @@ async function handleKubectlTop(args: any, config: SeraphConfig): Promise<any> {
     return {
       command: `kubectl ${kubectlArgs.join(' ')}`,
       resource,
-      namespace: namespace || config.builtInMcpServer?.kubernetesNamespace || 'default',
+      namespace: namespace ?? config.builtInMcpServer?.kubernetesNamespace ?? 'default',
       usage: result,
       selector,
     };
-  } catch (error: any) {
-    throw new Error(`kubectl top failed: ${error.message}`);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`kubectl top failed: ${errorMessage}`);
   }
 }
 
@@ -960,7 +972,7 @@ toolHandlers.set('k8s_top', handleKubectlTop);
 
 // MCP Protocol Handlers
 toolHandlers.set('initialize', async (args: any) => {
-  const clientProtocolVersion = args?.protocolVersion || '1.0';
+  const clientProtocolVersion = args?.protocolVersion ?? '1.0';
   return {
     protocolVersion: clientProtocolVersion,
     serverInfo: { name: 'Seraph Built-in MCP Server', version: '1.0.0' },
@@ -993,7 +1005,7 @@ async function callTool(toolName: string, args: any, config: SeraphConfig): Prom
 }
 
 export function startMcpServer(config: SeraphConfig) {
-  const mcpPort = (config.port || 8080) + 1;
+  const mcpPort = (config.port ?? 8080) + 1;
 
   const server = http.createServer(async (req, res) => {
     res.setHeader('Content-Type', 'application/json');
@@ -1019,9 +1031,10 @@ export function startMcpServer(config: SeraphConfig) {
           const result = await callTool(toolName, toolArgs, config);
           res.statusCode = 200;
           res.end(JSON.stringify({ result, jsonrpc: '2.0', id }));
-        } catch (error: any) {
+        } catch (error) {
           res.statusCode = 500;
-          res.end(JSON.stringify({ error: { message: error.message }, jsonrpc: '2.0', id }));
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          res.end(JSON.stringify({ error: { message: errorMessage }, jsonrpc: '2.0', id }));
         }
       });
       return;

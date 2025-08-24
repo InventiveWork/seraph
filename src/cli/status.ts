@@ -66,7 +66,7 @@ export class StatusCommand {
     
     const status: AgentStatus = {
       running: false,
-      version: '1.0.18',
+      version: '1.0.20',
       mcpEnabled: !!config.builtInMcpServer,
       redisConnected: false,
       totalLogs: 0,
@@ -142,8 +142,8 @@ export class StatusCommand {
             resolve({
               startTime: new Date(info.startTime),
               memoryUsage: info.memoryUsage,
-              totalLogs: info.totalLogs || 0,
-              activeInvestigations: info.activeInvestigations || 0,
+              totalLogs: info.totalLogs ?? 0,
+              activeInvestigations: info.activeInvestigations ?? 0,
               cacheHitRate: info.cacheHitRate,
               redisConnected: info.redisConnected || false,
             });
@@ -377,8 +377,8 @@ export class StatusCommand {
       try {
         const config = await loadConfig();
         console.log(formatter.section('Configuration', [
-          `LLM Provider: ${config.llm?.provider || 'Not configured'}`,
-          `Model: ${config.llm?.model || 'Default'}`,
+          `LLM Provider: ${config.llm?.provider ?? 'Not configured'}`,
+          `Model: ${config.llm?.model ?? 'Default'}`,
           `Max Workers: ${config.workers}`,
           `Server Port: ${config.port}`,
           `Built-in MCP: ${config.builtInMcpServer ? 'Enabled' : 'Disabled'}`,

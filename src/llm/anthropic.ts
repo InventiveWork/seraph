@@ -29,7 +29,7 @@ export class AnthropicProvider implements LLMProvider {
     }
 
     this.anthropic = new Anthropic({ apiKey: config.apiKey });
-    this.model = config.llm?.model || 'claude-3-5-sonnet-20241022';
+    this.model = config.llm?.model ?? 'claude-3-5-sonnet-20241022';
     
     this.circuitBreaker = new CircuitBreaker({
       failureThreshold: 5,

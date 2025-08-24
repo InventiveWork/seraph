@@ -87,8 +87,8 @@ export class CLIFormatter {
 
   getTerminalSize(): TerminalSize {
     return {
-      width: process.stdout.columns || 80,
-      height: process.stdout.rows || 24,
+      width: process.stdout.columns ?? 80,
+      height: process.stdout.rows ?? 24,
     };
   }
 
@@ -154,7 +154,7 @@ export class CLIFormatter {
 
     // Calculate column widths
     const colWidths = headers.map((header, i) => {
-      const maxDataWidth = Math.max(...rows.map(row => (row[i] || '').length));
+      const maxDataWidth = Math.max(...rows.map(row => (row[i] ?? '').length));
       return Math.min(Math.max(header.length, maxDataWidth), Math.floor(maxWidth / headers.length));
     });
 
@@ -168,7 +168,7 @@ export class CLIFormatter {
     // Format rows
     const dataRows = rows.map(row => 
       headers.map((_, i) => 
-        (row[i] || '').padEnd(colWidths[i]).substring(0, colWidths[i]),
+        (row[i] ?? '').padEnd(colWidths[i]).substring(0, colWidths[i]),
       ).join(' │ '),
     );
 
@@ -239,8 +239,8 @@ export class CLIFormatter {
 
   wrap(text: string, options: FormatOptions = {}): string {
     const { width } = this.getTerminalSize();
-    const maxWidth = options.maxWidth || width - (options.indent || 0);
-    const indent = ' '.repeat(options.indent || 0);
+    const maxWidth = options.maxWidth || width - (options.indent ?? 0);
+    const indent = ' '.repeat(options.indent ?? 0);
     
     const words = text.split(' ');
     const lines: string[] = [];

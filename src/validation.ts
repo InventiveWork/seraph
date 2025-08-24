@@ -9,7 +9,7 @@ export interface LogEntry {
   timestamp?: string;
   level?: string;
   message: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 const MAX_LOG_SIZE = 1048576; // 1024 * 1024 pre-computed
@@ -103,7 +103,7 @@ export function validateLogEntry(input: string): ValidationResult {
         }
       }
     }
-  } catch (error) {
+  } catch {
     // If JSON parsing fails, treat as plain text log
     if (input.length > MAX_MESSAGE_LENGTH) {
       errors.push(`Message exceeds maximum length of ${MAX_MESSAGE_LENGTH} characters`);
@@ -134,7 +134,7 @@ export function validateRegexFilter(pattern: string): ValidationResult {
 
   try {
     // Check if it's a safe regex (not vulnerable to ReDoS)
-    if (!safeRegex(pattern)) {
+    if (!safeRegex(pattern, { limit: 25 })) {
       errors.push('Regex pattern is unsafe and could cause performance issues');
     }
     
@@ -185,7 +185,7 @@ export function validateApiKey(apiKey: string, forceProductionMode = false): Val
     process.env.NODE_ENV === 'test' || 
     process.env.JEST_WORKER_ID !== undefined ||
     apiKey.startsWith('test-') ||
-    (typeof globalThis !== 'undefined' && (globalThis as any).jest !== undefined)
+    (typeof globalThis !== 'undefined' && (globalThis as Record<string, unknown>).jest !== undefined)
   );
 
   if (!isTestEnv && apiKey.length < 10) {

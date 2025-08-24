@@ -41,7 +41,7 @@ export class DoctorCommand {
       child.stderr?.on('data', (data) => stderr += data.toString());
       
       child.on('close', (code) => {
-        resolve({ stdout, stderr, exitCode: code || 0 });
+        resolve({ stdout, stderr, exitCode: code ?? 0 });
       });
       
       child.on('error', (error) => {
@@ -280,7 +280,7 @@ export class DoctorCommand {
       // Redis cache configuration
       if (config.llmCache?.redis) {
         const redisStart = Date.now();
-        const redisConnectable = await this.checkPort(config.llmCache.redis.port || 6379);
+        const redisConnectable = await this.checkPort(config.llmCache.redis.port ?? 6379);
         
         if (redisConnectable) {
           checks.push({

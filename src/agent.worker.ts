@@ -11,15 +11,15 @@ const provider = createLLMProvider(config);
 // Initialize simple Redis cache for this worker
 const llmCache = new SimpleRedisCache({
   redis: config.llmCache?.redis ? {
-    url: config.llmCache.redis.url || process.env.REDIS_URL,
-    host: config.llmCache.redis.host || process.env.REDIS_HOST || 'localhost',
-    port: config.llmCache.redis.port || parseInt(process.env.REDIS_PORT || '6379'),
-    password: config.llmCache.redis.password || process.env.REDIS_PASSWORD,
-    keyPrefix: config.llmCache.redis.keyPrefix || 'agent:',
+    url: config.llmCache.redis.url ?? process.env.REDIS_URL,
+    host: config.llmCache.redis.host ?? process.env.REDIS_HOST ?? 'localhost',
+    port: config.llmCache.redis.port ?? parseInt(process.env.REDIS_PORT ?? '6379'),
+    password: config.llmCache.redis.password ?? process.env.REDIS_PASSWORD,
+    keyPrefix: config.llmCache.redis.keyPrefix ?? 'agent:',
   } : undefined,
-  similarityThreshold: config.llmCache?.similarityThreshold || 0.85,
-  ttlSeconds: config.llmCache?.ttlSeconds || 3600, // 1 hour
-  verbose: config.verbose || false,
+  similarityThreshold: config.llmCache?.similarityThreshold ?? 0.85,
+  ttlSeconds: config.llmCache?.ttlSeconds ?? 3600, // 1 hour
+  verbose: config.verbose ?? false,
 });
 
 // Initialize cache connection on worker startup

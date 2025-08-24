@@ -51,7 +51,7 @@ export class MemoryManager extends SimpleRedisCache {
         keyPrefix: 'memory:',
       } : undefined,
       similarityThreshold: 0.85,
-      ttlSeconds: config.shortTermTtl || 3600,
+      ttlSeconds: config.shortTermTtl ?? 3600,
     });
     
     this.config = {
@@ -280,7 +280,7 @@ export class MemoryManager extends SimpleRedisCache {
     if (similarIncidents.length > 0) {
       contextParts.push(
         'Similar recent incidents:',
-        ...similarIncidents.map(i => `- ${i.log} (resolved: ${i.resolution || 'pending'})`),
+        ...similarIncidents.map(i => `- ${i.log} (resolved: ${i.resolution ?? 'pending'})`),
       );
     }
 
@@ -330,9 +330,9 @@ export class MemoryManager extends SimpleRedisCache {
 
   private createPatternSignature(incident: Incident): string {
     // Extract key characteristics for pattern matching
-    const logType = incident.log.match(/^(ERROR|WARN|INFO|CRITICAL)/)?.[1] || 'UNKNOWN';
-    const service = incident.tags.find(t => t.startsWith('service:'))?.replace('service:', '') || 'unknown';
-    const errorType = incident.log.match(/(timeout|connection|memory|disk|cpu|network)/i)?.[1] || 'general';
+    const logType = incident.log.match(/^(ERROR|WARN|INFO|CRITICAL)/)?.[1] ?? 'UNKNOWN';
+    const service = incident.tags.find(t => t.startsWith('service:'))?.replace('service:', '') ?? 'unknown';
+    const errorType = incident.log.match(/(timeout|connection|memory|disk|cpu|network)/i)?.[1] ?? 'general';
     
     return `${logType}:${service}:${errorType.toLowerCase()}`;
   }

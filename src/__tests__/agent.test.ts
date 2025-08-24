@@ -67,6 +67,7 @@ describe('AgentManager', () => {
   it('should dispatch a log to a triage worker', () => {
     const log = 'this is a test log';
     agentManager.dispatch(log);
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(agentManager['triageWorkers'][0].postMessage).toHaveBeenCalledWith(log);
   });
 
@@ -75,6 +76,7 @@ describe('AgentManager', () => {
     const logsSkippedSpy = jest.spyOn(metrics.logsSkipped, 'inc');
     agentManager.dispatch(log);
     agentManager['triageWorkers'].forEach(worker => {
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(worker.postMessage).not.toHaveBeenCalled();
     });
     expect(logsSkippedSpy).toHaveBeenCalled();

@@ -91,5 +91,7 @@ module.exports = {
     'node_modules/',
     'coverage/',
     '*.js', // Ignore compiled JS files
+    // Uncomment to ignore test files completely:
+    // 'src/__tests__/**/*',
   ],
 };

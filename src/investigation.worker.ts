@@ -13,10 +13,10 @@ const provider: LLMProvider = createLLMProvider(config);
 // Initialize memory manager with investigation focus
 const memoryManager = new MemoryManager({
   redis: config.llmCache?.redis ? {
-    url: config.llmCache.redis.url || process.env.REDIS_URL,
-    host: config.llmCache.redis.host || process.env.REDIS_HOST || 'localhost',
-    port: config.llmCache.redis.port || parseInt(process.env.REDIS_PORT || '6379'),
-    password: config.llmCache.redis.password || process.env.REDIS_PASSWORD,
+    url: config.llmCache.redis.url ?? process.env.REDIS_URL,
+    host: config.llmCache.redis.host ?? process.env.REDIS_HOST ?? 'localhost',
+    port: config.llmCache.redis.port ?? parseInt(process.env.REDIS_PORT ?? '6379'),
+    password: config.llmCache.redis.password ?? process.env.REDIS_PASSWORD,
   } : undefined,
   shortTermTtl: 86400,    // 24 hours for incidents
   sessionTtl: 3600,       // 1 hour for sessions
@@ -86,7 +86,7 @@ async function investigate(log: string, reason: string, tools: AgentTool[], inve
       SIMILAR RECENT INCIDENTS:
       ${similarIncidents.map(incident => `
       - ${incident.log}
-        Resolution: ${incident.resolution || 'Unresolved'}
+        Resolution: ${incident.resolution ?? 'Unresolved'}
         Tags: ${incident.tags.join(', ')}
       `).join('\n')}
       ` : ''}
@@ -206,7 +206,7 @@ async function investigate(log: string, reason: string, tools: AgentTool[], inve
         if (sessionId) {
           await memoryManager.updateSessionContext(sessionId, {
             recentQueries: [log],
-            serviceContext: analysis.tags?.filter((t: string) => t.startsWith('service:')) || [],
+            serviceContext: analysis.tags?.filter((t: string) => t.startsWith('service:')) ?? [],
           });
         }
         
