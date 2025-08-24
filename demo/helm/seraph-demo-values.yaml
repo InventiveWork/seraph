@@ -3,9 +3,9 @@
 replicaCount: 1
 
 image:
-  repository: inventivework/seraph-agent
-  pullPolicy: IfNotPresent
-  tag: "1.0.18"
+  repository: seraph-agent
+  pullPolicy: Never
+  tag: "1.0.19"
 
 # We don't need an ingress for this demo
 ingress:
@@ -30,7 +30,7 @@ seraphConfig:
   workers: 3
   # Filter out Seraph's own logs and common noise to prevent feedback loops
   preFilters:
-    - 'fluent'
+    # - 'fluent'  # Commented out - this was blocking ALL Fluent Bit logs
     - 'chunk'
     - 'seraph-agent'
     - 'Received request: POST /logs'

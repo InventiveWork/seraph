@@ -167,6 +167,27 @@ redis:
       cpu: 100m
       memory: 256Mi
   
+  # Health checks
+  readinessProbe:
+    exec:
+      command:
+        - redis-cli
+        - -a
+        - $(REDIS_PASSWORD)
+        - ping
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 1
+    failureThreshold: 3
+  
+  livenessProbe:
+    tcpSocket:
+      port: redis
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 1
+    failureThreshold: 3
+  
   # Node selection
   nodeSelector: {}
   tolerations: []
